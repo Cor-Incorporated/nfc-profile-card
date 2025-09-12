@@ -42,6 +42,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 firebase-export-*
+# Firebase service account credentials
+*firebase-adminsdk*.json
+serviceAccountKey.json
 
 # IDE
 .vscode/
