@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ヘルパー関数
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidProfile() {
+      return request.resource.data.profile.links.size() <= 10;
+    }
+    
+    // ユーザードキュメント
+    match /users/{userId} {
+      // プロフィールページは誰でも読める（公開プロフィール）
+      allow read: if true;
+      
+      // Webhook経由の更新のみ（直接更新は不可）
+      allow create, update: if false;
+      allow delete: if isOwner(userId);
+      
+      // 連絡先サブコレクション（プライベート）
+      match /contacts/{contactId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // アナリティクスサブコレクション（読み取りのみ）
+      match /analytics/{analyticsId} {
+        allow read: if isOwner(userId);
+        allow write: if false; // Cloud Functionsからのみ
+      }
+    }
+    
+    // NFCカード管理（管理者のみ）
+    match /cards/{cardId} {
+      allow read: if true; // カードの有効性確認のため
+      allow write: if false; // Cloud Functionsからのみ
+    }
+    
+    // 注文管理（ユーザー自身の注文のみ）
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || 
+         request.auth.token.admin == true);
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.userId;
+      allow update: if false; // Cloud Functions/Webhookからのみ
+    }
+  }
+}

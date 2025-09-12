@@ -1,0 +1,51 @@
+{
+  "name": "nfc-profile-card",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@clerk/nextjs": "^5.2.0",
+    "svix": "^1.24.0",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.1.0",
+    "@stripe/stripe-js": "^4.0.0",
+    "stripe": "^15.0.0",
+    "@google/generative-ai": "^0.11.0",
+    "react-icons": "^5.2.1",
+    "zustand": "^4.5.2",
+    "axios": "^1.7.2",
+    "date-fns": "^3.6.0",
+    "react-hook-form": "^7.52.0",
+    "zod": "^3.23.8",
+    "@hookform/resolvers": "^3.6.0",
+    "sonner": "^1.5.0",
+    "vcard-creator": "^2.0.0",
+    "qrcode": "^1.5.3",
+    "react-webcam": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.5.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "prettier": "^3.3.2",
+    "tailwindcss": "^3.4.4",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.13"
+  }
+}
