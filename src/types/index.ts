@@ -1,0 +1,204 @@
+import { Timestamp } from 'firebase/firestore';
+
+// ユーザー情報
+export interface User {
+  uid: string;                    // Clerk User ID
+  username: string;               // ユニークなユーザー名
+  email: string;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+  
+  // プロフィール情報
+  profile: UserProfile;
+  
+  // NFCカード情報
+  cards: NFCCard[];
+  
+  // サブスクリプション情報
+  subscription: Subscription;
+  
+  // セキュリティ
+  security?: SecurityInfo;
+  
+  // 削除フラグ
+  deleted?: boolean;
+  deletedAt?: Timestamp | Date;
+}
+
+// プロフィール詳細
+export interface UserProfile {
+  name: string;
+  company?: string;
+  title?: string;
+  bio?: string;
+  avatarUrl?: string;
+  links: ProfileLink[];
+}
+
+// プロフィールリンク
+export interface ProfileLink {
+  url: string;
+  label?: string;              // カスタムラベル
+  service?: string;            // 自動認識されたサービス名
+  icon?: string;               // アイコン識別子
+  order: number;               // 表示順
+}
+
+// NFCカード情報
+export interface NFCCard {
+  cardId: string;              // カードのユニークID
+  isActive: boolean;
+  createdAt: Timestamp | Date;
+  lastUsed?: Timestamp | Date;
+}
+
+// サブスクリプション情報
+export interface Subscription {
+  plan: 'free' | 'premium';
+  expiresAt?: Timestamp | Date;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
+// セキュリティ情報
+export interface SecurityInfo {
+  oneTimeToken?: string;       // ワンタイムURL用
+  tokenExpiresAt?: Timestamp | Date;
+}
+
+// 連絡先情報
+export interface Contact {
+  id: string;
+  scannedAt: Timestamp | Date;
+  location?: string;           // 出会った場所
+  event?: string;              // イベント名
+  notes?: string;              // プライベートメモ
+  contactInfo: ContactInfo;
+  vCardData?: string;
+}
+
+// 連絡先詳細
+export interface ContactInfo {
+  name: string;
+  company?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  profileUrl?: string;
+  address?: string;
+}
+
+// アナリティクス情報
+export interface Analytics {
+  date: string;                // YYYY-MM-DD
+  views: number;
+  uniqueVisitors: number;
+  linkClicks: Record<string, number>;
+  cardTaps: number;
+}
+
+// 注文情報
+export interface Order {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  totalAmount: number;
+  currency: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  stripePaymentIntentId?: string;
+  shippingAddress: ShippingAddress;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
+// 注文アイテム
+export interface OrderItem {
+  type: 'nfc_card';
+  quantity: number;
+  pricePerUnit: number;
+  cardIds?: string[];          // 割り当てられたカードID
+}
+
+// 配送先住所
+export interface ShippingAddress {
+  name: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  address1: string;
+  address2?: string;
+  phone: string;
+  email: string;
+}
+
+// OCRレスポンス
+export interface OCRResponse {
+  success: boolean;
+  data?: ContactInfo;
+  vcard?: string;
+  error?: string;
+}
+
+// サービスアイコン定義
+export interface ServiceIcon {
+  icon: string;
+  color: string;
+  name?: string;
+}
+
+// サポートするサービス一覧
+export const SUPPORTED_SERVICES: Record<string, ServiceIcon> = {
+  // SNS
+  'twitter.com': { icon: 'FaTwitter', color: '#1DA1F2', name: 'Twitter' },
+  'x.com': { icon: 'FaXTwitter', color: '#000000', name: 'X' },
+  'instagram.com': { icon: 'FaInstagram', color: '#E4405F', name: 'Instagram' },
+  'facebook.com': { icon: 'FaFacebook', color: '#1877F2', name: 'Facebook' },
+  'linkedin.com': { icon: 'FaLinkedin', color: '#0077B5', name: 'LinkedIn' },
+  'tiktok.com': { icon: 'FaTiktok', color: '#000000', name: 'TikTok' },
+  'youtube.com': { icon: 'FaYoutube', color: '#FF0000', name: 'YouTube' },
+  
+  // 開発者向け
+  'github.com': { icon: 'FaGithub', color: '#333333', name: 'GitHub' },
+  'gitlab.com': { icon: 'FaGitlab', color: '#FC6D26', name: 'GitLab' },
+  'bitbucket.org': { icon: 'FaBitbucket', color: '#0052CC', name: 'Bitbucket' },
+  'stackoverflow.com': { icon: 'FaStackOverflow', color: '#F58025', name: 'Stack Overflow' },
+  
+  // 日本のサービス
+  'zenn.dev': { icon: 'SiZenn', color: '#3EA8FF', name: 'Zenn' },
+  'qiita.com': { icon: 'SiQiita', color: '#55C500', name: 'Qiita' },
+  'note.com': { icon: 'SiNote', color: '#41C9B4', name: 'note' },
+  'connpass.com': { icon: 'Calendar', color: '#E53935', name: 'connpass' },
+  
+  // クリエイター向け
+  'behance.net': { icon: 'FaBehance', color: '#1769FF', name: 'Behance' },
+  'dribbble.com': { icon: 'FaDribbble', color: '#EA4C89', name: 'Dribbble' },
+  'pinterest.com': { icon: 'FaPinterest', color: '#E60023', name: 'Pinterest' },
+  'deviantart.com': { icon: 'FaDeviantart', color: '#05CC47', name: 'DeviantArt' },
+  
+  // その他
+  'medium.com': { icon: 'FaMedium', color: '#000000', name: 'Medium' },
+  'reddit.com': { icon: 'FaReddit', color: '#FF4500', name: 'Reddit' },
+  'discord.com': { icon: 'FaDiscord', color: '#5865F2', name: 'Discord' },
+  'slack.com': { icon: 'FaSlack', color: '#4A154B', name: 'Slack' },
+  'twitch.tv': { icon: 'FaTwitch', color: '#9146FF', name: 'Twitch' },
+  'spotify.com': { icon: 'FaSpotify', color: '#1DB954', name: 'Spotify' },
+  'soundcloud.com': { icon: 'FaSoundcloud', color: '#FF3300', name: 'SoundCloud' },
+  'patreon.com': { icon: 'FaPatreon', color: '#F96854', name: 'Patreon' },
+  
+  // デフォルト
+  'default': { icon: 'FaLink', color: '#718096', name: 'Link' }
+};
+
+// VCard形式
+export interface VCard {
+  version: string;
+  fn: string;           // Full Name
+  n?: string;           // Name (Last;First;Middle;Prefix;Suffix)
+  org?: string;         // Organization
+  title?: string;       // Job Title
+  email?: string;
+  tel?: string;
+  url?: string;
+  adr?: string;         // Address
+  note?: string;
+}
