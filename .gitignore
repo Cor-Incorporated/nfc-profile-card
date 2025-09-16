@@ -8,13 +8,17 @@
 
 # testing
 /coverage
+*.lcov
+.nyc_output
 
 # next.js
 /.next/
 /out/
+next-env.d.ts
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -24,33 +28,119 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # local env files
-.env*.local
 .env
+.env*.local
+.env.development
+.env.test
+.env.production
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# PWA files
+**/public/sw.js
+**/public/workbox-*.js
+**/public/worker-*.js
+**/public/sw.js.map
+**/public/workbox-*.js.map
+**/public/worker-*.js.map
 
 # Firebase
 firebase-debug.log
-.firebase/
 firestore-debug.log
+firestore.rules
+firestore.indexes.json
 ui-debug.log
+database-debug.log
+pubsub-debug.log
+.firebase/
 firebase-export-*
+*.cache
+
+# Firebase Functions
+firebase/functions/node_modules/
+firebase/functions/lib/
+firebase/functions/.npm/
+firebase/functions/**/*.log
+firebase/functions/**/node_modules/
+
 # Firebase service account credentials
 *firebase-adminsdk*.json
 serviceAccountKey.json
+service-account*.json
+*-service-account.json
+*.serviceAccountKey.json
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
 # OS
 Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variable files
+.env.development.local
+.env.test.local
+.env.production.local
+
+# turbo
+.turbo
+
+# next-sitemap
+public/sitemap*.xml
+public/robots.txt
+
+# Storybook
+storybook-static/
