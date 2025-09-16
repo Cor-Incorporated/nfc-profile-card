@@ -81,6 +81,7 @@ service-account*.json
 # IDE
 .vscode/
 .idea/
+.serena/
 *.swp
 *.swo
 *~
