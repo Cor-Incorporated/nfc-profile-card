@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 
 // ユーザー情報
 export interface User {
-  uid: string;                    // Clerk User ID
+  uid: string;                    // Firebase User ID
   username: string;               // ユニークなユーザー名
   email: string;
   createdAt: Timestamp | Date;

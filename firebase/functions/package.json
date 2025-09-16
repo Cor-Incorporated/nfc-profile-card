@@ -11,7 +11,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "20"
+    "node": "18"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,6 @@
   "description": "",
   "dependencies": {
     "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.1.2",
-    "svix": "^1.44.0"
+    "firebase-functions": "^6.1.2"
   }
 }

@@ -1,0 +1,69 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ヘルパー関数
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidFileSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB以下
+    }
+    
+    // ユーザープロフィール画像
+    match /profiles/{userId}/{allPaths=**} {
+      // プロフィール画像は誰でも読める（公開プロフィール）
+      allow read: if true;
+      
+      // 本人のみアップロード可能
+      allow write: if isOwner(userId) && 
+                     isImageFile() && 
+                     isValidFileSize();
+      
+      // 本人のみ削除可能
+      allow delete: if isOwner(userId);
+    }
+    
+    // 一時的なOCRアップロード（名刺スキャン用）
+    match /temp/ocr/{userId}/{fileName} {
+      // 本人のみ読み書き可能
+      allow read: if isOwner(userId);
+      
+      // アップロードは画像ファイルのみ、10MB以下
+      allow create: if isOwner(userId) && 
+                      isImageFile() && 
+                      request.resource.size < 10 * 1024 * 1024;
+      
+      // 本人のみ削除可能
+      allow delete: if isOwner(userId);
+      
+      // 更新は不可
+      allow update: if false;
+    }
+    
+    // 会社ロゴ（管理者のみ）
+    match /company-logos/{companyId}/{allPaths=**} {
+      // 誰でも読める
+      allow read: if true;
+      
+      // 管理者のみ書き込み可能
+      allow write: if isAuthenticated() && 
+                     request.auth.token.admin == true &&
+                     isImageFile() &&
+                     isValidFileSize();
+    }
+    
+    // その他のファイルはアクセス禁止
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

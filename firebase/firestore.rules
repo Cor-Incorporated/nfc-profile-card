@@ -19,8 +19,9 @@ service cloud.firestore {
       // プロフィールページは誰でも読める（公開プロフィール）
       allow read: if true;
       
-      // Webhook経由の更新のみ（直接更新は不可）
-      allow create, update: if false;
+      // 本人のみ作成・更新可能（Firebase Auth使用）
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && isValidProfile();
       allow delete: if isOwner(userId);
       
       // 連絡先サブコレクション（プライベート）

@@ -19,7 +19,7 @@
   },
   "functions": {
     "source": "firebase/functions",
-    "runtime": "nodejs20",
+    "runtime": "nodejs18",
     "ignore": [
       "node_modules",
       ".git",

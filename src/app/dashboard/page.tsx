@@ -1,24 +1,115 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
+'use client';
 
-export default async function DashboardPage() {
-  const { userId } = await auth()
-  
-  if (!userId) {
-    redirect('/sign-in')
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { Button } from '@/components/ui/button'
+import { LogOut, ExternalLink, Eye } from 'lucide-react'
+
+export default function DashboardPage() {
+  const { user, loading, signOut } = useAuth()
+  const router = useRouter()
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/signin')
+    } else if (user) {
+      fetchUserProfile()
+    }
+  }, [user, loading, router])
+
+  const fetchUserProfile = async () => {
+    if (!user) return
+    try {
+      const userRef = doc(db, 'users', user.uid)
+      const userSnap = await getDoc(userRef)
+      if (userSnap.exists()) {
+        setUserProfile(userSnap.data())
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+    } finally {
+      setProfileLoading(false)
+    }
   }
 
-  const user = await currentUser()
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
-          <p className="text-gray-600 mt-2">
-            ようこそ、{user?.firstName || user?.username || 'ユーザー'}さん
-          </p>
+        {/* Header with user info and actions */}
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
+            <p className="text-gray-600 mt-2">
+              ようこそ、{user?.displayName || user?.email?.split('@')[0] || 'ユーザー'}さん
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {!profileLoading && userProfile?.username && (
+              <Button
+                variant="outline"
+                asChild
+                className="flex items-center gap-2"
+              >
+                <Link href={`/p/${userProfile.username}`} target="_blank">
+                  <Eye className="w-4 h-4" />
+                  公開ページを見る
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4" />
+              ログアウト
+            </Button>
+          </div>
         </div>
+
+        {/* Profile setup notice */}
+        {!profileLoading && !userProfile?.username && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.864-.833-2.634 0L3.098 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-yellow-800">プロフィール設定が必要です</h3>
+                <p className="text-yellow-700 text-sm mt-1">
+                  公開プロフィールページを作成するには、まずプロフィール情報を設定してください。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* プロフィール編集カード */}
@@ -34,9 +125,9 @@ export default async function DashboardPage() {
             <p className="text-gray-600 mb-4">
               プロフィール情報を編集して、あなたの魅力を最大限に伝えましょう
             </p>
-            <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            <Link href="/dashboard/edit" className="block w-full px-4 py-2 bg-primary text-white text-center rounded-lg hover:bg-primary/90 transition-colors">
               編集する
-            </button>
+            </Link>
           </div>
 
           {/* リンク管理カード */}
@@ -52,9 +143,9 @@ export default async function DashboardPage() {
             <p className="text-gray-600 mb-4">
               SNSやポートフォリオのリンクを追加・編集できます
             </p>
-            <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+            <Link href="/dashboard/edit" className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors">
               管理する
-            </button>
+            </Link>
           </div>
 
           {/* アナリティクスカード */}
@@ -123,10 +214,10 @@ export default async function DashboardPage() {
               <h2 className="text-xl font-semibold ml-4">名刺スキャン</h2>
             </div>
             <p className="text-gray-600 mb-4">
-              カメラで名刺を撮影して連絡先を自動登録
+              カメラで名刺を撮影して連絡先を自動登録（近日実装予定）
             </p>
-            <button className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors">
-              スキャンする
+            <button className="w-full px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed" disabled>
+              近日実装予定
             </button>
           </div>
         </div>

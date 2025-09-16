@@ -1,13 +1,19 @@
-import { auth } from '@clerk/nextjs/server'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function HomePage() {
-  const { userId } = await auth()
-  
-  if (userId) {
-    redirect('/dashboard')
-  }
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+
+export default function HomePage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
@@ -24,13 +30,13 @@ export default async function HomePage() {
           
           <div className="flex gap-4 justify-center">
             <Link
-              href="/sign-up"
+              href="/signin"
               className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
             >
               無料で始める
             </Link>
             <Link
-              href="/sign-in"
+              href="/signin"
               className="px-8 py-3 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
             >
               ログイン
