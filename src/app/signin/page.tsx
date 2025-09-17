@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, AlertCircle, CheckCircle2, ArrowLeft, Info } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
-export default function SignInPage() {
+function SignInForm() {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, user, resendVerificationEmail } = useAuth();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -439,5 +439,13 @@ export default function SignInPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <SignInForm />
+    </Suspense>
   );
 }
