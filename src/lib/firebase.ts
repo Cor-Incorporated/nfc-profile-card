@@ -12,16 +12,27 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Firebase設定の確認（開発時のみ）
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('Firebase Config:', {
-    apiKey: firebaseConfig.apiKey ? '✓ Set' : '✗ Missing',
-    authDomain: firebaseConfig.authDomain || '✗ Missing',
-    projectId: firebaseConfig.projectId || '✗ Missing',
-    storageBucket: firebaseConfig.storageBucket || '✗ Missing',
-    messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Set' : '✗ Missing',
-    appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing',
+// Firebase設定とドメインの確認
+if (typeof window !== 'undefined') {
+  const currentDomain = window.location.hostname;
+  console.log('Firebase Auth Debug:', {
+    currentDomain,
+    authDomain: firebaseConfig.authDomain,
+    isVercelPreview: currentDomain.includes('vercel.app'),
+    config: {
+      apiKey: firebaseConfig.apiKey ? '✓ Set' : '✗ Missing',
+      authDomain: firebaseConfig.authDomain || '✗ Missing',
+      projectId: firebaseConfig.projectId || '✗ Missing',
+      storageBucket: firebaseConfig.storageBucket || '✗ Missing',
+      messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Set' : '✗ Missing',
+      appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing',
+    }
   });
+
+  // authDomainが正しい形式かチェック
+  if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes('firebaseapp.com')) {
+    console.warn('⚠️ authDomain should be [PROJECT_ID].firebaseapp.com format');
+  }
 }
 
 // Initialize Firebase
