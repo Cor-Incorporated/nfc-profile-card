@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, AlertCircle, CheckCircle2, ArrowLeft, Info } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
 export default function SignInPage() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
-  const router = useRouter();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, user, resendVerificationEmail } = useAuth();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
+  const [defaultTab, setDefaultTab] = useState('signin');
 
   // フォーム状態
   const [email, setEmail] = useState('');
@@ -25,19 +29,23 @@ export default function SignInPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
 
+  // URLパラメータからデフォルトタブを設定
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'signup' || tab === 'signin') {
+      setDefaultTab(tab);
+    }
+  }, [searchParams]);
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       await signInWithGoogle();
-      // リダイレクト方式のため、ローディング状態はそのままにする
     } catch (error: any) {
       setIsLoading(false);
-      if (error.code === 'auth/configuration-not-found') {
-        setError('Firebase設定エラー: プロジェクトが正しく設定されていません。');
-      } else {
-        setError('Googleでのログインに失敗しました。もう一度お試しください。');
-      }
+      setError(error.message);
     }
   };
 
@@ -45,34 +53,12 @@ export default function SignInPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       await signInWithEmail(email, password);
-      // ログイン成功後、AuthContext内でリダイレクトされる
     } catch (error: any) {
-      const errorCode = error.code;
-      switch (errorCode) {
-        case 'auth/invalid-email':
-          setError('メールアドレスの形式が正しくありません。');
-          break;
-        case 'auth/user-disabled':
-          setError('このアカウントは無効化されています。');
-          break;
-        case 'auth/user-not-found':
-          setError('メールアドレスまたはパスワードが間違っています。');
-          break;
-        case 'auth/wrong-password':
-          setError('メールアドレスまたはパスワードが間違っています。');
-          break;
-        case 'auth/configuration-not-found':
-          setError('Firebase設定エラー: プロジェクトが正しく設定されていません。');
-          break;
-        case 'auth/invalid-credential':
-          setError('メールアドレスまたはパスワードが間違っています。');
-          break;
-        default:
-          setError(`認証エラー: ${error.message}`);
-      }
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +68,9 @@ export default function SignInPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
+    // バリデーション
     if (password !== confirmPassword) {
       setError('パスワードが一致しません。');
       setIsLoading(false);
@@ -97,29 +85,124 @@ export default function SignInPage() {
 
     try {
       await signUpWithEmail(email, password, displayName);
-      // サインアップ成功後、AuthContext内でリダイレクトされる
+      setVerificationEmailSent(true);
+      setSuccess('アカウントを作成しました。確認メールをご確認ください。');
     } catch (error: any) {
-      const errorCode = error.code;
-      switch (errorCode) {
-        case 'auth/invalid-email':
-          setError('メールアドレスの形式が正しくありません。');
-          break;
-        case 'auth/email-already-in-use':
-          setError('このメールアドレスは既に使用されています。');
-          break;
-        case 'auth/weak-password':
-          setError('パスワードが弱すぎます。');
-          break;
-        case 'auth/configuration-not-found':
-          setError('Firebase設定エラー: プロジェクトが正しく設定されていません。');
-          break;
-        default:
-          setError(`認証エラー: ${error.message}`);
-      }
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    if (!email) {
+      setError('メールアドレスを入力してください。');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await resetPassword(email);
+      setSuccess(`パスワードリセットメールを ${email} に送信しました。`);
+      setTimeout(() => {
+        setShowResetPassword(false);
+        setSuccess(null);
+      }, 5000);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await resendVerificationEmail();
+      setSuccess('確認メールを再送信しました。');
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // パスワードリセットフォーム
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4">
+          <Card>
+            <CardHeader>
+              <Button
+                variant="ghost"
+                className="w-fit mb-2"
+                onClick={() => setShowResetPassword(false)}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                ログインに戻る
+              </Button>
+              <CardTitle>パスワードリセット</CardTitle>
+              <CardDescription>
+                登録したメールアドレスにパスワードリセットリンクを送信します。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert className="mb-4 border-green-200 bg-green-50">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">{success}</AlertDescription>
+                </Alert>
+              )}
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">メールアドレス</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="example@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      送信中...
+                    </>
+                  ) : (
+                    'リセットメールを送信'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -139,8 +222,31 @@ export default function SignInPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+            {success && (
+              <Alert className="mb-4 border-green-200 bg-green-50">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">{success}</AlertDescription>
+              </Alert>
+            )}
 
-            <Tabs defaultValue="signin" className="w-full">
+            {/* メール未確認の警告 */}
+            {user && !user.emailVerified && user.providerData[0]?.providerId === 'password' && (
+              <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+                <Info className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  メールアドレスが確認されていません。
+                  <button
+                    onClick={handleResendVerification}
+                    className="ml-1 underline font-medium hover:text-yellow-900"
+                    disabled={isLoading}
+                  >
+                    確認メールを再送信
+                  </button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Tabs value={defaultTab} onValueChange={setDefaultTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">ログイン</TabsTrigger>
                 <TabsTrigger value="signup">新規登録</TabsTrigger>
@@ -163,7 +269,16 @@ export default function SignInPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">パスワード</Label>
+                    <div className="flex justify-between">
+                      <Label htmlFor="signin-password">パスワード</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowResetPassword(true)}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        パスワードをお忘れですか？
+                      </button>
+                    </div>
                     <Input
                       id="signin-password"
                       type="password"
@@ -197,6 +312,15 @@ export default function SignInPage() {
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
+                {verificationEmailSent && (
+                  <Alert className="mb-4 border-blue-200 bg-blue-50">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
+                      アカウント作成後、メールアドレスの確認が必要です。
+                      確認メールに記載されたリンクをクリックしてください。
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">名前（任意）</Label>

@@ -20,35 +20,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Firebase Authのトークンをクッキーから取得（クライアントサイドで設定）
-  const token = request.cookies.get('auth-token');
-
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
-  const isAuthPath = authPaths.some(path => pathname.startsWith(path));
-
-  // Google OAuth リダイレクトの処理中はスキップ
-  const isRedirectCallback = pathname === '/signin' && request.nextUrl.searchParams.has('__firebase_request_key');
-  if (isRedirectCallback) {
-    return NextResponse.next();
-  }
-
-  // 未認証でprotectedパスにアクセスしようとした場合
-  if (isProtectedPath && !token) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/signin';
-    url.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // 認証済みでauthパスにアクセスしようとした場合
-  if (isAuthPath && token) {
-    const url = request.nextUrl.clone();
-    const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
-    url.pathname = callbackUrl || '/dashboard';
-    url.searchParams.delete('callbackUrl');
-    return NextResponse.redirect(url);
-  }
-
+  // Firebase認証の処理中は何もしない
+  // クライアントサイドでAuthContextが処理する
   return NextResponse.next();
 }
 
