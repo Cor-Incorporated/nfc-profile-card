@@ -13,11 +13,15 @@
 
 ## 🚀 現在実装済みの機能
 
-### 🔐 認証システム
+### 🔐 認証システム（Firebase Authentication）
 - ✅ Email/Password認証
-- ✅ Google OAuth認証
+- ✅ Google OAuth認証（ポップアップ/リダイレクト対応）
+- ✅ メールアドレス確認機能
+- ✅ パスワードリセット機能
+- ✅ 認証の永続性（ブラウザを閉じても維持）
 - ✅ 自動ログイン状態管理
 - ✅ セキュアなログアウト
+- ✅ エラーメッセージの日本語化
 
 ### 📊 ダッシュボード
 - ✅ ユーザー情報表示
@@ -77,7 +81,10 @@ cp .env.example .env.local
 - Firestore Databaseを有効化
 - 設定値を.env.localに追加
 
-詳細な設定手順は [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) を参照してください。
+詳細な設定手順は以下のドキュメントを参照：
+- [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Firebase初期設定
+- [FIREBASE_AUTH_SETUP.md](./FIREBASE_AUTH_SETUP.md) - 認証設定ガイド
+- [FIREBASE_AUTH_BEST_PRACTICES.md](./FIREBASE_AUTH_BEST_PRACTICES.md) - 認証実装のベストプラクティス
 
 5. **開発サーバーの起動**
 ```bash
