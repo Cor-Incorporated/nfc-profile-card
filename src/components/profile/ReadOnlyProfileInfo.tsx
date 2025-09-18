@@ -1,5 +1,5 @@
-import DOMPurify from 'dompurify';
-import { Briefcase, Building, Globe, Mail, Phone, User } from 'lucide-react';
+import DOMPurify from "dompurify";
+import { Briefcase, Building, Globe, Mail, Phone, User } from "lucide-react";
 
 interface ReadOnlyProfileInfoProps {
   name?: string;
@@ -13,20 +13,20 @@ interface ReadOnlyProfileInfoProps {
 }
 
 export function ReadOnlyProfileInfo({
-  name = '山田太郎',
-  company = 'サンプル株式会社',
-  title = 'エンジニア',
-  description = 'よろしくお願いします',
-  email = 'taro@example.com',
-  phone = '090-1234-5678',
-  website = 'https://example.com',
-  avatarUrl = ''
+  name = "山田太郎",
+  company = "サンプル株式会社",
+  title = "エンジニア",
+  description = "よろしくお願いします",
+  email = "taro@example.com",
+  phone = "090-1234-5678",
+  website = "https://example.com",
+  avatarUrl = "",
 }: ReadOnlyProfileInfoProps) {
   // テキストをサニタイズ
   const sanitizeText = (text: string) => {
     return DOMPurify.sanitize(text, {
       ALLOWED_TAGS: [],
-      ALLOWED_ATTR: []
+      ALLOWED_ATTR: [],
     });
   };
 

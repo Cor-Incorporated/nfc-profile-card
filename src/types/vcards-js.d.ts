@@ -1,4 +1,4 @@
-declare module 'vcards-js' {
+declare module "vcards-js" {
   interface VCard {
     firstName: string;
     lastName: string;

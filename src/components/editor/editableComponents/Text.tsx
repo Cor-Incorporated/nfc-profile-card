@@ -1,42 +1,51 @@
-import React, { useState } from 'react';
-import { useNode, useEditor } from '@craftjs/core';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { X, Palette, Type, Bold } from 'lucide-react';
-import { HexColorPicker } from 'react-colorful';
+import React, { useState } from "react";
+import { useNode, useEditor } from "@craftjs/core";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { X, Palette, Type, Bold } from "lucide-react";
+import { HexColorPicker } from "react-colorful";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import DOMPurify from 'dompurify';
+} from "@/components/ui/popover";
+import DOMPurify from "dompurify";
 
 interface TextProps {
   text: string;
   fontSize: number;
   color?: string;
-  textAlign?: 'left' | 'center' | 'right';
+  textAlign?: "left" | "center" | "right";
   backgroundColor?: string;
   backgroundOpacity?: number;
   backgroundBlur?: number;
   fontFamily?: string;
   padding?: number;
-  fontWeight?: 'normal' | 'bold' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  fontWeight?:
+    | "normal"
+    | "bold"
+    | "300"
+    | "400"
+    | "500"
+    | "600"
+    | "700"
+    | "800"
+    | "900";
 }
 
 export const Text = ({
-  text = 'クリックして編集',
+  text = "クリックして編集",
   fontSize = 16,
-  color = '#000000',
-  textAlign = 'left',
-  backgroundColor = 'transparent',
+  color = "#000000",
+  textAlign = "left",
+  backgroundColor = "transparent",
   backgroundOpacity = 0,
   backgroundBlur = 0,
-  fontFamily = 'sans-serif',
+  fontFamily = "sans-serif",
   padding = 10,
-  fontWeight = 'normal'
+  fontWeight = "normal",
 }: TextProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
@@ -48,10 +57,10 @@ export const Text = ({
     connectors: { connect, drag },
     actions: { setProp },
     selected,
-    id
+    id,
   } = useNode((state) => ({
     selected: state.events.selected,
-    id: state.id
+    id: state.id,
   }));
 
   const { actions } = useEditor();
@@ -91,23 +100,25 @@ export const Text = ({
   };
 
   const fonts = [
-    { value: 'sans-serif', label: 'サンセリフ' },
-    { value: 'serif', label: 'セリフ' },
-    { value: 'monospace', label: '等幅' },
-    { value: 'cursive', label: '筆記体' },
-    { value: 'fantasy', label: 'ファンタジー' },
-    { value: 'system-ui', label: 'システム' },
-    { value: '"Noto Sans JP", sans-serif', label: 'Noto Sans JP' },
-    { value: '"Hiragino Sans", sans-serif', label: 'ヒラギノ角ゴ' },
+    { value: "sans-serif", label: "サンセリフ" },
+    { value: "serif", label: "セリフ" },
+    { value: "monospace", label: "等幅" },
+    { value: "cursive", label: "筆記体" },
+    { value: "fantasy", label: "ファンタジー" },
+    { value: "system-ui", label: "システム" },
+    { value: '"Noto Sans JP", sans-serif', label: "Noto Sans JP" },
+    { value: '"Hiragino Sans", sans-serif', label: "ヒラギノ角ゴ" },
   ];
 
-  const fontSizes = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
+  const fontSizes = [
+    10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72,
+  ];
   const fontWeights = [
-    { value: '300', label: '細字' },
-    { value: 'normal', label: '標準' },
-    { value: '500', label: '中太' },
-    { value: 'bold', label: '太字' },
-    { value: '800', label: '極太' },
+    { value: "300", label: "細字" },
+    { value: "normal", label: "標準" },
+    { value: "500", label: "中太" },
+    { value: "bold", label: "太字" },
+    { value: "800", label: "極太" },
   ];
 
   return (
@@ -121,12 +132,18 @@ export const Text = ({
         textAlign: textAlign,
         fontFamily: fontFamily,
         fontWeight: fontWeight,
-        border: selected ? '2px solid #3B82F6' : 'none',
-        cursor: 'text',
-        minHeight: '40px',
-        backgroundColor: backgroundColor !== 'transparent' ? `${backgroundColor}${Math.round(backgroundOpacity * 255).toString(16).padStart(2, '0')}` : 'transparent',
-        backdropFilter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : 'none',
-        borderRadius: '6px',
+        border: selected ? "2px solid #3B82F6" : "none",
+        cursor: "text",
+        minHeight: "40px",
+        backgroundColor:
+          backgroundColor !== "transparent"
+            ? `${backgroundColor}${Math.round(backgroundOpacity * 255)
+                .toString(16)
+                .padStart(2, "0")}`
+            : "transparent",
+        backdropFilter:
+          backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
+        borderRadius: "6px",
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -153,10 +170,7 @@ export const Text = ({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>文字色</Label>
-                  <HexColorPicker
-                    color={tempColor}
-                    onChange={setTempColor}
-                  />
+                  <HexColorPicker color={tempColor} onChange={setTempColor} />
                   <Input
                     value={tempColor}
                     onChange={(e) => setTempColor(e.target.value)}
@@ -203,7 +217,9 @@ export const Text = ({
                   {fonts.map((font) => (
                     <Button
                       key={font.value}
-                      variant={fontFamily === font.value ? "default" : "outline"}
+                      variant={
+                        fontFamily === font.value ? "default" : "outline"
+                      }
                       size="sm"
                       onClick={() => handleFontChange(font.value)}
                       className="w-full justify-start"
@@ -218,7 +234,10 @@ export const Text = ({
           </Popover>
 
           {/* フォントサイズ選択 */}
-          <Popover open={fontSizePickerOpen} onOpenChange={setFontSizePickerOpen}>
+          <Popover
+            open={fontSizePickerOpen}
+            onOpenChange={setFontSizePickerOpen}
+          >
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -268,7 +287,9 @@ export const Text = ({
                   {fontWeights.map((weight) => (
                     <Button
                       key={weight.value}
-                      variant={fontWeight === weight.value ? "default" : "outline"}
+                      variant={
+                        fontWeight === weight.value ? "default" : "outline"
+                      }
                       size="sm"
                       onClick={() => handleFontWeightChange(weight.value)}
                       className="w-full justify-start"
@@ -302,7 +323,7 @@ export const Text = ({
           const rawText = e.currentTarget.innerText;
           const sanitizedText = DOMPurify.sanitize(rawText, {
             ALLOWED_TAGS: [], // HTMLタグを許可しない（テキストのみ）
-            ALLOWED_ATTR: []  // 属性も許可しない
+            ALLOWED_ATTR: [], // 属性も許可しない
           });
           setProp((props: any) => {
             props.text = sanitizedText;
@@ -327,7 +348,7 @@ const TextSettings = () => {
     backgroundOpacity,
     backgroundBlur,
     fontFamily,
-    padding
+    padding,
   } = useNode((node) => ({
     text: node.data.props.text,
     fontSize: node.data.props.fontSize,
@@ -341,14 +362,14 @@ const TextSettings = () => {
   }));
 
   const fonts = [
-    { value: 'sans-serif', label: 'サンセリフ' },
-    { value: 'serif', label: 'セリフ' },
-    { value: 'monospace', label: '等幅' },
-    { value: 'cursive', label: '筆記体' },
-    { value: 'fantasy', label: 'ファンタジー' },
-    { value: 'system-ui', label: 'システム' },
-    { value: '"Noto Sans JP", sans-serif', label: 'Noto Sans JP' },
-    { value: '"Hiragino Sans", sans-serif', label: 'ヒラギノ角ゴ' },
+    { value: "sans-serif", label: "サンセリフ" },
+    { value: "serif", label: "セリフ" },
+    { value: "monospace", label: "等幅" },
+    { value: "cursive", label: "筆記体" },
+    { value: "fantasy", label: "ファンタジー" },
+    { value: "system-ui", label: "システム" },
+    { value: '"Noto Sans JP", sans-serif', label: "Noto Sans JP" },
+    { value: '"Hiragino Sans", sans-serif', label: "ヒラギノ角ゴ" },
   ];
 
   return (
@@ -357,11 +378,11 @@ const TextSettings = () => {
         <Label htmlFor="text">テキスト内容</Label>
         <Input
           id="text"
-          value={text || ''}
+          value={text || ""}
           onChange={(e) => {
             const sanitizedText = DOMPurify.sanitize(e.target.value, {
               ALLOWED_TAGS: [],
-              ALLOWED_ATTR: []
+              ALLOWED_ATTR: [],
             });
             setProp((props: any) => {
               props.text = sanitizedText;
@@ -374,7 +395,7 @@ const TextSettings = () => {
         <Label htmlFor="fontFamily">フォント</Label>
         <select
           id="fontFamily"
-          value={fontFamily || 'sans-serif'}
+          value={fontFamily || "sans-serif"}
           onChange={(e) => {
             setProp((props: any) => {
               props.fontFamily = e.target.value;
@@ -391,9 +412,7 @@ const TextSettings = () => {
       </div>
 
       <div>
-        <Label htmlFor="fontSize">
-          フォントサイズ: {fontSize}px
-        </Label>
+        <Label htmlFor="fontSize">フォントサイズ: {fontSize}px</Label>
         <Slider
           id="fontSize"
           min={8}
@@ -413,7 +432,7 @@ const TextSettings = () => {
           <input
             id="color"
             type="color"
-            value={color || '#000000'}
+            value={color || "#000000"}
             onChange={(e) => {
               setProp((props: any) => {
                 props.color = e.target.value;
@@ -422,7 +441,7 @@ const TextSettings = () => {
             className="h-10 w-20"
           />
           <Input
-            value={color || '#000000'}
+            value={color || "#000000"}
             onChange={(e) => {
               setProp((props: any) => {
                 props.color = e.target.value;
@@ -437,7 +456,7 @@ const TextSettings = () => {
         <Label htmlFor="textAlign">テキスト配置</Label>
         <select
           id="textAlign"
-          value={textAlign || 'left'}
+          value={textAlign || "left"}
           onChange={(e) => {
             setProp((props: any) => {
               props.textAlign = e.target.value;
@@ -457,7 +476,11 @@ const TextSettings = () => {
           <input
             id="backgroundColor"
             type="color"
-            value={backgroundColor === 'transparent' ? '#ffffff' : backgroundColor || '#ffffff'}
+            value={
+              backgroundColor === "transparent"
+                ? "#ffffff"
+                : backgroundColor || "#ffffff"
+            }
             onChange={(e) => {
               setProp((props: any) => {
                 props.backgroundColor = e.target.value;
@@ -466,11 +489,11 @@ const TextSettings = () => {
             className="h-10 w-20"
           />
           <Button
-            variant={backgroundColor === 'transparent' ? 'default' : 'outline'}
+            variant={backgroundColor === "transparent" ? "default" : "outline"}
             size="sm"
             onClick={() => {
               setProp((props: any) => {
-                props.backgroundColor = 'transparent';
+                props.backgroundColor = "transparent";
               });
             }}
           >
@@ -479,7 +502,7 @@ const TextSettings = () => {
         </div>
       </div>
 
-      {backgroundColor !== 'transparent' && (
+      {backgroundColor !== "transparent" && (
         <div>
           <Label htmlFor="backgroundOpacity">
             背景の透明度: {Math.round((backgroundOpacity || 0) * 100)}%
@@ -517,9 +540,7 @@ const TextSettings = () => {
       </div>
 
       <div>
-        <Label htmlFor="padding">
-          余白: {padding || 10}px
-        </Label>
+        <Label htmlFor="padding">余白: {padding || 10}px</Label>
         <Slider
           id="padding"
           min={0}
@@ -538,20 +559,20 @@ const TextSettings = () => {
 
 // Craft.jsの設定（必須）
 Text.craft = {
-  displayName: 'テキスト',
+  displayName: "テキスト",
   props: {
-    text: 'クリックして編集',
+    text: "クリックして編集",
     fontSize: 16,
-    color: '#000000',
-    textAlign: 'left',
-    backgroundColor: 'transparent',
+    color: "#000000",
+    textAlign: "left",
+    backgroundColor: "transparent",
     backgroundOpacity: 0,
     backgroundBlur: 0,
-    fontFamily: 'sans-serif',
+    fontFamily: "sans-serif",
     padding: 10,
-    fontWeight: 'normal'
+    fontWeight: "normal",
   },
   related: {
-    settings: TextSettings  // これが重要：設定パネルとの関連付け
-  }
+    settings: TextSettings, // これが重要：設定パネルとの関連付け
+  },
 };

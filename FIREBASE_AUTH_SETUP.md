@@ -7,6 +7,7 @@ Firebase認証が正常に動作するには、Firebase ConsoleとGoogle Cloud C
 ## 1. Firebase Console設定
 
 ### 認証プロバイダの有効化
+
 1. [Firebase Console](https://console.firebase.google.com)にアクセス
 2. プロジェクト「nfc-profile-card」を選択
 3. Authentication > Sign-in methodに移動
@@ -15,6 +16,7 @@ Firebase認証が正常に動作するには、Firebase ConsoleとGoogle Cloud C
    - Google認証
 
 ### 承認済みドメインの追加
+
 1. Authentication > Settings > Authorized domainsに移動
 2. 以下のドメインが追加されていることを確認：
    - `localhost`
@@ -24,6 +26,7 @@ Firebase認証が正常に動作するには、Firebase ConsoleとGoogle Cloud C
 ## 2. Google Cloud Console設定
 
 ### OAuth 2.0クライアントIDの確認
+
 1. [Google Cloud Console](https://console.cloud.google.com)にアクセス
 2. プロジェクトを選択
 3. APIs & Services > Credentialsに移動
@@ -55,18 +58,22 @@ NEXT_PUBLIC_FIREBASE_APP_ID=<your-app-id>
 ## 4. よくある問題と解決方法
 
 ### "auth/configuration-not-found" エラー
+
 - Firebase Consoleで認証プロバイダが有効になっているか確認
 - プロジェクトIDが正しいか確認
 
 ### Googleサインインができない
+
 - Google Cloud ConsoleでOAuth設定を確認
 - 承認済みドメインにlocalhostが追加されているか確認
 
 ### 認証後にリダイレクトされない
+
 - `authDomain`が`nfc-profile-card.firebaseapp.com`になっているか確認
 - ブラウザのコンソールでエラーを確認
 
 ### "auth/unauthorized-domain" エラー
+
 - Firebase Console > Authentication > Settings > Authorized domainsに現在のドメインを追加
 
 ## 5. デバッグ方法
@@ -79,6 +86,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=<your-app-id>
 ## 6. テストアカウント
 
 開発用にテストアカウントを作成することをお勧めします：
+
 - メール: `test@example.com`
 - パスワード: `Test123456`
 

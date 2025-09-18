@@ -1,24 +1,24 @@
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 interface ReadOnlyImageUploadProps {
   src?: string;
   alt?: string;
   width?: string;
   height?: string;
-  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
 }
 
 export const ReadOnlyImageUpload = ({
-  src = '',
-  alt = '画像',
-  width = '200px',
-  height = '200px',
-  objectFit = 'cover'
+  src = "",
+  alt = "画像",
+  width = "200px",
+  height = "200px",
+  objectFit = "cover",
 }: ReadOnlyImageUploadProps) => {
   // altテキストをサニタイズ
   const sanitizedAlt = DOMPurify.sanitize(alt, {
     ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
+    ALLOWED_ATTR: [],
   });
 
   if (!src) {
@@ -48,12 +48,13 @@ export const ReadOnlyImageUpload = ({
       onError={(e) => {
         // 画像の読み込みに失敗した場合のフォールバック
         const target = e.target as HTMLImageElement;
-        target.style.display = 'none';
-        const fallback = document.createElement('div');
-        fallback.className = 'bg-gray-200 rounded-lg flex items-center justify-center text-gray-500';
+        target.style.display = "none";
+        const fallback = document.createElement("div");
+        fallback.className =
+          "bg-gray-200 rounded-lg flex items-center justify-center text-gray-500";
         fallback.style.width = width;
         fallback.style.height = height;
-        fallback.textContent = '画像の読み込みに失敗しました';
+        fallback.textContent = "画像の読み込みに失敗しました";
         target.parentNode?.insertBefore(fallback, target);
       }}
     />

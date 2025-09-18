@@ -1,16 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useNode, useEditor, Element } from '@craftjs/core';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Text } from './Text';
-import { ImageUpload } from './ImageUpload';
-import { LinkButton } from './LinkButton';
-import { ProfileInfo } from './ProfileInfo';
-import { SocialLinksManager } from '../SocialLinksManager';
-import { Plus, Type, Image, User, Link, X } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState } from "react";
+import { useNode, useEditor, Element } from "@craftjs/core";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Text } from "./Text";
+import { ImageUpload } from "./ImageUpload";
+import { LinkButton } from "./LinkButton";
+import { ProfileInfo } from "./ProfileInfo";
+import { SocialLinksManager } from "../SocialLinksManager";
+import { Plus, Type, Image, User, Link, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AddComponentPlaceholderProps {
   socialLinks?: any[];
@@ -20,38 +24,38 @@ interface AddComponentPlaceholderProps {
 
 const getServiceColor = (service: string): string => {
   const colors: Record<string, string> = {
-    twitter: '#1DA1F2',
-    x: '#000000',
-    instagram: '#E1306C',
-    facebook: '#1877F2',
-    linkedin: '#0077B5',
-    github: '#333333',
-    youtube: '#FF0000',
-    tiktok: '#000000',
-    pinterest: '#BD081C',
-    whatsapp: '#25D366',
-    telegram: '#0088CC',
-    discord: '#5865F2',
-    twitch: '#9146FF',
-    spotify: '#1DB954',
-    reddit: '#FF4500'
+    twitter: "#1DA1F2",
+    x: "#000000",
+    instagram: "#E1306C",
+    facebook: "#1877F2",
+    linkedin: "#0077B5",
+    github: "#333333",
+    youtube: "#FF0000",
+    tiktok: "#000000",
+    pinterest: "#BD081C",
+    whatsapp: "#25D366",
+    telegram: "#0088CC",
+    discord: "#5865F2",
+    twitch: "#9146FF",
+    spotify: "#1DB954",
+    reddit: "#FF4500",
   };
 
-  return colors[service.toLowerCase()] || '#3B82F6';
+  return colors[service.toLowerCase()] || "#3B82F6";
 };
 
 export function AddComponentPlaceholder({
   socialLinks = [],
   onSocialLinksChange,
-  userId
+  userId,
 }: AddComponentPlaceholderProps) {
   const {
     connectors: { connect, drag },
     isActive,
-    isHovered
+    isHovered,
   } = useNode((state) => ({
     isActive: state.events.selected,
-    isHovered: state.events.hovered
+    isHovered: state.events.hovered,
   }));
 
   const { connectors } = useEditor();
@@ -60,7 +64,7 @@ export function AddComponentPlaceholder({
   return (
     <div
       ref={(ref: any) => connect(drag(ref))}
-      className={`relative w-full ${isActive ? 'ring-2 ring-blue-500 rounded' : ''}`}
+      className={`relative w-full ${isActive ? "ring-2 ring-blue-500 rounded" : ""}`}
     >
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
@@ -80,11 +84,17 @@ export function AddComponentPlaceholder({
                 <TabsTrigger value="links">リンク</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="components" className="p-4 h-full overflow-y-auto">
+              <TabsContent
+                value="components"
+                className="p-4 h-full overflow-y-auto"
+              >
                 <div className="space-y-2">
                   <div
                     ref={(ref: any) =>
-                      connectors.create(ref, <Text text="新しいテキスト" fontSize={16} />)
+                      connectors.create(
+                        ref,
+                        <Text text="新しいテキスト" fontSize={16} />,
+                      )
                     }
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
@@ -94,9 +104,7 @@ export function AddComponentPlaceholder({
                   </div>
 
                   <div
-                    ref={(ref: any) =>
-                      connectors.create(ref, <ImageUpload />)
-                    }
+                    ref={(ref: any) => connectors.create(ref, <ImageUpload />)}
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
@@ -106,7 +114,10 @@ export function AddComponentPlaceholder({
 
                   <div
                     ref={(ref: any) =>
-                      connectors.create(ref, <ProfileInfo userId={userId || ''} />)
+                      connectors.create(
+                        ref,
+                        <ProfileInfo userId={userId || ""} />,
+                      )
                     }
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
@@ -127,7 +138,9 @@ export function AddComponentPlaceholder({
 
                     {socialLinks.length > 0 && (
                       <div className="mt-6 space-y-2">
-                        <h3 className="text-sm font-semibold mb-2">ドラッグしてページに追加</h3>
+                        <h3 className="text-sm font-semibold mb-2">
+                          ドラッグしてページに追加
+                        </h3>
                         {socialLinks.map((link, index) => (
                           <div key={index} className="group relative">
                             <div
@@ -137,17 +150,21 @@ export function AddComponentPlaceholder({
                                   <LinkButton
                                     text={link.title || link.service}
                                     url={link.url}
-                                    backgroundColor={getServiceColor(link.service)}
+                                    backgroundColor={getServiceColor(
+                                      link.service,
+                                    )}
                                     width="100%"
                                     textColor="#FFFFFF"
-                                  />
+                                  />,
                                 )
                               }
                               className="flex items-center gap-2 p-3 pr-10 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                               onClick={() => setIsOpen(false)}
                             >
                               <Link className="h-4 w-4" />
-                              <span className="text-sm flex-1">{link.title || link.service}</span>
+                              <span className="text-sm flex-1">
+                                {link.title || link.service}
+                              </span>
                             </div>
                             <Button
                               variant="ghost"
@@ -156,7 +173,9 @@ export function AddComponentPlaceholder({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (onSocialLinksChange) {
-                                  const newLinks = socialLinks.filter((_, i) => i !== index);
+                                  const newLinks = socialLinks.filter(
+                                    (_, i) => i !== index,
+                                  );
                                   onSocialLinksChange(newLinks);
                                 }
                               }}
@@ -183,10 +202,10 @@ export function AddComponentPlaceholder({
 }
 
 AddComponentPlaceholder.craft = {
-  displayName: 'AddComponentPlaceholder',
+  displayName: "AddComponentPlaceholder",
   props: {
     socialLinks: [],
-    userId: ''
+    userId: "",
   },
-  related: {}
+  related: {},
 };

@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
-import { SUPPORTED_SERVICES } from '@/types';
+import { useState, useEffect } from "react";
+import { Plus, Trash2, GripVertical, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
+import { SUPPORTED_SERVICES } from "@/types";
 
 export interface Link {
   id: string;
@@ -30,8 +36,8 @@ export function LinkManager({
   links,
   onChange,
   maxLinks = 10,
-  title = 'リンク管理',
-  description = 'SNSやポートフォリオサイトなどのリンクを管理できます',
+  title = "リンク管理",
+  description = "SNSやポートフォリオサイトなどのリンクを管理できます",
 }: LinkManagerProps) {
   const [localLinks, setLocalLinks] = useState<Link[]>(links);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
@@ -54,19 +60,24 @@ export function LinkManager({
     return undefined;
   };
 
-  const handleLinkChange = (index: number, field: 'title' | 'url', value: string) => {
+  const handleLinkChange = (
+    index: number,
+    field: "title" | "url",
+    value: string,
+  ) => {
     const newLinks = [...localLinks];
     newLinks[index] = {
       ...newLinks[index],
       [field]: value,
     };
 
-    if (field === 'url') {
+    if (field === "url") {
       const service = detectService(value);
       if (service) {
         newLinks[index].service = service;
         if (!newLinks[index].title) {
-          newLinks[index].title = service.charAt(0).toUpperCase() + service.slice(1);
+          newLinks[index].title =
+            service.charAt(0).toUpperCase() + service.slice(1);
         }
       }
     }
@@ -78,9 +89,9 @@ export function LinkManager({
   const addLink = () => {
     if (localLinks.length >= maxLinks) {
       toast({
-        title: '制限',
+        title: "制限",
         description: `リンクは最大${maxLinks}個まで追加できます`,
-        variant: 'destructive',
+        variant: "destructive",
       });
       return;
     }
@@ -89,8 +100,8 @@ export function LinkManager({
       ...localLinks,
       {
         id: Date.now().toString(),
-        title: '',
-        url: '',
+        title: "",
+        url: "",
         order: localLinks.length,
       },
     ];
@@ -137,42 +148,42 @@ export function LinkManager({
 
   const getServiceIcon = (service?: string) => {
     const icons: { [key: string]: string } = {
-      twitter: '𝕏',
-      x: '𝕏',
-      linkedin: 'in',
-      github: 'gh',
-      instagram: '📷',
-      facebook: 'f',
-      youtube: '▶️',
-      tiktok: '♪',
-      discord: '💬',
-      slack: '#',
-      telegram: '✈️',
-      whatsapp: '💬',
-      line: 'L',
-      wechat: 'W',
-      pinterest: 'P',
-      reddit: 'R',
-      tumblr: 't',
-      snapchat: '👻',
-      twitch: '🎮',
-      spotify: '♫',
-      soundcloud: '☁️',
-      medium: 'M',
-      dev: 'DEV',
-      dribbble: '🏀',
-      behance: 'Be',
-      figma: 'F',
-      codepen: '{ }',
-      gitlab: 'GL',
-      bitbucket: 'BB',
-      stackoverflow: 'SO',
-      producthunt: 'P',
-      angellist: 'AL',
-      crunchbase: 'CB',
+      twitter: "𝕏",
+      x: "𝕏",
+      linkedin: "in",
+      github: "gh",
+      instagram: "📷",
+      facebook: "f",
+      youtube: "▶️",
+      tiktok: "♪",
+      discord: "💬",
+      slack: "#",
+      telegram: "✈️",
+      whatsapp: "💬",
+      line: "L",
+      wechat: "W",
+      pinterest: "P",
+      reddit: "R",
+      tumblr: "t",
+      snapchat: "👻",
+      twitch: "🎮",
+      spotify: "♫",
+      soundcloud: "☁️",
+      medium: "M",
+      dev: "DEV",
+      dribbble: "🏀",
+      behance: "Be",
+      figma: "F",
+      codepen: "{ }",
+      gitlab: "GL",
+      bitbucket: "BB",
+      stackoverflow: "SO",
+      producthunt: "P",
+      angellist: "AL",
+      crunchbase: "CB",
     };
 
-    return icons[service || ''] || '🔗';
+    return icons[service || ""] || "🔗";
   };
 
   return (
@@ -203,14 +214,14 @@ export function LinkManager({
 
             <Input
               value={link.title}
-              onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
+              onChange={(e) => handleLinkChange(index, "title", e.target.value)}
               placeholder="タイトル"
               className="flex-1"
             />
 
             <Input
               value={link.url}
-              onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+              onChange={(e) => handleLinkChange(index, "url", e.target.value)}
               placeholder="https://..."
               className="flex-2"
             />
@@ -219,7 +230,7 @@ export function LinkManager({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => window.open(link.url, '_blank')}
+                onClick={() => window.open(link.url, "_blank")}
                 title="プレビュー"
               >
                 <ExternalLink className="h-4 w-4" />

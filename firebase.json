@@ -1,11 +1,7 @@
 {
   "hosting": {
     "public": "out",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -20,11 +16,7 @@
   "functions": {
     "source": "firebase/functions",
     "runtime": "nodejs18",
-    "ignore": [
-      "node_modules",
-      ".git",
-      "**/*.log"
-    ]
+    "ignore": ["node_modules", ".git", "**/*.log"]
   },
   "storage": {
     "rules": "firebase/storage.rules"

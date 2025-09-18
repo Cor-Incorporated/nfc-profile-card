@@ -1,8 +1,18 @@
 [
   {
-    "origin": ["http://localhost:3000", "http://localhost:3001", "https://*.vercel.app", "https://nfc-profile-card.vercel.app"],
+    "origin": [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://*.vercel.app",
+      "https://nfc-profile-card.vercel.app"
+    ],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "x-goog-content-length-range", "x-goog-resumable"]
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "x-goog-content-length-range",
+      "x-goog-resumable"
+    ]
   }
 ]

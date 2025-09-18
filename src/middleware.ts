@@ -1,21 +1,21 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // 認証が必要なパス
-const protectedPaths = ['/dashboard', '/api/ocr', '/api/vcard'];
+const protectedPaths = ["/dashboard", "/api/ocr", "/api/vcard"];
 
 // 認証済みユーザーがアクセスすべきでないパス
-const authPaths = ['/signin', '/sign-in', '/sign-up'];
+const authPaths = ["/signin", "/sign-in", "/sign-up"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 静的アセットやAPIルートは除外
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/auth') ||
-    pathname.includes('.') ||
-    pathname === '/'
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.includes(".") ||
+    pathname === "/"
   ) {
     return NextResponse.next();
   }
@@ -34,6 +34,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

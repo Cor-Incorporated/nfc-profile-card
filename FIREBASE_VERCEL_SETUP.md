@@ -3,9 +3,11 @@
 ## 🚨 `auth/unauthorized-domain`エラーの解決方法
 
 ### 問題
+
 Vercelでデプロイした際に「認証エラーが発生しました: Firebase: Error (auth/unauthorized-domain)」が表示される
 
 ### 原因
+
 Firebase AuthenticationがVercelドメインからのアクセスを承認していない
 
 ## 📝 解決手順
@@ -47,6 +49,7 @@ NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=nfc-profile-card.firebaseapp.com
 ### 3. 環境変数の適用範囲を確認
 
 Vercelの環境変数設定で、各変数が以下の環境で有効になっているか確認：
+
 - ✅ Production
 - ✅ Preview
 - ✅ Development
@@ -54,6 +57,7 @@ Vercelの環境変数設定で、各変数が以下の環境で有効になっ�
 ### 4. デプロイメントの再実行
 
 変更後、Vercelで再デプロイ：
+
 ```bash
 vercel --prod
 ```
@@ -64,21 +68,23 @@ vercel --prod
 
 ```javascript
 // 現在のドメイン
-console.log('Current domain:', window.location.hostname);
+console.log("Current domain:", window.location.hostname);
 
 // Firebase設定
-console.log('Auth domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN);
+console.log("Auth domain:", process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN);
 ```
 
 ## 📚 Firebase Consoleでの承認済みドメイン管理
 
 ### プレビューデプロイメントへの対応
+
 Vercelのプレビューデプロイは動的にURLが生成されるため、ワイルドカードパターンを使用：
 
 1. `nfc-profile-card-*.vercel.app`を追加することで、すべてのプレビューデプロイをカバー
 2. セキュリティ上の懸念がある場合は、特定のブランチ名のみを許可
 
 ### セキュリティベストプラクティス
+
 - 本番環境では具体的なドメイン名のみを許可
 - 開発中は必要最小限のドメインのみを追加
 - 不要になったドメインは削除
@@ -86,16 +92,19 @@ Vercelのプレビューデプロイは動的にURLが生成されるため、�
 ## ⚡ よくある問題
 
 ### 1. 変更が反映されない
+
 - Firebase Consoleでの変更は即座に反映されるはず
 - ブラウザのキャッシュをクリア（Cmd+Shift+R / Ctrl+Shift+R）
 - シークレットウィンドウで確認
 
 ### 2. Googleサインインが動作しない
+
 - ポップアップブロッカーを無効化
 - サードパーティCookieを許可
 - コンソールでエラーメッセージを確認
 
 ### 3. 環境変数が読み込まれない
+
 - Vercelダッシュボードで環境変数を確認
 - `NEXT_PUBLIC_`プレフィックスが付いているか確認
 - デプロイメント後にページをハードリフレッシュ

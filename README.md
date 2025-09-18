@@ -14,6 +14,7 @@
 ## 🚀 現在実装済みの機能
 
 ### 🔐 認証システム（Firebase Authentication）
+
 - ✅ Email/Password認証
 - ✅ Google OAuth認証（ポップアップ/リダイレクト対応）
 - ✅ メールアドレス確認機能
@@ -24,12 +25,14 @@
 - ✅ エラーメッセージの日本語化
 
 ### 📊 ダッシュボード
+
 - ✅ ユーザー情報表示
 - ✅ プロフィール編集へのナビゲーション
 - ✅ 公開プロフィールページへのリンク
 - ✅ ログアウト機能
 
 ### ✏️ プロフィール管理
+
 - ✅ 基本情報の編集（名前、会社、役職、自己紹介）
 - ✅ 連絡先情報の管理（メール、電話、ウェブサイト、住所）
 - ✅ ソーシャルリンクの追加・編集・削除
@@ -45,6 +48,7 @@
 - ✅ **読み取り専用レンダラー** - 公開ページでのCraft.jsコンテンツ表示
 
 ### 🌐 公開プロフィールページ
+
 - ✅ `/p/[username]`でアクセス可能
 - ✅ Litlink風のデザイン
 - ✅ プロフィール情報の表示
@@ -64,6 +68,7 @@
 ## 🚀 クイックスタート
 
 ### 必要な環境
+
 - Node.js 18.0以上
 - npm または yarn
 - Firebaseアカウント
@@ -71,23 +76,27 @@
 ### セットアップ
 
 1. **リポジトリのクローン**
+
 ```bash
 git clone https://github.com/your-username/nfc-profile-card.git
 cd nfc-profile-card
 ```
 
 2. **依存関係のインストール**
+
 ```bash
 npm install
 ```
 
 3. **環境変数の設定**
+
 ```bash
 cp .env.example .env.local
 # .env.localファイルを編集して必要な値を設定
 ```
 
 4. **Firebaseプロジェクトの設定**
+
 - Firebaseコンソールでプロジェクト作成
 - Authentication（Email/Password, Google）を有効化
 - Firestore Databaseを有効化
@@ -95,18 +104,21 @@ cp .env.example .env.local
 - 設定値を.env.localに追加
 
 詳細な設定手順は以下のドキュメントを参照：
+
 - [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Firebase初期設定
 - [FIREBASE_AUTH_SETUP.md](./FIREBASE_AUTH_SETUP.md) - 認証設定ガイド
 - [FIREBASE_AUTH_BEST_PRACTICES.md](./FIREBASE_AUTH_BEST_PRACTICES.md) - 認証実装のベストプラクティス
 - [FIREBASE_STORAGE_SETUP.md](./FIREBASE_STORAGE_SETUP.md) - Storage設定ガイド
 
 5. **Firebase Storage CORS設定（重要）**
+
 ```bash
 # CORS設定を適用（画像アップロードに必要）
 ./setup-cors.sh
 ```
 
 6. **開発サーバーの起動**
+
 ```bash
 npm run dev
 ```

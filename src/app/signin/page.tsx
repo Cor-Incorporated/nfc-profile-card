@@ -1,38 +1,59 @@
-'use client';
+"use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, AlertCircle, CheckCircle2, ArrowLeft, Info } from 'lucide-react';
-import { FcGoogle } from 'react-icons/fc';
+import { useState, useEffect, Suspense } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  Mail,
+  AlertCircle,
+  CheckCircle2,
+  ArrowLeft,
+  Info,
+} from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 function SignInForm() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, user, resendVerificationEmail } = useAuth();
+  const {
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    resetPassword,
+    user,
+    resendVerificationEmail,
+  } = useAuth();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [verificationEmailSent, setVerificationEmailSent] = useState(false);
-  const [defaultTab, setDefaultTab] = useState('signin');
+  const [defaultTab, setDefaultTab] = useState("signin");
 
   // フォーム状態
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
   // URLパラメータからデフォルトタブを設定
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab === 'signup' || tab === 'signin') {
+    const tab = searchParams.get("tab");
+    if (tab === "signup" || tab === "signin") {
       setDefaultTab(tab);
     }
   }, [searchParams]);
@@ -72,13 +93,13 @@ function SignInForm() {
 
     // バリデーション
     if (password !== confirmPassword) {
-      setError('パスワードが一致しません。');
+      setError("パスワードが一致しません。");
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('パスワードは6文字以上にしてください。');
+      setError("パスワードは6文字以上にしてください。");
       setIsLoading(false);
       return;
     }
@@ -86,7 +107,7 @@ function SignInForm() {
     try {
       await signUpWithEmail(email, password, displayName);
       setVerificationEmailSent(true);
-      setSuccess('アカウントを作成しました。確認メールをご確認ください。');
+      setSuccess("アカウントを作成しました。確認メールをご確認ください。");
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -101,7 +122,7 @@ function SignInForm() {
     setSuccess(null);
 
     if (!email) {
-      setError('メールアドレスを入力してください。');
+      setError("メールアドレスを入力してください。");
       setIsLoading(false);
       return;
     }
@@ -127,7 +148,7 @@ function SignInForm() {
 
     try {
       await resendVerificationEmail();
-      setSuccess('確認メールを再送信しました。');
+      setSuccess("確認メールを再送信しました。");
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -165,7 +186,9 @@ function SignInForm() {
               {success && (
                 <Alert className="mb-4 border-green-200 bg-green-50">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">{success}</AlertDescription>
+                  <AlertDescription className="text-green-800">
+                    {success}
+                  </AlertDescription>
                 </Alert>
               )}
               <form onSubmit={handlePasswordReset} className="space-y-4">
@@ -182,18 +205,14 @@ function SignInForm() {
                     autoComplete="email"
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       送信中...
                     </>
                   ) : (
-                    'リセットメールを送信'
+                    "リセットメールを送信"
                   )}
                 </Button>
               </form>
@@ -208,7 +227,9 @@ function SignInForm() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">NFC Profile Card</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            NFC Profile Card
+          </h1>
           <p className="text-muted-foreground">
             デジタル名刺で新しいネットワーキングを始めましょう
           </p>
@@ -225,28 +246,36 @@ function SignInForm() {
             {success && (
               <Alert className="mb-4 border-green-200 bg-green-50">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* メール未確認の警告 */}
-            {user && !user.emailVerified && user.providerData[0]?.providerId === 'password' && (
-              <Alert className="mb-4 border-yellow-200 bg-yellow-50">
-                <Info className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-800">
-                  メールアドレスが確認されていません。
-                  <button
-                    onClick={handleResendVerification}
-                    className="ml-1 underline font-medium hover:text-yellow-900"
-                    disabled={isLoading}
-                  >
-                    確認メールを再送信
-                  </button>
+                <AlertDescription className="text-green-800">
+                  {success}
                 </AlertDescription>
               </Alert>
             )}
 
-            <Tabs value={defaultTab} onValueChange={setDefaultTab} className="w-full">
+            {/* メール未確認の警告 */}
+            {user &&
+              !user.emailVerified &&
+              user.providerData[0]?.providerId === "password" && (
+                <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+                  <Info className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    メールアドレスが確認されていません。
+                    <button
+                      onClick={handleResendVerification}
+                      className="ml-1 underline font-medium hover:text-yellow-900"
+                      disabled={isLoading}
+                    >
+                      確認メールを再送信
+                    </button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+            <Tabs
+              value={defaultTab}
+              onValueChange={setDefaultTab}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">ログイン</TabsTrigger>
                 <TabsTrigger value="signup">新規登録</TabsTrigger>
@@ -291,11 +320,7 @@ function SignInForm() {
                     />
                   </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -377,11 +402,7 @@ function SignInForm() {
                     />
                   </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -423,11 +444,17 @@ function SignInForm() {
           <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
             <div>
               続行することで、
-              <Link href="/terms" className="underline underline-offset-4 hover:text-primary">
+              <Link
+                href="/terms"
+                className="underline underline-offset-4 hover:text-primary"
+              >
                 利用規約
               </Link>
               と
-              <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
+              <Link
+                href="/privacy"
+                className="underline underline-offset-4 hover:text-primary"
+              >
                 プライバシーポリシー
               </Link>
               に同意したものとみなされます。
@@ -444,7 +471,13 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
       <SignInForm />
     </Suspense>
   );

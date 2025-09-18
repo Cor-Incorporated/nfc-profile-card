@@ -1,19 +1,19 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard')
+      router.push("/dashboard");
     }
-  }, [user, loading, router])
+  }, [user, loading, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
@@ -27,7 +27,7 @@ export default function HomePage() {
             <br />
             次世代のネットワーキングツール
           </p>
-          
+
           <div className="flex gap-4 justify-center">
             <Link
               href="/signin?tab=signup"
@@ -43,7 +43,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        
+
         <div className="mt-16 grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <div className="text-4xl mb-4">🎯</div>
@@ -52,7 +52,7 @@ export default function HomePage() {
               NFCカードをスマホにタップするだけで、瞬時にプロフィールを共有
             </p>
           </div>
-          
+
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <div className="text-4xl mb-4">🔗</div>
             <h3 className="text-xl font-semibold mb-2">リンク集約</h3>
@@ -60,7 +60,7 @@ export default function HomePage() {
               最大10個のSNS・ポートフォリオリンクを一元管理
             </p>
           </div>
-          
+
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <div className="text-4xl mb-4">📸</div>
             <h3 className="text-xl font-semibold mb-2">名刺OCR</h3>
@@ -71,5 +71,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

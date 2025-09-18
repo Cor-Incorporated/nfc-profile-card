@@ -1,4 +1,4 @@
-const { createVanillaExtractPlugin } = require('@vanilla-extract/next-plugin');
+const { createVanillaExtractPlugin } = require("@vanilla-extract/next-plugin");
 const withVanillaExtract = createVanillaExtractPlugin();
 
 /** @type {import('next').NextConfig} */
@@ -7,36 +7,36 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        port: "",
+        pathname: "/**",
       },
       {
-        protocol: 'https',
-        hostname: '*.googleusercontent.com',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+        port: "",
+        pathname: "/**",
       },
       {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
       {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com',
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
       },
       {
-        protocol: 'https',
-        hostname: 'ui-avatars.com',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "ui-avatars.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: "10mb",
     },
   },
   typescript: {
@@ -50,16 +50,16 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: [
           {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
           },
         ],
       },
     ];
   },
-}
+};
 
-module.exports = withVanillaExtract(nextConfig)
+module.exports = withVanillaExtract(nextConfig);

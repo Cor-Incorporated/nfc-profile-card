@@ -1,46 +1,52 @@
-'use client';
+"use client";
 
-import React, { useState, useCallback } from 'react';
-import { useNode, useEditor } from '@craftjs/core';
-import Cropper from 'react-easy-crop';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { uploadCompressedImage } from '@/lib/storage';
-import { Upload, Crop, X } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
-import { Point, Area } from 'react-easy-crop';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useCallback } from "react";
+import { useNode, useEditor } from "@craftjs/core";
+import Cropper from "react-easy-crop";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { uploadCompressedImage } from "@/lib/storage";
+import { Upload, Crop, X } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Point, Area } from "react-easy-crop";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ImageUploadProps {
   src?: string;
   alt?: string;
   width?: string;
   height?: string;
-  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
   userId?: string;
 }
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
-    image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', error => reject(error));
-    image.setAttribute('crossOrigin', 'anonymous');
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
     image.src = url;
   });
 
 const getCroppedImg = async (
   imageSrc: string,
-  pixelCrop: Area
+  pixelCrop: Area,
 ): Promise<string> => {
   const image = await createImage(imageSrc);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
 
   if (!ctx) {
-    throw new Error('No 2d context');
+    throw new Error("No 2d context");
   }
 
   canvas.width = pixelCrop.width;
@@ -55,40 +61,40 @@ const getCroppedImg = async (
     0,
     0,
     pixelCrop.width,
-    pixelCrop.height
+    pixelCrop.height,
   );
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       if (!blob) {
-        console.error('Canvas is empty');
+        console.error("Canvas is empty");
         return;
       }
       const fileUrl = URL.createObjectURL(blob);
       resolve(fileUrl);
-    }, 'image/jpeg');
+    }, "image/jpeg");
   });
 };
 
 export const ImageUpload = ({
-  src = '',
-  alt = '画像',
-  width = '100%',
-  height = 'auto',
-  objectFit = 'cover',
-  userId: propUserId
+  src = "",
+  alt = "画像",
+  width = "100%",
+  height = "auto",
+  objectFit = "cover",
+  userId: propUserId,
 }: ImageUploadProps) => {
   const { user } = useAuth();
-  const userId = propUserId || user?.uid || 'temp';
+  const userId = propUserId || user?.uid || "temp";
 
   const {
     connectors: { connect, drag },
     actions: { setProp },
     selected,
-    id
+    id,
   } = useNode((state) => ({
     selected: state.events.selected,
-    id: state.id
+    id: state.id,
   }));
 
   const { actions } = useEditor();
@@ -96,14 +102,17 @@ export const ImageUpload = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [tempImageUrl, setTempImageUrl] = useState<string>('');
+  const [tempImageUrl, setTempImageUrl] = useState<string>("");
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+  const onCropComplete = useCallback(
+    (croppedArea: Area, croppedAreaPixels: Area) => {
+      setCroppedAreaPixels(croppedAreaPixels);
+    },
+    [],
+  );
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -131,26 +140,28 @@ export const ImageUpload = ({
     try {
       // 切り抜いた画像を取得
       const croppedImage = await getCroppedImg(tempImageUrl, croppedAreaPixels);
-      
+
       // Blob URLをBlobに変換
       const response = await fetch(croppedImage);
       const blob = await response.blob();
-      
+
       // FileオブジェクトとしてFirebase Storageにアップロード
-      const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
-      const uploadedUrl = await uploadCompressedImage(userId, file, 'content');
-      
+      const file = new File([blob], "cropped-image.jpg", {
+        type: "image/jpeg",
+      });
+      const uploadedUrl = await uploadCompressedImage(userId, file, "content");
+
       // コンポーネントのプロパティを更新
       setProp((props: any) => {
         props.src = uploadedUrl;
       });
-      
+
       // クリーンアップ
       URL.revokeObjectURL(croppedImage);
       setIsCropperOpen(false);
-      setTempImageUrl('');
+      setTempImageUrl("");
     } catch (error) {
-      console.error('画像のアップロードに失敗しました:', error);
+      console.error("画像のアップロードに失敗しました:", error);
     } finally {
       setIsUploading(false);
     }
@@ -158,7 +169,7 @@ export const ImageUpload = ({
 
   const handleCropCancel = () => {
     setIsCropperOpen(false);
-    setTempImageUrl('');
+    setTempImageUrl("");
     setCrop({ x: 0, y: 0 });
     setZoom(1);
   };
@@ -171,16 +182,16 @@ export const ImageUpload = ({
         style={{
           width,
           height,
-          border: selected ? '2px solid #3B82F6' : 'none',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          minHeight: '200px',
-          backgroundColor: '#f3f4f6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative'
+          border: selected ? "2px solid #3B82F6" : "none",
+          borderRadius: "8px",
+          overflow: "hidden",
+          cursor: "pointer",
+          minHeight: "200px",
+          backgroundColor: "#f3f4f6",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -204,9 +215,9 @@ export const ImageUpload = ({
             src={src}
             alt={alt}
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit
+              width: "100%",
+              height: "100%",
+              objectFit,
             }}
           />
         ) : (
@@ -235,7 +246,7 @@ export const ImageUpload = ({
               画像をドラッグして位置を調整し、スライダーでズームを変更できます
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="relative h-96 bg-gray-100">
             {tempImageUrl && (
               <Cropper
@@ -271,10 +282,7 @@ export const ImageUpload = ({
                 <X className="mr-2 h-4 w-4" />
                 キャンセル
               </Button>
-              <Button
-                onClick={handleCropConfirm}
-                disabled={isUploading}
-              >
+              <Button onClick={handleCropConfirm} disabled={isUploading}>
                 <Crop className="mr-2 h-4 w-4" />
                 切り抜きを確定
               </Button>
@@ -294,7 +302,7 @@ const ImageUploadSettings = () => {
     alt,
     width,
     height,
-    objectFit
+    objectFit,
   } = useNode((node) => ({
     src: node.data.props.src,
     alt: node.data.props.alt,
@@ -329,7 +337,7 @@ const ImageUploadSettings = () => {
         <Label htmlFor="alt">代替テキスト</Label>
         <Input
           id="alt"
-          value={alt || ''}
+          value={alt || ""}
           onChange={(e) => {
             setProp((props: any) => {
               props.alt = e.target.value;
@@ -343,7 +351,7 @@ const ImageUploadSettings = () => {
         <Label htmlFor="width">幅</Label>
         <Input
           id="width"
-          value={width || ''}
+          value={width || ""}
           onChange={(e) => {
             setProp((props: any) => {
               props.width = e.target.value;
@@ -357,7 +365,7 @@ const ImageUploadSettings = () => {
         <Label htmlFor="height">高さ</Label>
         <Input
           id="height"
-          value={height || ''}
+          value={height || ""}
           onChange={(e) => {
             setProp((props: any) => {
               props.height = e.target.value;
@@ -371,7 +379,7 @@ const ImageUploadSettings = () => {
         <Label htmlFor="objectFit">表示方法</Label>
         <select
           id="objectFit"
-          value={objectFit || 'cover'}
+          value={objectFit || "cover"}
           onChange={(e) => {
             setProp((props: any) => {
               props.objectFit = e.target.value;
@@ -390,9 +398,9 @@ const ImageUploadSettings = () => {
       {src && (
         <div className="mt-4">
           <Label>現在の画像</Label>
-          <img 
-            src={src} 
-            alt={alt || '現在の画像'}
+          <img
+            src={src}
+            alt={alt || "現在の画像"}
             className="mt-2 w-full rounded border"
           />
         </div>
@@ -403,15 +411,15 @@ const ImageUploadSettings = () => {
 
 // Craft.jsの設定
 ImageUpload.craft = {
-  displayName: '画像',
+  displayName: "画像",
   props: {
-    src: '',
-    alt: '画像',
-    width: '100%',
-    height: 'auto',
-    objectFit: 'cover'
+    src: "",
+    alt: "画像",
+    width: "100%",
+    height: "auto",
+    objectFit: "cover",
   },
   related: {
-    settings: ImageUploadSettings
-  }
+    settings: ImageUploadSettings,
+  },
 };

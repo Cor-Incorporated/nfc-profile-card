@@ -52,7 +52,7 @@ const firebaseConfig = {
   projectId: "nfc-profile-card",
   storageBucket: "nfc-profile-card.appspot.com",
   messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef..."
+  appId: "1:123456789:web:abcdef...",
 };
 ```
 
@@ -88,6 +88,7 @@ NEXT_PUBLIC_APP_NAME="NFC Profile Card"
 5. 「有効にする」をクリック
 
 **データベースに保存されるデータ:**
+
 - ユーザープロフィール（名前、会社、役職、自己紹介等）
 - SNSリンク（最大10個まで）
 - スキャンした名刺データ
@@ -152,7 +153,7 @@ The Firebase service account JSON file contains sensitive credentials and should
    - In your application code, decode it:
      ```javascript
      const serviceAccount = JSON.parse(
-       Buffer.from(process.env.FIREBASE_ADMIN_SDK_BASE64, 'base64').toString()
+       Buffer.from(process.env.FIREBASE_ADMIN_SDK_BASE64, "base64").toString(),
      );
      ```
 

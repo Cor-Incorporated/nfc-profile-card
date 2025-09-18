@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import QRCodeStyling from 'qr-code-styling';
+import { useEffect, useRef, useState } from "react";
+import QRCodeStyling from "qr-code-styling";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Download, Copy } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Download, Copy } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export function QRCodeModal({
   onClose,
   url,
   logoUrl,
-  username
+  username,
 }: QRCodeModalProps) {
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCode, setQrCode] = useState<QRCodeStyling | null>(null);
@@ -41,18 +41,18 @@ export function QRCodeModal({
       image: logoUrl,
       dotsOptions: {
         color: "#000000",
-        type: "rounded"
+        type: "rounded",
       },
       backgroundOptions: {
         color: "#ffffff",
       },
       cornersSquareOptions: {
-        type: "extra-rounded"
+        type: "extra-rounded",
       },
       imageOptions: {
         crossOrigin: "anonymous",
-        margin: 10
-      }
+        margin: 10,
+      },
     });
 
     setQrCode(qr);
@@ -60,7 +60,7 @@ export function QRCodeModal({
 
   useEffect(() => {
     if (qrCode && qrRef.current) {
-      qrRef.current.innerHTML = '';
+      qrRef.current.innerHTML = "";
       qrCode.append(qrRef.current);
     }
   }, [qrCode]);
@@ -69,7 +69,7 @@ export function QRCodeModal({
     if (qrCode) {
       qrCode.download({
         name: `qrcode_${username}`,
-        extension: "png"
+        extension: "png",
       });
     }
   };
@@ -109,15 +109,17 @@ export function QRCodeModal({
               QRコードをダウンロード
             </Button>
 
-            <Button onClick={handleCopyUrl} variant="outline" className="w-full">
+            <Button
+              onClick={handleCopyUrl}
+              variant="outline"
+              className="w-full"
+            >
               <Copy className="mr-2 h-4 w-4" />
               URLをコピー
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground text-center">
-            {url}
-          </div>
+          <div className="text-xs text-muted-foreground text-center">{url}</div>
         </div>
       </DialogContent>
     </Dialog>

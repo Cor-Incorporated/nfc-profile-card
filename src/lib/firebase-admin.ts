@@ -1,78 +1,86 @@
-import { initializeApp, getApps, cert } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 // Initialize Firebase Admin
 if (!getApps().length) {
   try {
     // Use environment variables for Firebase Admin SDK
-    if (process.env.FIREBASE_ADMIN_PRIVATE_KEY && process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
+    if (
+      process.env.FIREBASE_ADMIN_PRIVATE_KEY &&
+      process.env.FIREBASE_ADMIN_CLIENT_EMAIL
+    ) {
       const serviceAccount = {
-        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || 'nfc-profile-card',
+        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "nfc-profile-card",
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      }
-      
+        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(
+          /\\n/g,
+          "\n",
+        ),
+      };
+
       initializeApp({
         credential: cert(serviceAccount),
-      })
+      });
     } else {
       // Fallback to service account file in development
-      const serviceAccount = require('../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json')
+      const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
       initializeApp({
         credential: cert(serviceAccount),
-      })
+      });
     }
   } catch (error) {
-    console.error('Failed to initialize Firebase Admin SDK:', error)
+    console.error("Failed to initialize Firebase Admin SDK:", error);
   }
 }
 
-export const adminDb = getFirestore()
+export const adminDb = getFirestore();
 
 // Helper function to create a user document
 export async function createUserDocument(userData: {
-  uid: string
-  email: string
-  username?: string
-  firstName?: string
-  lastName?: string
+  uid: string;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
 }) {
-  const userRef = adminDb.collection('users').doc(userData.uid)
-  
+  const userRef = adminDb.collection("users").doc(userData.uid);
+
   const userDoc = {
     uid: userData.uid,
     email: userData.email,
-    username: userData.username || userData.email.split('@')[0],
+    username: userData.username || userData.email.split("@")[0],
     createdAt: new Date(),
     updatedAt: new Date(),
     profile: {
-      name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email.split('@')[0],
+      name:
+        `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
+        userData.email.split("@")[0],
       links: [],
     },
     cards: [],
     subscription: {
-      plan: 'free' as const,
+      plan: "free" as const,
     },
-  }
+  };
 
-  await userRef.set(userDoc)
-  return userDoc
+  await userRef.set(userDoc);
+  return userDoc;
 }
 
 // Helper function to update a user document
 export async function updateUserDocument(uid: string, updates: any) {
-  const userRef = adminDb.collection('users').doc(uid)
+  const userRef = adminDb.collection("users").doc(uid);
   await userRef.update({
     ...updates,
     updatedAt: new Date(),
-  })
+  });
 }
 
 // Helper function to delete a user document
 export async function deleteUserDocument(uid: string) {
-  const userRef = adminDb.collection('users').doc(uid)
+  const userRef = adminDb.collection("users").doc(uid);
   await userRef.update({
     deleted: true,
     deletedAt: new Date(),
-  })
+  });
 }
