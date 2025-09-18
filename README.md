@@ -34,6 +34,9 @@
 - ✅ 連絡先情報の管理（メール、電話、ウェブサイト、住所）
 - ✅ ソーシャルリンクの追加・編集・削除
 - ✅ ユーザー名の設定
+- ✅ **ビジュアルエディター** - ドラッグ&ドロップでページをカスタマイズ
+- ✅ **背景カスタマイズ** - 色・グラデーション・画像・パターンの設定
+- ✅ **画像アップロード** - Firebase Storage連携による画像管理
 
 ### 🌐 公開プロフィールページ
 - ✅ `/p/[username]`でアクセス可能
@@ -41,6 +44,7 @@
 - ✅ プロフィール情報の表示
 - ✅ ソーシャルリンク一覧
 - ✅ VCardダウンロード機能
+- ✅ **QRコード生成** - プロフィールURLのQRコードを生成・ダウンロード
 
 ## 🔮 今後実装予定の機能
 
@@ -99,24 +103,33 @@ http://localhost:3000 でアプリケーションが起動します。
 src/
 ├── app/                    # Next.js App Router
 │   ├── dashboard/         # ダッシュボード関連ページ
+│   │   └── edit/         # プロフィール編集
+│   │       └── design/   # デザインエディター
 │   ├── p/[username]/      # 公開プロフィールページ
 │   ├── signin/            # サインインページ
 │   └── api/               # API ルート
 ├── components/            # Reactコンポーネント
-│   └── ui/               # shadcn/ui コンポーネント
+│   ├── ui/               # shadcn/ui コンポーネント
+│   ├── editor/           # エディター関連コンポーネント
+│   └── profile/          # プロフィール関連コンポーネント
 ├── contexts/             # React Context (認証など)
 ├── lib/                  # ユーティリティ関数
+├── styles/               # グローバルスタイル、テーマ
 └── types/                # TypeScript型定義
 ```
 
 ## 🛠️ 技術スタック
 
 - **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui
+- **Styling**: Tailwind CSS, shadcn/ui, vanilla-extract
 - **Authentication**: Firebase Authentication
 - **Backend**: Firebase (Firestore, Functions, Storage)
 - **State Management**: React Context API
 - **Form Handling**: React Hook Form
+- **Editor**: Craft.js (ドラッグ&ドロップエディター)
+- **DnD**: @dnd-kit (ドラッグ&ドロップライブラリ)
+- **QRCode**: qr-code-styling (QRコード生成)
+- **Color Picker**: react-colorful
 - **Hosting**: Vercel
 
 ## 📝 開発コマンド

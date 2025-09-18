@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2, Plus, Trash2, Link2 } from 'lucide-react';
+import { Save, Loader2, Plus, Trash2, Link2, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -385,6 +385,25 @@ export default function EditProfilePage() {
             >
               <Plus className="mr-2 h-4 w-4" />
               リンクを追加
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>デザインカスタマイズ</CardTitle>
+            <CardDescription>
+              プロフィールページのデザインをカスタマイズできます
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => router.push('/dashboard/edit/design')}
+              variant="outline"
+              className="w-full"
+            >
+              <Palette className="mr-2 h-4 w-4" />
+              デザインエディターを開く
             </Button>
           </CardContent>
         </Card>

@@ -33,6 +33,55 @@ export interface UserProfile {
   bio?: string;
   avatarUrl?: string;
   links: ProfileLink[];
+  theme?: ProfileTheme; // 追加
+  contextualProfiles?: ContextualProfile[]; // 追加
+  activeProfileId?: string; // 追加
+}
+
+// デザインカスタマイズ設定
+export interface ProfileTheme {
+  // 背景設定
+  backgroundType: 'solid' | 'gradient' | 'image' | 'pattern';
+  backgroundColor?: string;
+  backgroundGradient?: {
+    from: string;
+    to: string;
+    direction: 'to-r' | 'to-b' | 'to-br' | 'to-bl';
+  };
+  backgroundImage?: string; // Firebase Storage URL
+  backgroundPattern?: string; // hero-patterns identifier
+
+  // フォント設定
+  fontFamily?: 'noto-sans' | 'noto-serif' | 'sawarabi-mincho' |
+               'sawarabi-gothic' | 'kosugi-maru' | 'zen-maru-gothic' |
+               'yusei-magic';
+  fontColor?: string;
+
+  // レイアウト設定
+  layoutType: 'list' | 'grid' | 'bento' | 'card';
+  buttonStyle?: 'solid' | 'outline' | 'ghost' | 'gradient';
+  buttonRadius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
+
+  // アニメーション
+  enableAnimations?: boolean;
+  animationType?: 'fade' | 'slide' | 'bounce';
+}
+
+// コンテキスチュアル・プロファイル
+export interface ContextualProfile {
+  id: string;
+  name: string;
+  context: 'business' | 'creative' | 'sales' | 'personal';
+  theme: ProfileTheme;
+  content: CraftJsSerializedData;
+  isActive: boolean;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
+// Craft.jsのシリアライズデータ型
+export interface CraftJsSerializedData {
+  ROOT: any; // Craft.jsが生成する構造
 }
 
 // プロフィールリンク
