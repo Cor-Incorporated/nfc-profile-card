@@ -1,20 +1,28 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { db } from '@/lib/firebase';
-import { Editor, Element, Frame, useEditor } from '@craftjs/core';
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { ArrowLeft, Eye, EyeOff, Monitor, Smartphone, Tablet } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
-import { BackgroundSettingsButton } from './BackgroundSettingsButton';
-import { AddComponentPlaceholder } from './editableComponents/AddComponentPlaceholder';
-import { ImageUpload } from './editableComponents/ImageUpload';
-import { LinkButton } from './editableComponents/LinkButton';
-import { ProfileInfo } from './editableComponents/ProfileInfo';
-import { Text } from './editableComponents/Text';
-import { EditorErrorBoundary } from './ErrorBoundary';
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { db } from "@/lib/firebase";
+import { logCraftError, logFirestoreError } from "@/lib/errorTracking";
+import { Editor, Element, Frame, useEditor } from "@craftjs/core";
+import { doc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Monitor,
+  Smartphone,
+  Tablet,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { BackgroundSettingsButton } from "./BackgroundSettingsButton";
+import { AddComponentPlaceholder } from "./editableComponents/AddComponentPlaceholder";
+import { ImageUpload } from "./editableComponents/ImageUpload";
+import { LinkButton } from "./editableComponents/LinkButton";
+import { ProfileInfo } from "./editableComponents/ProfileInfo";
+import { Text } from "./editableComponents/Text";
+import { EditorErrorBoundary } from "./ErrorBoundary";
 
 interface PageEditorProps {
   userId: string;
@@ -36,10 +44,22 @@ interface PageEditorProps {
   };
 }
 
-function EditorContent({ userId, username, initialData, profileId, socialLinks: initialSocialLinks = [], initialBackground = null, profileData }: PageEditorProps) {
+function EditorContent({
+  userId,
+  username,
+  initialData,
+  profileId,
+  socialLinks: initialSocialLinks = [],
+  initialBackground = null,
+  profileData,
+}: PageEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
-  const [viewMode, setViewMode] = useState<'mobile' | 'tablet' | 'desktop'>('mobile'); // デフォルトをmobileに
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [viewMode, setViewMode] = useState<"mobile" | "tablet" | "desktop">(
+    "mobile",
+  ); // デフォルトをmobileに
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">(
+    "saved",
+  );
   const [background, setBackground] = useState<any>(initialBackground);
   const [socialLinks, setSocialLinks] = useState<any[]>(initialSocialLinks);
   const [validInitialData, setValidInitialData] = useState<any>(null);
@@ -47,60 +67,76 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
   const { query, actions } = useEditor((state) => ({
-    nodesLength: Object.keys(state.nodes).length
+    nodesLength: Object.keys(state.nodes).length,
   }));
   const router = useRouter();
 
   // デフォルトのエディター構造を取得
-  const getDefaultEditorContent = () => ({
-    ROOT: {
-      type: { resolvedName: 'Container' },
-      nodes: [],
-      props: {},
-    }
-  });
+  const getDefaultEditorContent = () => {
+    // Craft.jsが期待する完全な構造を返す
+    return JSON.stringify({
+      ROOT: {
+        type: { resolvedName: "Container" },
+        nodes: [],
+        props: {},
+        displayName: "Container",
+        custom: {},
+        hidden: false,
+        isCanvas: true,
+        parent: null,
+        linkedNodes: {}
+      }
+    });
+  };
 
-        // initialDataのバリデーションとクリーンアップ
-        const validateAndCleanData = (data: any) => {
-          if (!data) {
-            return getDefaultEditorContent();
-          }
+  // initialDataのバリデーションとクリーンアップ
+  const validateAndCleanData = (data: any) => {
+    if (!data) {
+      return getDefaultEditorContent();
+    }
 
     try {
       // データがすでにオブジェクトの場合はそのまま使用
       let cleanedData = data;
 
       // 文字列の場合はパース
-      if (typeof data === 'string') {
+      if (typeof data === "string") {
         cleanedData = JSON.parse(data);
       }
 
-      // 深いコピーを作成
-      cleanedData = JSON.parse(JSON.stringify(cleanedData));
+      // 深いコピーを作成（エラーハンドリング付き）
+      try {
+        cleanedData = JSON.parse(JSON.stringify(cleanedData));
+      } catch (e) {
+        console.warn("Failed to clone data, using original:", e);
+      }
 
-      if (cleanedData && typeof cleanedData === 'object') {
+      if (cleanedData && typeof cleanedData === "object") {
         // 有効なCraft.jsノード構造かチェック
         let hasValidContentNodes = false;
         let validContentNodeCount = 0;
-        
-        Object.keys(cleanedData).forEach(key => {
+
+        Object.keys(cleanedData).forEach((key) => {
           const node = cleanedData[key];
-          
-          if (node && node.type) {
+
+          // nodeが存在し、typeプロパティを持っているかチェック
+          if (node && typeof node === 'object' && node.type) {
             // resolvedNameが存在するかチェック
             const resolvedName = node.type.resolvedName || node.type;
-            
+
             // ROOTノードとAddComponentPlaceholderは除外し、実際のコンテンツノードのみをカウント
-            if (resolvedName && 
-                resolvedName !== 'Container' && 
-                resolvedName !== 'AddComponentPlaceholder' &&
-                key !== 'ROOT') {
+            if (
+              resolvedName &&
+              resolvedName !== "Container" &&
+              resolvedName !== "AddComponentPlaceholder" &&
+              key !== "ROOT"
+            ) {
               hasValidContentNodes = true;
               validContentNodeCount++;
             }
           }
         });
-        
+
         // 有効なコンテンツノードがある場合はそのまま返す、そうでなければデフォルト構造を返す
         if (hasValidContentNodes) {
           return cleanedData;
@@ -111,7 +147,7 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
 
       return getDefaultEditorContent();
     } catch (error) {
-      console.error('Data validation error:', error);
+      console.error("Data validation error:", error);
       return getDefaultEditorContent();
     }
   };
@@ -123,13 +159,16 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
       setValidInitialData(cleanedData);
       setDataLoadError(false);
     } catch (error) {
-      console.error('Failed to process initial data:', error);
+      console.error("Failed to process initial data:", error);
+      // エラートラッキングに記録
+      logCraftError(error, initialData);
       setDataLoadError(true);
       setValidInitialData(getDefaultEditorContent());
       toast({
-        title: 'データ読み込みエラー',
-        description: '既存のデザインデータに問題があります。新しいデザインから始めます。',
-        variant: 'destructive',
+        title: "データ読み込みエラー",
+        description:
+          "既存のデザインデータに問題があります。新しいデザインから始めます。",
+        variant: "destructive",
       });
     }
   }, [initialData, toast]);
@@ -140,24 +179,42 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
       return;
     }
 
-    setSaveStatus('saving');
+    setSaveStatus("saving");
     try {
       const serialized = query.serialize();
 
       if (profileId) {
-        await updateDoc(doc(db, 'users', userId), {
-          [`contextualProfiles.${profileId}.content`]: serialized,
-          [`contextualProfiles.${profileId}.background`]: background,
-          [`contextualProfiles.${profileId}.socialLinks`]: socialLinks,
-          [`contextualProfiles.${profileId}.updatedAt`]: serverTimestamp(),
+        // 新しい構造: profiles サブコレクションに保存
+        await updateDoc(doc(db, "users", userId, "profiles", profileId), {
+          editorContent: serialized,
+          background: background,
+          socialLinks: socialLinks,
+          updatedAt: serverTimestamp(),
         });
       } else {
-        // 従来のプロフィール情報とエディター情報の両方を保存
+        // 従来の構造: profile ドキュメントに保存（後方互換性のため）
+        const profileRef = doc(db, "users", userId, "profile", "data");
+        await updateDoc(profileRef, {
+          editorContent: serialized,
+          background: background,
+          socialLinks: socialLinks,
+          updatedAt: serverTimestamp(),
+        }).catch(async () => {
+          // プロフィールドキュメントが存在しない場合は作成
+          await setDoc(profileRef, {
+            editorContent: serialized,
+            background: background,
+            socialLinks: socialLinks,
+            updatedAt: serverTimestamp(),
+          });
+        });
+
+        // ユーザードキュメントにも基本情報を保存（後方互換性）
         const updateData: any = {
-          'profile.editorContent': serialized,
-          'profile.background': background,
-          'profile.socialLinks': socialLinks,
-          'profile.updatedAt': serverTimestamp(),
+          "profile.editorContent": serialized,
+          "profile.background": background,
+          "profile.socialLinks": socialLinks,
+          "profile.updatedAt": serverTimestamp(),
         };
 
         // プロフィールデータが存在する場合は従来形式も保存
@@ -173,19 +230,21 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
           updateData.links = profileData.links;
         }
 
-        await updateDoc(doc(db, 'users', userId), updateData);
+        await updateDoc(doc(db, "users", userId), updateData);
       }
 
-      setSaveStatus('saved');
+      setSaveStatus("saved");
     } catch (error) {
-      console.error('保存エラー:', error);
-      setSaveStatus('error');
+      console.error("保存エラー:", error);
+      // エラートラッキングに記録
+      logFirestoreError("save", error, profileId ? `profiles/${profileId}` : "profile/data");
+      setSaveStatus("error");
     }
   }, [isInitialized, query, profileId, userId, background, socialLinks]);
 
   // 自動保存の実装
   const autoSave = React.useCallback(async () => {
-    if (saveStatus === 'saving') return;
+    if (saveStatus === "saving") return;
     await saveData();
   }, [saveData, saveStatus]);
 
@@ -213,9 +272,34 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
   React.useEffect(() => {
     if (validInitialData && actions) {
       try {
-        actions.deserialize(validInitialData);
+        // データの妥当性を再度チェック
+        if (typeof validInitialData === 'object' && validInitialData !== null) {
+          // ROOTノードが存在することを確認
+          if (validInitialData.ROOT) {
+            actions.deserialize(validInitialData);
+          } else {
+            // ROOTノードがない場合はデフォルト構造を設定
+            console.warn("No ROOT node found, using default structure");
+            logCraftError(new Error("No ROOT node in validInitialData"), validInitialData);
+            actions.deserialize(getDefaultEditorContent());
+          }
+        } else {
+          console.warn("Invalid data format, using default structure");
+          logCraftError(new Error("Invalid data format"), validInitialData);
+          actions.deserialize(getDefaultEditorContent());
+        }
       } catch (error) {
-        console.error('Failed to set initial data:', error);
+        console.error("Failed to set initial data:", error);
+        // エラートラッキングに記録
+        logCraftError(error, validInitialData);
+
+        // エラー時はデフォルト構造を設定
+        try {
+          actions.deserialize(getDefaultEditorContent());
+        } catch (fallbackError) {
+          console.error("Failed to set default content:", fallbackError);
+          logCraftError(fallbackError, null);
+        }
       }
     }
   }, [validInitialData, actions]);
@@ -234,23 +318,26 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
   // ページ離脱時の保存
   React.useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isInitialized && saveStatus !== 'saved') {
+      if (isInitialized && saveStatus !== "saved") {
         // 同期的に保存を試行
         saveData();
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isInitialized, saveStatus, saveData]);
 
   const getViewportWidth = () => {
-    switch(viewMode) {
-      case 'mobile': return '375px';
-      case 'tablet': return '768px';
-      case 'desktop': return '100%';
+    switch (viewMode) {
+      case "mobile":
+        return "375px";
+      case "tablet":
+        return "768px";
+      case "desktop":
+        return "100%";
     }
   };
 
@@ -260,28 +347,28 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
     const opacity = background.opacity || 1;
 
     switch (background.type) {
-      case 'solid':
-        const color = background.color || '#ffffff';
+      case "solid":
+        const color = background.color || "#ffffff";
         // RGBAに変換して透明度を適用
-        const hex = color.replace('#', '');
+        const hex = color.replace("#", "");
         const r = parseInt(hex.substr(0, 2), 16);
         const g = parseInt(hex.substr(2, 2), 16);
         const b = parseInt(hex.substr(4, 2), 16);
         return { backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})` };
-      case 'gradient':
+      case "gradient":
         // グラデーションの場合は背景レイヤーとして分離
         return {
-          position: 'relative' as const,
+          position: "relative" as const,
         };
-      case 'image':
+      case "image":
         // 画像の場合は背景レイヤーとして分離
         return {
-          position: 'relative' as const,
+          position: "relative" as const,
         };
-      case 'pattern':
+      case "pattern":
         // パターンの場合は背景レイヤーとして分離
         return {
-          position: 'relative' as const,
+          position: "relative" as const,
         };
       default:
         return {};
@@ -289,21 +376,21 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
   };
 
   const getBackgroundLayer = () => {
-    if (!background || background.type === 'solid') return null;
+    if (!background || background.type === "solid") return null;
 
     const opacity = background.opacity || 1;
 
     let backgroundStyle = {};
     switch (background.type) {
-      case 'gradient':
+      case "gradient":
         backgroundStyle = {
-          background: `linear-gradient(${background.direction || 'to bottom right'}, ${background.from}, ${background.to})`,
+          background: `linear-gradient(${background.direction || "to bottom right"}, ${background.from}, ${background.to})`,
         };
         break;
-      case 'image':
-        const size = background.backgroundSize || 'cover';
+      case "image":
+        const size = background.backgroundSize || "cover";
         let backgroundSize = size;
-        if (size === 'custom') {
+        if (size === "custom") {
           const scale = background.scale || 100;
           backgroundSize = `${scale}%`;
         }
@@ -315,10 +402,10 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
           backgroundImage: `url(${background.imageUrl})`,
           backgroundSize: backgroundSize,
           backgroundPosition: `${positionX}% ${positionY}%`,
-          backgroundRepeat: 'no-repeat',
+          backgroundRepeat: "no-repeat",
         };
         break;
-      case 'pattern':
+      case "pattern":
         backgroundStyle = {
           // パターンのスタイルをここに追加
         };
@@ -345,7 +432,7 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push("/dashboard")}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             ダッシュボード
@@ -355,29 +442,29 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
             variant="default"
             size="sm"
             onClick={saveData}
-            disabled={saveStatus === 'saving'}
+            disabled={saveStatus === "saving"}
           >
-            {saveStatus === 'saving' ? '保存中...' : '保存'}
+            {saveStatus === "saving" ? "保存中..." : "保存"}
           </Button>
           <div className="flex gap-2">
             <Button
-              variant={viewMode === 'mobile' ? 'default' : 'outline'}
+              variant={viewMode === "mobile" ? "default" : "outline"}
               size="sm"
-              onClick={() => setViewMode('mobile')}
+              onClick={() => setViewMode("mobile")}
             >
               <Smartphone className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'tablet' ? 'default' : 'outline'}
+              variant={viewMode === "tablet" ? "default" : "outline"}
               size="sm"
-              onClick={() => setViewMode('tablet')}
+              onClick={() => setViewMode("tablet")}
             >
               <Tablet className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'desktop' ? 'default' : 'outline'}
+              variant={viewMode === "desktop" ? "default" : "outline"}
               size="sm"
-              onClick={() => setViewMode('desktop')}
+              onClick={() => setViewMode("desktop")}
             >
               <Monitor className="h-4 w-4" />
             </Button>
@@ -397,14 +484,22 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
             size="sm"
             onClick={() => setIsPreview(!isPreview)}
           >
-            {isPreview ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-            {isPreview ? '編集' : 'プレビュー'}
+            {isPreview ? (
+              <EyeOff className="mr-2 h-4 w-4" />
+            ) : (
+              <Eye className="mr-2 h-4 w-4" />
+            )}
+            {isPreview ? "編集" : "プレビュー"}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              if (confirm('現在のデザインをリセットして新しいデザインを開始しますか？この操作は元に戻せません。')) {
+              if (
+                confirm(
+                  "現在のデザインをリセットして新しいデザインを開始しますか？この操作は元に戻せません。",
+                )
+              ) {
                 // 現在のエディターをクリア
                 setValidInitialData(null);
                 // ページをリロードして完全にリセット
@@ -416,19 +511,19 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
           </Button>
           {/* 自動保存状態表示 */}
           <div className="flex items-center gap-2 text-sm">
-            {saveStatus === 'saving' && (
+            {saveStatus === "saving" && (
               <>
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 <span className="text-blue-600">保存中...</span>
               </>
             )}
-            {saveStatus === 'saved' && (
+            {saveStatus === "saved" && (
               <>
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
                 <span className="text-green-600">保存済み</span>
               </>
             )}
-            {saveStatus === 'error' && (
+            {saveStatus === "error" && (
               <>
                 <div className="w-2 h-2 bg-red-500 rounded-full" />
                 <span className="text-red-600">保存エラー</span>
@@ -446,8 +541,8 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
             className="mx-auto bg-white rounded-lg shadow-lg transition-all"
             style={{
               width: getViewportWidth(),
-              minHeight: '100vh',
-              ...getBackgroundStyle()
+              minHeight: "100vh",
+              ...getBackgroundStyle(),
             }}
           >
             {/* 背景レイヤー（透明度付き） */}
@@ -475,7 +570,6 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
             </Frame>
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { HexColorPicker } from 'react-colorful';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Palette } from 'lucide-react';
-import { uploadCompressedImage } from '@/lib/storage';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState } from "react";
+import { HexColorPicker } from "react-colorful";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Upload, Palette } from "lucide-react";
+import { uploadCompressedImage } from "@/lib/storage";
+import { useToast } from "@/components/ui/use-toast";
 
 interface BackgroundCustomizerProps {
   userId: string;
@@ -19,33 +19,37 @@ interface BackgroundCustomizerProps {
 export function BackgroundCustomizer({
   userId,
   currentBackground,
-  onBackgroundChange
+  onBackgroundChange,
 }: BackgroundCustomizerProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [solidColor, setSolidColor] = useState(currentBackground?.color || '#ffffff');
+  const [solidColor, setSolidColor] = useState(
+    currentBackground?.color || "#ffffff",
+  );
   const [opacity, setOpacity] = useState(currentBackground?.opacity || 1);
   const { toast } = useToast();
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      const imageUrl = await uploadCompressedImage(userId, file, 'background');
+      const imageUrl = await uploadCompressedImage(userId, file, "background");
       onBackgroundChange({
-        type: 'image',
+        type: "image",
         imageUrl,
       });
       toast({
-        title: '成功',
-        description: '背景画像をアップロードしました',
+        title: "成功",
+        description: "背景画像をアップロードしました",
       });
     } catch (error: any) {
       toast({
-        title: 'エラー',
+        title: "エラー",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
@@ -72,7 +76,7 @@ export function BackgroundCustomizer({
             color={solidColor}
             onChange={(color) => {
               setSolidColor(color);
-              onBackgroundChange({ type: 'solid', color });
+              onBackgroundChange({ type: "solid", color });
             }}
           />
           <div className="flex items-center gap-2">
@@ -81,7 +85,7 @@ export function BackgroundCustomizer({
               value={solidColor}
               onChange={(e) => {
                 setSolidColor(e.target.value);
-                onBackgroundChange({ type: 'solid', color: e.target.value });
+                onBackgroundChange({ type: "solid", color: e.target.value });
               }}
               className="flex-1 px-3 py-1 border rounded"
             />
@@ -97,103 +101,130 @@ export function BackgroundCustomizer({
             disabled={isUploading}
             className="w-full"
           />
-          {isUploading && <p className="text-sm text-muted-foreground">アップロード中...</p>}
+          {isUploading && (
+            <p className="text-sm text-muted-foreground">アップロード中...</p>
+          )}
 
           {/* 画像設定（画像がアップロード済みの場合のみ表示） */}
-          {currentBackground?.type === 'image' && currentBackground.imageUrl && (
-            <>
-              <div className="space-y-2">
-                <Label>画像サイズ</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant={currentBackground.backgroundSize === 'cover' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onBackgroundChange({
-                      ...currentBackground,
-                      backgroundSize: 'cover'
-                    })}
-                  >
-                    カバー
-                  </Button>
-                  <Button
-                    variant={currentBackground.backgroundSize === 'contain' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onBackgroundChange({
-                      ...currentBackground,
-                      backgroundSize: 'contain'
-                    })}
-                  >
-                    フィット
-                  </Button>
-                  <Button
-                    variant={currentBackground.backgroundSize === 'custom' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onBackgroundChange({
-                      ...currentBackground,
-                      backgroundSize: 'custom',
-                      scale: currentBackground.scale || 100
-                    })}
-                  >
-                    カスタム
-                  </Button>
-                </div>
-              </div>
-
-              {/* カスタムサイズ選択時のスケール調整 */}
-              {currentBackground.backgroundSize === 'custom' && (
+          {currentBackground?.type === "image" &&
+            currentBackground.imageUrl && (
+              <>
                 <div className="space-y-2">
-                  <Label>スケール: {currentBackground.scale || 100}%</Label>
+                  <Label>画像サイズ</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant={
+                        currentBackground.backgroundSize === "cover"
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        onBackgroundChange({
+                          ...currentBackground,
+                          backgroundSize: "cover",
+                        })
+                      }
+                    >
+                      カバー
+                    </Button>
+                    <Button
+                      variant={
+                        currentBackground.backgroundSize === "contain"
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        onBackgroundChange({
+                          ...currentBackground,
+                          backgroundSize: "contain",
+                        })
+                      }
+                    >
+                      フィット
+                    </Button>
+                    <Button
+                      variant={
+                        currentBackground.backgroundSize === "custom"
+                          ? "default"
+                          : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        onBackgroundChange({
+                          ...currentBackground,
+                          backgroundSize: "custom",
+                          scale: currentBackground.scale || 100,
+                        })
+                      }
+                    >
+                      カスタム
+                    </Button>
+                  </div>
+                </div>
+
+                {/* カスタムサイズ選択時のスケール調整 */}
+                {currentBackground.backgroundSize === "custom" && (
+                  <div className="space-y-2">
+                    <Label>スケール: {currentBackground.scale || 100}%</Label>
+                    <Slider
+                      value={[currentBackground.scale || 100]}
+                      onValueChange={(value) => {
+                        onBackgroundChange({
+                          ...currentBackground,
+                          scale: value[0],
+                        });
+                      }}
+                      min={10}
+                      max={300}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>
+                    画像位置 (横):{" "}
+                    {Math.round(currentBackground.positionX || 50)}%
+                  </Label>
                   <Slider
-                    value={[currentBackground.scale || 100]}
+                    value={[currentBackground.positionX || 50]}
                     onValueChange={(value) => {
                       onBackgroundChange({
                         ...currentBackground,
-                        scale: value[0]
+                        positionX: value[0],
                       });
                     }}
-                    min={10}
-                    max={300}
+                    min={0}
+                    max={100}
                     step={1}
                     className="w-full"
                   />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label>画像位置 (横): {Math.round((currentBackground.positionX || 50))}%</Label>
-                <Slider
-                  value={[currentBackground.positionX || 50]}
-                  onValueChange={(value) => {
-                    onBackgroundChange({
-                      ...currentBackground,
-                      positionX: value[0]
-                    });
-                  }}
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>画像位置 (縦): {Math.round((currentBackground.positionY || 50))}%</Label>
-                <Slider
-                  value={[currentBackground.positionY || 50]}
-                  onValueChange={(value) => {
-                    onBackgroundChange({
-                      ...currentBackground,
-                      positionY: value[0]
-                    });
-                  }}
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-            </>
-          )}
+                <div className="space-y-2">
+                  <Label>
+                    画像位置 (縦):{" "}
+                    {Math.round(currentBackground.positionY || 50)}%
+                  </Label>
+                  <Slider
+                    value={[currentBackground.positionY || 50]}
+                    onValueChange={(value) => {
+                      onBackgroundChange({
+                        ...currentBackground,
+                        positionY: value[0],
+                      });
+                    }}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
         </TabsContent>
       </Tabs>
 
@@ -207,7 +238,7 @@ export function BackgroundCustomizer({
             setOpacity(newOpacity);
             const updatedBackground = {
               ...currentBackground,
-              opacity: newOpacity
+              opacity: newOpacity,
             };
             onBackgroundChange(updatedBackground);
           }}

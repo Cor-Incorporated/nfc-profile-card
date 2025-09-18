@@ -1,11 +1,11 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 const config = {
   darkMode: ["class"],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   prefix: "",
   theme: {
@@ -71,6 +71,16 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      fontFamily: {
+        'noto-sans-jp': ['var(--font-noto-sans-jp)', 'sans-serif'],
+        'noto-serif-jp': ['var(--font-noto-serif-jp)', 'serif'],
+        'mplus-1p': ['var(--font-mplus-1p)', 'sans-serif'],
+        'mplus-rounded': ['var(--font-mplus-rounded)', 'sans-serif'],
+        'sawarabi-mincho': ['var(--font-sawarabi-mincho)', 'serif'],
+        'sawarabi-gothic': ['var(--font-sawarabi-gothic)', 'sans-serif'],
+        'kosugi-maru': ['var(--font-kosugi-maru)', 'sans-serif'],
+        'zen-maru': ['var(--font-zen-maru)', 'sans-serif'],
+      },
     },
   },
   plugins: [
@@ -78,6 +88,6 @@ const config = {
     require("@tailwindcss/forms"),
     require("@tailwindcss/typography"),
   ],
-} satisfies Config
+} satisfies Config;
 
-export default config
+export default config;

@@ -2,7 +2,7 @@
 
 ## 📝 概要
 
-このドキュメントでは、NFC Profile CardアプリケーションでFirebase Authenticationを設定する手順を説明します。
+このドキュメントでは、TapForgeアプリケーションでFirebase Authenticationを設定する手順を説明します。
 
 現在発生しているエラー `auth/configuration-not-found` は、Firebaseプロジェクトが正しく設定されていないことを示しています。
 
@@ -37,7 +37,7 @@
 
 1. Firebase Console → プロジェクトの概要 → ⚙️ → プロジェクトの設定
 2. 「アプリを追加」→ ウェブアイコンを選択
-3. アプリ名を `NFC Profile Card Web` に設定
+3. アプリ名を `TapForge Web` に設定
 4. 「Firebase Hosting」はスキップ（Vercelを使用するため）
 5. 「アプリを登録」をクリック
 
@@ -52,7 +52,7 @@ const firebaseConfig = {
   projectId: "nfc-profile-card",
   storageBucket: "nfc-profile-card.appspot.com",
   messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef..."
+  appId: "1:123456789:web:abcdef...",
 };
 ```
 
@@ -74,7 +74,7 @@ GEMINI_API_KEY=your_gemini_api_key
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME="NFC Profile Card"
+NEXT_PUBLIC_APP_NAME="TapForge"
 ```
 
 ### 6. Firestore Databaseの有効化（重要！）
@@ -88,6 +88,7 @@ NEXT_PUBLIC_APP_NAME="NFC Profile Card"
 5. 「有効にする」をクリック
 
 **データベースに保存されるデータ:**
+
 - ユーザープロフィール（名前、会社、役職、自己紹介等）
 - SNSリンク（最大10個まで）
 - スキャンした名刺データ
@@ -152,7 +153,7 @@ The Firebase service account JSON file contains sensitive credentials and should
    - In your application code, decode it:
      ```javascript
      const serviceAccount = JSON.parse(
-       Buffer.from(process.env.FIREBASE_ADMIN_SDK_BASE64, 'base64').toString()
+       Buffer.from(process.env.FIREBASE_ADMIN_SDK_BASE64, "base64").toString(),
      );
      ```
 

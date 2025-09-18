@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useNode, useEditor } from '@craftjs/core';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { HexColorPicker } from 'react-colorful';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { useNode, useEditor } from "@craftjs/core";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { HexColorPicker } from "react-colorful";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Link2,
   Twitter,
@@ -24,9 +24,9 @@ import {
   Mail,
   Phone,
   X,
-  Palette
-} from 'lucide-react';
-import DOMPurify from 'dompurify';
+  Palette,
+} from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface LinkButtonProps {
   text: string;
@@ -35,7 +35,7 @@ interface LinkButtonProps {
   textColor?: string;
   borderRadius?: number;
   icon?: string;
-  target?: '_blank' | '_self';
+  target?: "_blank" | "_self";
   width?: string;
   padding?: string;
   backgroundOpacity?: number;
@@ -57,52 +57,53 @@ const iconMap: Record<string, React.FC<any>> = {
 };
 
 const getIconForUrl = (url: string): string => {
-  if (url.includes('twitter.com') || url.includes('x.com')) return 'twitter';
-  if (url.includes('github.com')) return 'github';
-  if (url.includes('linkedin.com')) return 'linkedin';
-  if (url.includes('instagram.com')) return 'instagram';
-  if (url.includes('facebook.com')) return 'facebook';
-  if (url.includes('youtube.com')) return 'youtube';
-  if (url.startsWith('mailto:')) return 'mail';
-  if (url.startsWith('tel:')) return 'phone';
-  if (url.startsWith('http')) return 'globe';
-  return 'link';
+  if (url.includes("twitter.com") || url.includes("x.com")) return "twitter";
+  if (url.includes("github.com")) return "github";
+  if (url.includes("linkedin.com")) return "linkedin";
+  if (url.includes("instagram.com")) return "instagram";
+  if (url.includes("facebook.com")) return "facebook";
+  if (url.includes("youtube.com")) return "youtube";
+  if (url.startsWith("mailto:")) return "mail";
+  if (url.startsWith("tel:")) return "phone";
+  if (url.startsWith("http")) return "globe";
+  return "link";
 };
 
 export const LinkButton = ({
-  text = 'リンクボタン',
-  url = 'https://example.com',
-  backgroundColor = '#3B82F6',
-  textColor = '#FFFFFF',
+  text = "リンクボタン",
+  url = "https://example.com",
+  backgroundColor = "#3B82F6",
+  textColor = "#FFFFFF",
   borderRadius = 8,
-  icon = 'auto',
-  target = '_blank',
-  width = '100%',
-  padding = '12px 24px',
+  icon = "auto",
+  target = "_blank",
+  width = "100%",
+  padding = "12px 24px",
   backgroundOpacity = 1,
   backgroundBlur = 0,
-  fontFamily = 'sans-serif'
+  fontFamily = "sans-serif",
 }: LinkButtonProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [tempBgColor, setTempBgColor] = useState(backgroundColor);
   const [tempTextColor, setTempTextColor] = useState(textColor);
-  const [colorPickerMode, setColorPickerMode] = useState<'bg' | 'text'>('bg');
+  const [colorPickerMode, setColorPickerMode] = useState<"bg" | "text">("bg");
 
   const {
     connectors: { connect, drag },
     actions: { setProp },
     selected,
-    id
+    id,
   } = useNode((state) => ({
     selected: state.events.selected,
-    id: state.id
+    id: state.id,
   }));
 
   const { actions } = useEditor();
 
-  const iconName = icon === 'auto' ? getIconForUrl(url) : icon;
-  const IconComponent = iconName && iconName !== 'none' ? iconMap[iconName] : null;
+  const iconName = icon === "auto" ? getIconForUrl(url) : icon;
+  const IconComponent =
+    iconName && iconName !== "none" ? iconMap[iconName] : null;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -113,7 +114,7 @@ export const LinkButton = ({
 
   const handleColorChange = () => {
     setProp((props: any) => {
-      if (colorPickerMode === 'bg') {
+      if (colorPickerMode === "bg") {
         props.backgroundColor = tempBgColor;
       } else {
         props.textColor = tempTextColor;
@@ -128,10 +129,10 @@ export const LinkButton = ({
       className="relative group"
       style={{
         width,
-        padding: '4px',
-        border: selected ? '2px solid #3B82F6' : 'none',
+        padding: "4px",
+        border: selected ? "2px solid #3B82F6" : "none",
         borderRadius: `${borderRadius + 4}px`,
-        cursor: 'pointer'
+        cursor: "pointer",
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -147,7 +148,7 @@ export const LinkButton = ({
                 className="h-8 w-8"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setColorPickerMode('bg');
+                  setColorPickerMode("bg");
                   setTempBgColor(backgroundColor);
                   setTempTextColor(textColor);
                 }}
@@ -161,25 +162,27 @@ export const LinkButton = ({
                   <Label>カラー設定</Label>
                   <div className="flex gap-2">
                     <Button
-                      variant={colorPickerMode === 'bg' ? 'default' : 'outline'}
+                      variant={colorPickerMode === "bg" ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setColorPickerMode('bg')}
+                      onClick={() => setColorPickerMode("bg")}
                     >
                       背景色
                     </Button>
                     <Button
-                      variant={colorPickerMode === 'text' ? 'default' : 'outline'}
+                      variant={
+                        colorPickerMode === "text" ? "default" : "outline"
+                      }
                       size="sm"
-                      onClick={() => setColorPickerMode('text')}
+                      onClick={() => setColorPickerMode("text")}
                     >
                       文字色
                     </Button>
                   </div>
                 </div>
                 <HexColorPicker
-                  color={colorPickerMode === 'bg' ? tempBgColor : tempTextColor}
+                  color={colorPickerMode === "bg" ? tempBgColor : tempTextColor}
                   onChange={(color) => {
-                    if (colorPickerMode === 'bg') {
+                    if (colorPickerMode === "bg") {
                       setTempBgColor(color);
                     } else {
                       setTempTextColor(color);
@@ -187,9 +190,9 @@ export const LinkButton = ({
                   }}
                 />
                 <Input
-                  value={colorPickerMode === 'bg' ? tempBgColor : tempTextColor}
+                  value={colorPickerMode === "bg" ? tempBgColor : tempTextColor}
                   onChange={(e) => {
-                    if (colorPickerMode === 'bg') {
+                    if (colorPickerMode === "bg") {
                       setTempBgColor(e.target.value);
                     } else {
                       setTempTextColor(e.target.value);
@@ -231,29 +234,37 @@ export const LinkButton = ({
       <a
         href={url}
         target={target}
-        rel={target === '_blank' ? 'noopener noreferrer' : undefined}
+        rel={target === "_blank" ? "noopener noreferrer" : undefined}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
           backgroundColor: (() => {
-            const bgColor = colorPickerMode === 'bg' && isColorPickerOpen ? tempBgColor : backgroundColor;
-            const hex = bgColor.replace('#', '');
+            const bgColor =
+              colorPickerMode === "bg" && isColorPickerOpen
+                ? tempBgColor
+                : backgroundColor;
+            const hex = bgColor.replace("#", "");
             const r = parseInt(hex.substr(0, 2), 16);
             const g = parseInt(hex.substr(2, 2), 16);
             const b = parseInt(hex.substr(4, 2), 16);
             return `rgba(${r}, ${g}, ${b}, ${backgroundOpacity})`;
           })(),
-          color: colorPickerMode === 'text' && isColorPickerOpen ? tempTextColor : textColor,
+          color:
+            colorPickerMode === "text" && isColorPickerOpen
+              ? tempTextColor
+              : textColor,
           borderRadius: `${borderRadius}px`,
           padding,
-          textDecoration: 'none',
-          transition: 'opacity 0.2s',
-          width: '100%',
+          textDecoration: "none",
+          transition: "opacity 0.2s",
+          width: "100%",
           fontFamily: fontFamily,
-          backdropFilter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : 'none',
-          WebkitBackdropFilter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : 'none',
+          backdropFilter:
+            backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
+          WebkitBackdropFilter:
+            backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
         }}
         className="hover:opacity-90"
         onClick={(e) => {
@@ -281,7 +292,7 @@ const LinkButtonSettings = () => {
     icon,
     target,
     width,
-    padding
+    padding,
   } = useNode((node) => ({
     text: node.data.props.text,
     url: node.data.props.url,
@@ -300,11 +311,11 @@ const LinkButtonSettings = () => {
         <Label htmlFor="text">ボタンテキスト</Label>
         <Input
           id="text"
-          value={text || ''}
+          value={text || ""}
           onChange={(e) => {
             const sanitizedText = DOMPurify.sanitize(e.target.value, {
               ALLOWED_TAGS: [],
-              ALLOWED_ATTR: []
+              ALLOWED_ATTR: [],
             });
             setProp((props: any) => {
               props.text = sanitizedText;
@@ -318,13 +329,13 @@ const LinkButtonSettings = () => {
         <Label htmlFor="url">リンクURL</Label>
         <Input
           id="url"
-          value={url || ''}
+          value={url || ""}
           onChange={(e) => {
             setProp((props: any) => {
               props.url = e.target.value;
               // URLに基づいてアイコンを自動設定
-              if (props.icon === 'auto') {
-                props.icon = 'auto';
+              if (props.icon === "auto") {
+                props.icon = "auto";
               }
             });
           }}
@@ -336,7 +347,7 @@ const LinkButtonSettings = () => {
         <Label htmlFor="backgroundColor">背景色</Label>
         <div className="space-y-2">
           <HexColorPicker
-            color={backgroundColor || '#3B82F6'}
+            color={backgroundColor || "#3B82F6"}
             onChange={(color) => {
               setProp((props: any) => {
                 props.backgroundColor = color;
@@ -344,7 +355,7 @@ const LinkButtonSettings = () => {
             }}
           />
           <Input
-            value={backgroundColor || '#3B82F6'}
+            value={backgroundColor || "#3B82F6"}
             onChange={(e) => {
               setProp((props: any) => {
                 props.backgroundColor = e.target.value;
@@ -359,7 +370,7 @@ const LinkButtonSettings = () => {
         <Label htmlFor="textColor">テキスト色</Label>
         <div className="space-y-2">
           <HexColorPicker
-            color={textColor || '#FFFFFF'}
+            color={textColor || "#FFFFFF"}
             onChange={(color) => {
               setProp((props: any) => {
                 props.textColor = color;
@@ -367,7 +378,7 @@ const LinkButtonSettings = () => {
             }}
           />
           <Input
-            value={textColor || '#FFFFFF'}
+            value={textColor || "#FFFFFF"}
             onChange={(e) => {
               setProp((props: any) => {
                 props.textColor = e.target.value;
@@ -379,9 +390,7 @@ const LinkButtonSettings = () => {
       </div>
 
       <div>
-        <Label htmlFor="borderRadius">
-          角丸: {borderRadius}px
-        </Label>
+        <Label htmlFor="borderRadius">角丸: {borderRadius}px</Label>
         <Slider
           id="borderRadius"
           min={0}
@@ -399,7 +408,7 @@ const LinkButtonSettings = () => {
         <Label htmlFor="icon">アイコン</Label>
         <select
           id="icon"
-          value={icon || 'auto'}
+          value={icon || "auto"}
           onChange={(e) => {
             setProp((props: any) => {
               props.icon = e.target.value;
@@ -426,7 +435,7 @@ const LinkButtonSettings = () => {
         <Label htmlFor="target">リンクの開き方</Label>
         <select
           id="target"
-          value={target || '_blank'}
+          value={target || "_blank"}
           onChange={(e) => {
             setProp((props: any) => {
               props.target = e.target.value;
@@ -443,7 +452,7 @@ const LinkButtonSettings = () => {
         <Label htmlFor="width">幅</Label>
         <Input
           id="width"
-          value={width || '100%'}
+          value={width || "100%"}
           onChange={(e) => {
             setProp((props: any) => {
               props.width = e.target.value;
@@ -458,22 +467,22 @@ const LinkButtonSettings = () => {
 
 // Craft.jsの設定
 LinkButton.craft = {
-  displayName: 'リンクボタン',
+  displayName: "リンクボタン",
   props: {
-    text: 'リンクボタン',
-    url: 'https://example.com',
-    backgroundColor: '#3B82F6',
-    textColor: '#FFFFFF',
+    text: "リンクボタン",
+    url: "https://example.com",
+    backgroundColor: "#3B82F6",
+    textColor: "#FFFFFF",
     borderRadius: 8,
-    icon: 'auto',
-    target: '_blank',
-    width: '100%',
-    padding: '12px 24px',
+    icon: "auto",
+    target: "_blank",
+    width: "100%",
+    padding: "12px 24px",
     backgroundOpacity: 1,
     backgroundBlur: 0,
-    fontFamily: 'sans-serif'
+    fontFamily: "sans-serif",
   },
   related: {
-    settings: LinkButtonSettings
-  }
+    settings: LinkButtonSettings,
+  },
 };

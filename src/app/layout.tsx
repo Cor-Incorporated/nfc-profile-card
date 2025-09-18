@@ -1,42 +1,63 @@
-import { Inter } from 'next/font/google'
-import './globals.css'
-import type { Metadata, Viewport } from 'next'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { Inter } from "next/font/google";
+import "./globals.css";
+import type { Metadata, Viewport } from "next";
+import { AuthProvider } from "@/contexts/AuthContext";
+import {
+  notoSansJP,
+  notoSerifJP,
+  mPlus1p,
+  mPlusRounded,
+  sawarabiMincho,
+  sawarabiGothic,
+  kosugiMaru,
+  zenMaruGothic
+} from "@/lib/fonts";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'NFC Profile Card | デジタル名刺ソリューション',
-  description: '物理的なNFCカードとデジタルプロフィールを統合した、次世代のネットワーキングツール',
-  keywords: 'NFC, デジタル名刺, プロフィール, ネットワーキング',
+  title: "TapForge | デジタル名刺ソリューション",
+  description:
+    "物理的なNFCカードとデジタルプロフィールを統合した、次世代のネットワーキングツール",
+  keywords: "NFC, デジタル名刺, プロフィール, ネットワーキング, TapForge",
   openGraph: {
-    title: 'NFC Profile Card',
-    description: 'タップするだけでプロフィールを共有',
-    type: 'website',
-    locale: 'ja_JP',
+    title: "TapForge",
+    description: "タップするだけでプロフィールを共有",
+    type: "website",
+    locale: "ja_JP",
   },
-}
+};
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#000000',
-}
+  themeColor: "#000000",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    <html
+      lang="ja"
+      className={`
+        ${notoSansJP.variable}
+        ${notoSerifJP.variable}
+        ${mPlus1p.variable}
+        ${mPlusRounded.variable}
+        ${sawarabiMincho.variable}
+        ${sawarabiGothic.variable}
+        ${kosugiMaru.variable}
+        ${zenMaruGothic.variable}
+      `}
+    >
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
-  )
+  );
 }

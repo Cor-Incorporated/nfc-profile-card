@@ -14,6 +14,7 @@
 ### 方法1: Google Cloud SDKを使用（推奨）
 
 1. Google Cloud SDKをインストール
+
 ```bash
 # macOS
 brew install --cask google-cloud-sdk
@@ -23,16 +24,19 @@ brew install --cask google-cloud-sdk
 ```
 
 2. 認証
+
 ```bash
 gcloud auth login
 ```
 
 3. プロジェクトIDを設定
+
 ```bash
 gcloud config set project nfc-profile-card
 ```
 
 4. CORS設定を適用
+
 ```bash
 gsutil cors set cors.json gs://nfc-profile-card.firebasestorage.app
 ```
@@ -40,21 +44,25 @@ gsutil cors set cors.json gs://nfc-profile-card.firebasestorage.app
 ### 方法2: Firebase CLIを使用
 
 1. Firebase CLIをインストール
+
 ```bash
 npm install -g firebase-tools
 ```
 
 2. ログイン
+
 ```bash
 firebase login
 ```
 
 3. プロジェクトを初期化
+
 ```bash
 firebase init storage
 ```
 
 4. storage.rulesをデプロイ
+
 ```bash
 firebase deploy --only storage:rules
 ```
@@ -74,6 +82,7 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=nfc-profile-card.firebasestorage.app
 ### CORSエラーが解決しない場合
 
 1. CORS設定が正しく適用されているか確認：
+
 ```bash
 gsutil cors get gs://nfc-profile-card.firebasestorage.app
 ```
@@ -81,6 +90,7 @@ gsutil cors get gs://nfc-profile-card.firebasestorage.app
 2. ブラウザのキャッシュをクリア
 
 3. より緩いCORS設定を一時的に試す：
+
 ```json
 [
   {

@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NFC Profile Card - A Next.js application that integrates physical NFC cards with digital profiles for modern networking. The app allows users to share profiles with a tap, manage contact information, and use OCR to digitize business cards.
+TapForge - A Next.js application that integrates physical NFC cards with digital profiles for modern networking. The app allows users to share profiles with a tap, manage contact information, and use OCR to digitize business cards.
 
 **Tech Stack:**
+
 - Frontend: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
 - Authentication: Clerk (GitHub/Google OAuth)
 - Backend: Firebase (Firestore, Cloud Functions, Storage)
@@ -46,28 +47,34 @@ The project follows Next.js 14 App Router conventions with the following planned
 ## Key Features & Implementation Notes
 
 ### Authentication Flow
+
 - Uses Clerk for authentication with GitHub/Google OAuth
 - Webhook integration syncs Clerk users with Firestore
 - Protected routes use Clerk middleware
 
 ### Profile System
+
 - Dynamic routing at `/p/[username]` for public profiles
 - Support for up to 10 social/portfolio links with automatic service detection
 - VCard download functionality for contact exchange
 - One-time URL support for enhanced security
 
 ### NFC Integration
+
 - Physical NFC cards link to digital profiles
 - Card management in user dashboard
 - Analytics tracking for card taps
 
 ### OCR Functionality
+
 - Uses Google Gemini API 1.5 Flash for business card scanning
 - Converts scanned data to VCard format
 - Immediate data deletion after processing for privacy
 
 ### Database Schema (Firestore)
+
 Main collections:
+
 - **users** - User profiles, NFC cards, subscription info
 - **contacts** (subcollection) - Scanned/saved contacts per user
 - **analytics** (subcollection) - Usage analytics per user
@@ -75,6 +82,7 @@ Main collections:
 ## Environment Variables Required
 
 The project requires configuration in `.env.local`:
+
 - Clerk API keys and webhook secrets
 - Firebase project configuration
 - Google Gemini API key
@@ -98,27 +106,32 @@ The project requires configuration in `.env.local`:
 ## Recent Implementation Notes (Sep 2025)
 
 ### Editor UI Improvements
+
 - **Issue Fixed**: Component addition buttons moved from external sidebar to inside the canvas area for better mobile UX
 - **Implementation**: Created AddComponentPlaceholder component as CraftJS-compatible draggable component
 - **Approach**: Used proven drag-and-drop pattern with `connectors.create()` instead of programmatic component addition
 - **Mobile-First**: Removed sidebar dependencies to focus on mobile-first design
 
 ### VCard Format Compliance
+
 - **Issue Fixed**: VCard format was not iPhone-compatible
 - **Solution**: Updated to VERSION:3.0 specification with proper TEL;TYPE=CELL format for Japanese phone numbers
 - **Implementation**: ProfileInfo component generates compliant VCard files with UTF-8 encoding
 
 ### Component Management
+
 - **Deletion Buttons**: All editable components (Text, ImageUpload, LinkButton, ProfileInfo) have deletion functionality
 - **Image Upload**: ProfileInfo component supports avatar upload with Firebase Storage integration
 - **Scrollable Popups**: All editing popups use `max-h-96 overflow-y-auto` for mobile compatibility
 
 ### Architecture Patterns
+
 - **CraftJS Integration**: Always use `connectors.create()` for drag-and-drop instead of programmatic node creation
 - **Component Registration**: All CraftJS components must be registered in the resolver
 - **Element Wrapping**: Components inside Frame must be wrapped with `<Element is={ComponentName} />` pattern
 
 ### Auto-save Implementation
+
 - **Debounced Saving**: 2-second debounce on all editor changes
 - **State Monitoring**: Watches background, socialLinks, and editor query changes
 - **Status Display**: Visual indicators for saving, saved, and error states

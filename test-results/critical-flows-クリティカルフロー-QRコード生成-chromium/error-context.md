@@ -1,0 +1,54 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - heading "Test User" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Test Position
+      - paragraph [ref=e8]: Test Company
+      - paragraph [ref=e9]: This is a test user profile for NFC Profile Card
+    - generic [ref=e10]:
+      - heading "連絡先" [level=2] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - link "test@example.com" [ref=e16] [cursor=pointer]:
+            - /url: mailto:test@example.com
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - link "+81-90-1234-5678" [ref=e20] [cursor=pointer]:
+            - /url: tel:+81-90-1234-5678
+        - generic [ref=e21]:
+          - img [ref=e22]
+          - link "https://example.com" [ref=e24] [cursor=pointer]:
+            - /url: https://example.com
+        - generic [ref=e25]:
+          - img [ref=e26]
+          - generic [ref=e29]: Tokyo, Japan
+      - button "連絡先を保存" [ref=e31] [cursor=pointer]:
+        - img [ref=e32] [cursor=pointer]
+        - text: 連絡先を保存
+    - generic [ref=e35]:
+      - heading "ソーシャルリンク" [level=2] [ref=e36]
+      - generic [ref=e37]:
+        - link "🔗 GitHub" [ref=e38] [cursor=pointer]:
+          - /url: https://github.com/testuser
+          - generic [ref=e39] [cursor=pointer]:
+            - generic [ref=e40] [cursor=pointer]: 🔗
+            - generic [ref=e41] [cursor=pointer]: GitHub
+          - img [ref=e42] [cursor=pointer]
+        - link "🔗 Twitter" [ref=e44] [cursor=pointer]:
+          - /url: https://twitter.com/testuser
+          - generic [ref=e45] [cursor=pointer]:
+            - generic [ref=e46] [cursor=pointer]: 🔗
+            - generic [ref=e47] [cursor=pointer]: Twitter
+          - img [ref=e48] [cursor=pointer]
+        - link "🔗 LinkedIn" [ref=e50] [cursor=pointer]:
+          - /url: https://linkedin.com/in/testuser
+          - generic [ref=e51] [cursor=pointer]:
+            - generic [ref=e52] [cursor=pointer]: 🔗
+            - generic [ref=e53] [cursor=pointer]: LinkedIn
+          - img [ref=e54] [cursor=pointer]
+  - alert [ref=e56]
+```

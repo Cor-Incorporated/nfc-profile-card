@@ -1,26 +1,31 @@
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { storage } from "@/lib/firebase";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export async function uploadProfileImage(
   userId: string,
   file: File,
-  type: 'avatar' | 'background' | 'content'
+  type: "avatar" | "background" | "content",
 ): Promise<string> {
   // ファイルバリデーション
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('ファイルサイズは5MB以下にしてください');
+    throw new Error("ファイルサイズは5MB以下にしてください");
   }
 
   if (!ALLOWED_TYPES.includes(file.type)) {
-    throw new Error('JPEG, PNG, GIF, WebP形式のみアップロード可能です');
+    throw new Error("JPEG, PNG, GIF, WebP形式のみアップロード可能です");
   }
 
   // ユニークなファイル名を生成
   const timestamp = Date.now();
-  const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
   const storagePath = `users/${userId}/${type}/${fileName}`;
 
   // アップロード
@@ -40,11 +45,11 @@ export async function deleteImage(imageUrl: string): Promise<void> {
     const pathMatch = decodedUrl.match(/\/o\/(.*?)\?/);
     if (!pathMatch) return;
 
-    const path = pathMatch[1].replace(/%2F/g, '/');
+    const path = pathMatch[1].replace(/%2F/g, "/");
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);
   } catch (error) {
-    console.error('画像削除エラー:', error);
+    console.error("画像削除エラー:", error);
   }
 }
 
@@ -52,8 +57,8 @@ export async function deleteImage(imageUrl: string): Promise<void> {
 export async function uploadCompressedImage(
   userId: string,
   file: File,
-  type: 'avatar' | 'background' | 'content',
-  maxWidth: number = 1920
+  type: "avatar" | "background" | "content",
+  maxWidth: number = 1920,
 ): Promise<string> {
   // 画像を圧縮
   const compressedFile = await compressImage(file, maxWidth);
@@ -70,10 +75,10 @@ async function compressImage(file: File, maxWidth: number): Promise<File> {
       img.src = e.target?.result as string;
 
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error('Canvas context not available'));
+          reject(new Error("Canvas context not available"));
           return;
         }
 
@@ -93,16 +98,18 @@ async function compressImage(file: File, maxWidth: number): Promise<File> {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              resolve(new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              }));
+              resolve(
+                new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                }),
+              );
             } else {
-              reject(new Error('圧縮に失敗しました'));
+              reject(new Error("圧縮に失敗しました"));
             }
           },
-          'image/jpeg',
-          0.85 // 品質85%
+          "image/jpeg",
+          0.85, // 品質85%
         );
       };
     };

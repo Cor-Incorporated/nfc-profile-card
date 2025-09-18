@@ -1,14 +1,26 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, X, GripVertical } from 'lucide-react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, X, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface SocialLink {
   id: string;
@@ -22,14 +34,17 @@ interface SocialLinksManagerProps {
   onChange: (links: SocialLink[]) => void;
 }
 
-function SortableItem({ link, onUpdate, onDelete }: { link: SocialLink; onUpdate: (link: SocialLink) => void; onDelete: () => void }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: link.id });
+function SortableItem({
+  link,
+  onUpdate,
+  onDelete,
+}: {
+  link: SocialLink;
+  onUpdate: (link: SocialLink) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: link.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -38,23 +53,28 @@ function SortableItem({ link, onUpdate, onDelete }: { link: SocialLink; onUpdate
 
   const detectService = (url: string): string => {
     const lowercaseUrl = url.toLowerCase();
-    if (lowercaseUrl.includes('twitter.com') || lowercaseUrl.includes('x.com')) return 'Twitter/X';
-    if (lowercaseUrl.includes('instagram.com')) return 'Instagram';
-    if (lowercaseUrl.includes('facebook.com')) return 'Facebook';
-    if (lowercaseUrl.includes('linkedin.com')) return 'LinkedIn';
-    if (lowercaseUrl.includes('github.com')) return 'GitHub';
-    if (lowercaseUrl.includes('youtube.com')) return 'YouTube';
-    if (lowercaseUrl.includes('tiktok.com')) return 'TikTok';
-    if (lowercaseUrl.includes('pinterest.com')) return 'Pinterest';
-    if (lowercaseUrl.includes('discord.')) return 'Discord';
-    if (lowercaseUrl.includes('twitch.tv')) return 'Twitch';
-    if (lowercaseUrl.includes('spotify.com')) return 'Spotify';
-    if (lowercaseUrl.includes('reddit.com')) return 'Reddit';
-    return 'カスタム';
+    if (lowercaseUrl.includes("twitter.com") || lowercaseUrl.includes("x.com"))
+      return "Twitter/X";
+    if (lowercaseUrl.includes("instagram.com")) return "Instagram";
+    if (lowercaseUrl.includes("facebook.com")) return "Facebook";
+    if (lowercaseUrl.includes("linkedin.com")) return "LinkedIn";
+    if (lowercaseUrl.includes("github.com")) return "GitHub";
+    if (lowercaseUrl.includes("youtube.com")) return "YouTube";
+    if (lowercaseUrl.includes("tiktok.com")) return "TikTok";
+    if (lowercaseUrl.includes("pinterest.com")) return "Pinterest";
+    if (lowercaseUrl.includes("discord.")) return "Discord";
+    if (lowercaseUrl.includes("twitch.tv")) return "Twitch";
+    if (lowercaseUrl.includes("spotify.com")) return "Spotify";
+    if (lowercaseUrl.includes("reddit.com")) return "Reddit";
+    return "カスタム";
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex gap-2 p-3 bg-background border rounded-lg">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex gap-2 p-3 bg-background border rounded-lg"
+    >
       <button {...attributes} {...listeners} className="cursor-move">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </button>
@@ -81,16 +101,12 @@ function SortableItem({ link, onUpdate, onDelete }: { link: SocialLink; onUpdate
               onUpdate({
                 ...link,
                 url: newUrl,
-                service: detectService(newUrl).toLowerCase()
+                service: detectService(newUrl).toLowerCase(),
               });
             }}
             className="flex-1"
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-          >
+          <Button variant="ghost" size="sm" onClick={onDelete}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -99,12 +115,15 @@ function SortableItem({ link, onUpdate, onDelete }: { link: SocialLink; onUpdate
   );
 }
 
-export function SocialLinksManager({ links, onChange }: SocialLinksManagerProps) {
+export function SocialLinksManager({
+  links,
+  onChange,
+}: SocialLinksManagerProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: any) => {
@@ -120,30 +139,26 @@ export function SocialLinksManager({ links, onChange }: SocialLinksManagerProps)
   const addLink = () => {
     const newLink: SocialLink = {
       id: Date.now().toString(),
-      service: '',
-      title: '',
-      url: '',
+      service: "",
+      title: "",
+      url: "",
     };
     onChange([...links, newLink]);
   };
 
   const updateLink = (id: string, updatedLink: SocialLink) => {
-    onChange(links.map(link => link.id === id ? updatedLink : link));
+    onChange(links.map((link) => (link.id === id ? updatedLink : link)));
   };
 
   const deleteLink = (id: string) => {
-    onChange(links.filter(link => link.id !== id));
+    onChange(links.filter((link) => link.id !== id));
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold">ソーシャルリンク</Label>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addLink}
-        >
+        <Button variant="outline" size="sm" onClick={addLink}>
           <Plus className="h-4 w-4 mr-1" />
           追加
         </Button>
@@ -160,7 +175,7 @@ export function SocialLinksManager({ links, onChange }: SocialLinksManagerProps)
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={links.map(link => link.id)}
+            items={links.map((link) => link.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">

@@ -1,10 +1,14 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { BackgroundCustomizer } from './BackgroundCustomizer';
-import { Palette } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { BackgroundCustomizer } from "./BackgroundCustomizer";
+import { Palette } from "lucide-react";
 
 interface BackgroundSettingsButtonProps {
   userId: string;
@@ -15,18 +19,14 @@ interface BackgroundSettingsButtonProps {
 export function BackgroundSettingsButton({
   userId,
   background,
-  onBackgroundChange
+  onBackgroundChange,
 }: BackgroundSettingsButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" className="gap-2">
           <Palette className="h-4 w-4" />
           背景設定
         </Button>

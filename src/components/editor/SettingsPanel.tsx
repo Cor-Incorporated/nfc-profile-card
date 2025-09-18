@@ -1,5 +1,5 @@
-import React from 'react';
-import { BackgroundCustomizer } from './BackgroundCustomizer';
+import React from "react";
+import { BackgroundCustomizer } from "./BackgroundCustomizer";
 
 interface SettingsPanelProps {
   userId?: string;
@@ -7,7 +7,11 @@ interface SettingsPanelProps {
   onBackgroundChange?: (background: any) => void;
 }
 
-export function SettingsPanel({ userId, background, onBackgroundChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  userId,
+  background,
+  onBackgroundChange,
+}: SettingsPanelProps) {
   return (
     <div className="space-y-4">
       {userId && onBackgroundChange ? (

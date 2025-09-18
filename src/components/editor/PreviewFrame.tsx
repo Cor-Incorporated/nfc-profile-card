@@ -1,25 +1,35 @@
-import React from 'react';
+import React from "react";
 
 interface PreviewFrameProps {
   content: string;
-  viewMode: 'mobile' | 'tablet' | 'desktop';
+  viewMode: "mobile" | "tablet" | "desktop";
   username: string;
 }
 
-export function PreviewFrame({ content, viewMode, username }: PreviewFrameProps) {
+export function PreviewFrame({
+  content,
+  viewMode,
+  username,
+}: PreviewFrameProps) {
   const getViewportWidth = () => {
-    switch(viewMode) {
-      case 'mobile': return '375px';
-      case 'tablet': return '768px';
-      case 'desktop': return '100%';
+    switch (viewMode) {
+      case "mobile":
+        return "375px";
+      case "tablet":
+        return "768px";
+      case "desktop":
+        return "100%";
     }
   };
 
   const getViewportHeight = () => {
-    switch(viewMode) {
-      case 'mobile': return '667px';
-      case 'tablet': return '1024px';
-      case 'desktop': return '100%';
+    switch (viewMode) {
+      case "mobile":
+        return "667px";
+      case "tablet":
+        return "1024px";
+      case "desktop":
+        return "100%";
     }
   };
 
@@ -29,9 +39,9 @@ export function PreviewFrame({ content, viewMode, username }: PreviewFrameProps)
         className="mx-auto bg-white rounded-lg shadow-lg transition-all"
         style={{
           width: getViewportWidth(),
-          maxWidth: '100%',
+          maxWidth: "100%",
           height: getViewportHeight(),
-          maxHeight: '100vh'
+          maxHeight: "100vh",
         }}
       >
         <iframe

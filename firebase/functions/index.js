@@ -1,5 +1,5 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -11,5 +11,5 @@ const db = admin.firestore();
 // Example Cloud Function for future use
 exports.exampleFunction = functions.https.onRequest(async (req, res) => {
   // This is a placeholder for future Cloud Functions
-  res.status(200).send('Firebase Functions are ready');
+  res.status(200).send("Firebase Functions are ready");
 });

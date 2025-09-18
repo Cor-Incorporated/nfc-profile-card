@@ -1,14 +1,18 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useToast } from '@/components/ui/use-toast';
-import { uploadCompressedImage } from '@/lib/storage';
-import { useEditor, useNode } from '@craftjs/core';
-import { Camera, Download, Edit, Trash2, User } from 'lucide-react';
-import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
+import { uploadCompressedImage } from "@/lib/storage";
+import { useEditor, useNode } from "@craftjs/core";
+import { Camera, Download, Edit, Trash2, User } from "lucide-react";
+import React, { useState } from "react";
 
 interface ProfileInfoProps {
   name?: string;
@@ -23,26 +27,26 @@ interface ProfileInfoProps {
 }
 
 export function ProfileInfo({
-  name = '山田太郎',
-  company = 'サンプル株式会社',
-  title = 'エンジニア',
-  description = 'よろしくお願いします',
-  email = 'taro@example.com',
-  phone = '090-1234-5678',
-  website = 'https://example.com',
-  avatarUrl = '',
-  userId = ''
+  name = "山田太郎",
+  company = "サンプル株式会社",
+  title = "エンジニア",
+  description = "よろしくお願いします",
+  email = "taro@example.com",
+  phone = "090-1234-5678",
+  website = "https://example.com",
+  avatarUrl = "",
+  userId = "",
 }: ProfileInfoProps) {
   const {
     connectors: { connect, drag },
     actions: { setProp },
     isActive,
     isHovered,
-    id
+    id,
   } = useNode((state) => ({
     isActive: state.events.selected,
     isHovered: state.events.hovered,
-    id: state.id
+    id: state.id,
   }));
 
   const { actions } = useEditor();
@@ -52,10 +56,7 @@ export function ProfileInfo({
   const { toast } = useToast();
 
   const generateVCard = () => {
-    const vcardLines = [
-      'BEGIN:VCARD',
-      'VERSION:3.0'
-    ];
+    const vcardLines = ["BEGIN:VCARD", "VERSION:3.0"];
 
     // 名前（必須）
     if (name) {
@@ -79,7 +80,7 @@ export function ProfileInfo({
     }
     if (phone) {
       // 携帯電話として設定（TYPE=CELL;）
-      const phoneClean = phone.replace(/[\s-]/g, ''); // スペースとハイフンを除去
+      const phoneClean = phone.replace(/[\s-]/g, ""); // スペースとハイフンを除去
       vcardLines.push(`TEL;TYPE=CELL:${phoneClean}`);
     }
     if (website) {
@@ -91,41 +92,43 @@ export function ProfileInfo({
       vcardLines.push(`NOTE:${description}`);
     }
 
-    vcardLines.push('END:VCARD');
+    vcardLines.push("END:VCARD");
 
-    const vcard = vcardLines.join('\n');
+    const vcard = vcardLines.join("\n");
 
     // UTF-8形式でBlobを作成
-    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${name || 'contact'}.vcf`;
+    link.download = `${name || "contact"}.vcf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !userId) return;
 
     setIsUploading(true);
     try {
-      const imageUrl = await uploadCompressedImage(userId, file, 'content');
+      const imageUrl = await uploadCompressedImage(userId, file, "content");
       setProp((props: ProfileInfoProps) => {
         props.avatarUrl = imageUrl;
       });
       toast({
-        title: '成功',
-        description: 'プロフィール画像をアップロードしました',
+        title: "成功",
+        description: "プロフィール画像をアップロードしました",
       });
     } catch (error: any) {
       toast({
-        title: 'エラー',
+        title: "エラー",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
@@ -136,8 +139,8 @@ export function ProfileInfo({
     <div
       ref={(ref: any) => connect(drag(ref))}
       className={`relative p-6 bg-white rounded-lg shadow-sm border transition-all ${
-        isActive ? 'ring-2 ring-blue-500' : ''
-      } ${isHovered ? 'shadow-md' : ''}`}
+        isActive ? "ring-2 ring-blue-500" : ""
+      } ${isHovered ? "shadow-md" : ""}`}
     >
       {/* ホバー時の編集コントロール */}
       {isHovered && (
@@ -159,7 +162,10 @@ export function ProfileInfo({
                 <Edit className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4 max-h-96 overflow-y-auto" align="end">
+            <PopoverContent
+              className="w-80 p-4 max-h-96 overflow-y-auto"
+              align="end"
+            >
               <div className="space-y-4">
                 <h3 className="font-semibold">登録情報を編集</h3>
 
@@ -191,15 +197,17 @@ export function ProfileInfo({
                         className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
                       >
                         <Camera className="h-4 w-4" />
-                        {isUploading ? 'アップロード中...' : '画像を選択'}
+                        {isUploading ? "アップロード中..." : "画像を選択"}
                       </Label>
                       {avatarUrl && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setProp((props: ProfileInfoProps) => {
-                            props.avatarUrl = '';
-                          })}
+                          onClick={() =>
+                            setProp((props: ProfileInfoProps) => {
+                              props.avatarUrl = "";
+                            })
+                          }
                         >
                           画像を削除
                         </Button>
@@ -213,9 +221,11 @@ export function ProfileInfo({
                   <Input
                     id="name"
                     value={name}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.name = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.name = e.target.value;
+                      })
+                    }
                     placeholder="名前を入力"
                   />
                 </div>
@@ -225,9 +235,11 @@ export function ProfileInfo({
                   <Input
                     id="company"
                     value={company}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.company = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.company = e.target.value;
+                      })
+                    }
                     placeholder="会社名を入力"
                   />
                 </div>
@@ -237,9 +249,11 @@ export function ProfileInfo({
                   <Input
                     id="title"
                     value={title}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.title = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.title = e.target.value;
+                      })
+                    }
                     placeholder="職業・役職を入力"
                   />
                 </div>
@@ -249,9 +263,11 @@ export function ProfileInfo({
                   <Input
                     id="description"
                     value={description}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.description = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.description = e.target.value;
+                      })
+                    }
                     placeholder="一言メッセージを入力"
                   />
                 </div>
@@ -262,9 +278,11 @@ export function ProfileInfo({
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.email = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.email = e.target.value;
+                      })
+                    }
                     placeholder="メールアドレスを入力"
                   />
                 </div>
@@ -274,9 +292,11 @@ export function ProfileInfo({
                   <Input
                     id="phone"
                     value={phone}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.phone = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.phone = e.target.value;
+                      })
+                    }
                     placeholder="電話番号を入力"
                   />
                 </div>
@@ -286,17 +306,16 @@ export function ProfileInfo({
                   <Input
                     id="website"
                     value={website}
-                    onChange={(e) => setProp((props: ProfileInfoProps) => {
-                      props.website = e.target.value;
-                    })}
+                    onChange={(e) =>
+                      setProp((props: ProfileInfoProps) => {
+                        props.website = e.target.value;
+                      })
+                    }
                     placeholder="https://example.com"
                   />
                 </div>
 
-                <Button
-                  onClick={() => setIsOpen(false)}
-                  className="w-full"
-                >
+                <Button onClick={() => setIsOpen(false)} className="w-full">
                   完了
                 </Button>
               </div>
@@ -346,17 +365,17 @@ export function ProfileInfo({
 }
 
 ProfileInfo.craft = {
-  displayName: 'ProfileInfo',
+  displayName: "ProfileInfo",
   props: {
-    name: '山田太郎',
-    company: 'サンプル株式会社',
-    title: 'エンジニア',
-    description: 'よろしくお願いします',
-    email: 'taro@example.com',
-    phone: '090-1234-5678',
-    website: 'https://example.com',
-    avatarUrl: '',
-    userId: ''
+    name: "山田太郎",
+    company: "サンプル株式会社",
+    title: "エンジニア",
+    description: "よろしくお願いします",
+    email: "taro@example.com",
+    phone: "090-1234-5678",
+    website: "https://example.com",
+    avatarUrl: "",
+    userId: "",
   },
-  related: {}
+  related: {},
 };
