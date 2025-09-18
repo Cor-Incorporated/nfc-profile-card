@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, notFound } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import Link from 'next/link';
+import { CraftRenderer } from '@/components/profile/CraftRenderer';
 import { VCardButton } from '@/components/profile/VCardButton';
+import { db } from '@/lib/firebase';
 import { SUPPORTED_SERVICES } from '@/types';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface UserProfile {
   name: string;
@@ -25,6 +26,11 @@ interface UserProfile {
     url: string;
     service?: string;
   }>;
+  profile?: {
+    editorContent?: any;
+    background?: any;
+    socialLinks?: any[];
+  };
 }
 
 function getServiceIcon(url: string) {
@@ -87,6 +93,17 @@ export default function ProfilePage() {
     );
   }
 
+  // editorContentが存在する場合はCraftRendererを使用
+        if (user.profile?.editorContent) {
+          return (
+            <CraftRenderer
+              data={user.profile.editorContent}
+              background={user.profile.background}
+            />
+          );
+        }
+
+  // 従来の静的テンプレート
   const vcardData = {
     firstName: user.name?.split(' ')[0] || '',
     lastName: user.name?.split(' ').slice(1).join(' ') || '',

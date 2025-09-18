@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { db } from '@/lib/firebase';
+import { Editor, Element, Frame, useEditor } from '@craftjs/core';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { ArrowLeft, Eye, EyeOff, Monitor, Smartphone, Tablet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Editor, Frame, Element, useEditor } from '@craftjs/core';
-import { Text } from './editableComponents/Text';
+import React, { useState } from 'react';
+import { BackgroundSettingsButton } from './BackgroundSettingsButton';
+import { AddComponentPlaceholder } from './editableComponents/AddComponentPlaceholder';
 import { ImageUpload } from './editableComponents/ImageUpload';
 import { LinkButton } from './editableComponents/LinkButton';
 import { ProfileInfo } from './editableComponents/ProfileInfo';
-import { AddComponentPlaceholder } from './editableComponents/AddComponentPlaceholder';
-import { BackgroundSettingsButton } from './BackgroundSettingsButton';
+import { Text } from './editableComponents/Text';
 import { EditorErrorBoundary } from './ErrorBoundary';
-import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Smartphone, Tablet, Monitor, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface PageEditorProps {
   userId: string;
@@ -23,9 +23,20 @@ interface PageEditorProps {
   profileId?: string;
   socialLinks?: any[];
   initialBackground?: any;
+  profileData?: {
+    name: string;
+    company: string;
+    position: string;
+    bio: string;
+    email: string;
+    phone: string;
+    website: string;
+    address: string;
+    links: any[];
+  };
 }
 
-function EditorContent({ userId, username, initialData, profileId, socialLinks: initialSocialLinks = [], initialBackground = null }: PageEditorProps) {
+function EditorContent({ userId, username, initialData, profileId, socialLinks: initialSocialLinks = [], initialBackground = null, profileData }: PageEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
   const [viewMode, setViewMode] = useState<'mobile' | 'tablet' | 'desktop'>('mobile'); // デフォルトをmobileに
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
@@ -35,14 +46,25 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
   const [dataLoadError, setDataLoadError] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
-  const { query } = useEditor((state) => ({
+  const { query, actions } = useEditor((state) => ({
     nodesLength: Object.keys(state.nodes).length
   }));
   const router = useRouter();
 
-  // initialDataのバリデーションとクリーンアップ
-  const validateAndCleanData = (data: any) => {
-    if (!data) return null;
+  // デフォルトのエディター構造を取得
+  const getDefaultEditorContent = () => ({
+    ROOT: {
+      type: { resolvedName: 'Container' },
+      nodes: [],
+      props: {},
+    }
+  });
+
+        // initialDataのバリデーションとクリーンアップ
+        const validateAndCleanData = (data: any) => {
+          if (!data) {
+            return getDefaultEditorContent();
+          }
 
     try {
       // データがすでにオブジェクトの場合はそのまま使用
@@ -58,27 +80,39 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
 
       if (cleanedData && typeof cleanedData === 'object') {
         // 有効なCraft.jsノード構造かチェック
-        let hasValidNodes = false;
+        let hasValidContentNodes = false;
+        let validContentNodeCount = 0;
+        
         Object.keys(cleanedData).forEach(key => {
           const node = cleanedData[key];
+          
           if (node && node.type) {
-            // Containerノードは削除
-            if (node.type.resolvedName === 'Container') {
-              delete cleanedData[key];
-            } else {
-              hasValidNodes = true;
+            // resolvedNameが存在するかチェック
+            const resolvedName = node.type.resolvedName || node.type;
+            
+            // ROOTノードとAddComponentPlaceholderは除外し、実際のコンテンツノードのみをカウント
+            if (resolvedName && 
+                resolvedName !== 'Container' && 
+                resolvedName !== 'AddComponentPlaceholder' &&
+                key !== 'ROOT') {
+              hasValidContentNodes = true;
+              validContentNodeCount++;
             }
           }
         });
-
-        // 有効なノードがある場合のみ返す、そうでなければnullを返す
-        return hasValidNodes ? cleanedData : null;
+        
+        // 有効なコンテンツノードがある場合はそのまま返す、そうでなければデフォルト構造を返す
+        if (hasValidContentNodes) {
+          return cleanedData;
+        } else {
+          return getDefaultEditorContent();
+        }
       }
 
-      return cleanedData;
+      return getDefaultEditorContent();
     } catch (error) {
       console.error('Data validation error:', error);
-      return null;
+      return getDefaultEditorContent();
     }
   };
 
@@ -87,9 +121,11 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
     try {
       const cleanedData = validateAndCleanData(initialData);
       setValidInitialData(cleanedData);
+      setDataLoadError(false);
     } catch (error) {
       console.error('Failed to process initial data:', error);
       setDataLoadError(true);
+      setValidInitialData(getDefaultEditorContent());
       toast({
         title: 'データ読み込みエラー',
         description: '既存のデザインデータに問題があります。新しいデザインから始めます。',
@@ -100,7 +136,9 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
 
   // 保存の実装
   const saveData = React.useCallback(async () => {
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      return;
+    }
 
     setSaveStatus('saving');
     try {
@@ -114,12 +152,28 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
           [`contextualProfiles.${profileId}.updatedAt`]: serverTimestamp(),
         });
       } else {
-        await updateDoc(doc(db, 'users', userId), {
+        // 従来のプロフィール情報とエディター情報の両方を保存
+        const updateData: any = {
           'profile.editorContent': serialized,
           'profile.background': background,
           'profile.socialLinks': socialLinks,
           'profile.updatedAt': serverTimestamp(),
-        });
+        };
+
+        // プロフィールデータが存在する場合は従来形式も保存
+        if (profileData) {
+          updateData.name = profileData.name;
+          updateData.company = profileData.company;
+          updateData.position = profileData.position;
+          updateData.bio = profileData.bio;
+          updateData.email = profileData.email;
+          updateData.phone = profileData.phone;
+          updateData.website = profileData.website;
+          updateData.address = profileData.address;
+          updateData.links = profileData.links;
+        }
+
+        await updateDoc(doc(db, 'users', userId), updateData);
       }
 
       setSaveStatus('saved');
@@ -142,16 +196,29 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         autoSave();
-      }, 2000); // 2秒のdebounce
+      }, 5000); // 5秒のdebounce
     };
   }, [autoSave]);
 
-  // エディター状態を監視して自動保存
+  // 自動保存を一時的に無効化（手動保存のみ）
+  // React.useEffect(() => {
+  //   console.log('Editor state changed, isInitialized:', isInitialized);
+  //   if (isInitialized) {
+  //     console.log('Triggering auto save');
+  //     debouncedAutoSave();
+  //   }
+  // }, [background, socialLinks, isInitialized, debouncedAutoSave]);
+
+  // 初期データをEditorに設定
   React.useEffect(() => {
-    if (isInitialized) {
-      debouncedAutoSave();
+    if (validInitialData && actions) {
+      try {
+        actions.deserialize(validInitialData);
+      } catch (error) {
+        console.error('Failed to set initial data:', error);
+      }
     }
-  }, [background, socialLinks, query, isInitialized, debouncedAutoSave]);
+  }, [validInitialData, actions]);
 
   // 初期化完了を監視
   React.useEffect(() => {
@@ -284,6 +351,14 @@ function EditorContent({ userId, username, initialData, profileId, socialLinks: 
             ダッシュボード
           </Button>
           <h2 className="text-xl font-semibold">デザインエディター</h2>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={saveData}
+            disabled={saveStatus === 'saving'}
+          >
+            {saveStatus === 'saving' ? '保存中...' : '保存'}
+          </Button>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'mobile' ? 'default' : 'outline'}

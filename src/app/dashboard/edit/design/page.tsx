@@ -1,12 +1,12 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { PageEditor } from '@/components/editor/PageEditor';
+import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function DesignEditorPage() {
   const { user, loading } = useAuth();
@@ -16,6 +16,7 @@ export default function DesignEditorPage() {
   const [username, setUsername] = useState('');
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [background, setBackground] = useState<any>(null);
+  const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,10 +33,24 @@ export default function DesignEditorPage() {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
+        
         setUsername(data.username || '');
         setInitialData(data.profile?.editorContent || null);
         setSocialLinks(data.profile?.socialLinks || []);
         setBackground(data.profile?.background || null);
+        
+        // 従来のプロフィール情報を取得
+        setProfileData({
+          name: data.name || user.displayName || '',
+          company: data.company || '',
+          position: data.position || '',
+          bio: data.bio || '',
+          email: data.email || user.email || '',
+          phone: data.phone || '',
+          website: data.website || '',
+          address: data.address || '',
+          links: data.links || [],
+        });
       }
     } catch (error) {
       console.error('データ読み込みエラー:', error);
@@ -63,6 +78,7 @@ export default function DesignEditorPage() {
       initialData={initialData}
       socialLinks={socialLinks}
       initialBackground={background}
+      profileData={profileData}
     />
   );
 }
