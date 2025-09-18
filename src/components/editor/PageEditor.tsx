@@ -4,11 +4,14 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import { Text } from './editableComponents/Text';
-import { Container } from './editableComponents/Container';
-import { Toolbox } from './Toolbox';
-import { SettingsPanel } from './SettingsPanel';
+import { ImageUpload } from './editableComponents/ImageUpload';
+import { LinkButton } from './editableComponents/LinkButton';
+import { ProfileInfo } from './editableComponents/ProfileInfo';
+import { AddComponentPlaceholder } from './editableComponents/AddComponentPlaceholder';
+import { BackgroundSettingsButton } from './BackgroundSettingsButton';
+import { EditorErrorBoundary } from './ErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { Save, Eye, EyeOff, Smartphone, Tablet, Monitor, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Smartphone, Tablet, Monitor, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -18,48 +21,163 @@ interface PageEditorProps {
   username: string;
   initialData?: any;
   profileId?: string;
+  socialLinks?: any[];
+  initialBackground?: any;
 }
 
-function EditorContent({ userId, username, initialData, profileId }: PageEditorProps) {
+function EditorContent({ userId, username, initialData, profileId, socialLinks: initialSocialLinks = [], initialBackground = null }: PageEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
-  const [viewMode, setViewMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [isSaving, setIsSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<'mobile' | 'tablet' | 'desktop'>('mobile'); // デフォルトをmobileに
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [background, setBackground] = useState<any>(initialBackground);
+  const [socialLinks, setSocialLinks] = useState<any[]>(initialSocialLinks);
+  const [validInitialData, setValidInitialData] = useState<any>(null);
+  const [dataLoadError, setDataLoadError] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
-  const { query } = useEditor();
+  const { query } = useEditor((state) => ({
+    nodesLength: Object.keys(state.nodes).length
+  }));
   const router = useRouter();
 
-  const saveDesign = async () => {
-    setIsSaving(true);
+  // initialDataのバリデーションとクリーンアップ
+  const validateAndCleanData = (data: any) => {
+    if (!data) return null;
+
+    try {
+      // データがすでにオブジェクトの場合はそのまま使用
+      let cleanedData = data;
+
+      // 文字列の場合はパース
+      if (typeof data === 'string') {
+        cleanedData = JSON.parse(data);
+      }
+
+      // 深いコピーを作成
+      cleanedData = JSON.parse(JSON.stringify(cleanedData));
+
+      if (cleanedData && typeof cleanedData === 'object') {
+        // 有効なCraft.jsノード構造かチェック
+        let hasValidNodes = false;
+        Object.keys(cleanedData).forEach(key => {
+          const node = cleanedData[key];
+          if (node && node.type) {
+            // Containerノードは削除
+            if (node.type.resolvedName === 'Container') {
+              delete cleanedData[key];
+            } else {
+              hasValidNodes = true;
+            }
+          }
+        });
+
+        // 有効なノードがある場合のみ返す、そうでなければnullを返す
+        return hasValidNodes ? cleanedData : null;
+      }
+
+      return cleanedData;
+    } catch (error) {
+      console.error('Data validation error:', error);
+      return null;
+    }
+  };
+
+  // 初期データの処理
+  React.useEffect(() => {
+    try {
+      const cleanedData = validateAndCleanData(initialData);
+      setValidInitialData(cleanedData);
+    } catch (error) {
+      console.error('Failed to process initial data:', error);
+      setDataLoadError(true);
+      toast({
+        title: 'データ読み込みエラー',
+        description: '既存のデザインデータに問題があります。新しいデザインから始めます。',
+        variant: 'destructive',
+      });
+    }
+  }, [initialData, toast]);
+
+  // 保存の実装
+  const saveData = React.useCallback(async () => {
+    if (!isInitialized) return;
+
+    setSaveStatus('saving');
     try {
       const serialized = query.serialize();
 
       if (profileId) {
         await updateDoc(doc(db, 'users', userId), {
           [`contextualProfiles.${profileId}.content`]: serialized,
+          [`contextualProfiles.${profileId}.background`]: background,
+          [`contextualProfiles.${profileId}.socialLinks`]: socialLinks,
           [`contextualProfiles.${profileId}.updatedAt`]: serverTimestamp(),
         });
       } else {
         await updateDoc(doc(db, 'users', userId), {
           'profile.editorContent': serialized,
+          'profile.background': background,
+          'profile.socialLinks': socialLinks,
           'profile.updatedAt': serverTimestamp(),
         });
       }
 
-      toast({
-        title: '保存完了',
-        description: 'デザインを保存しました',
-      });
+      setSaveStatus('saved');
     } catch (error) {
       console.error('保存エラー:', error);
-      toast({
-        title: 'エラー',
-        description: '保存に失敗しました',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
+      setSaveStatus('error');
     }
-  };
+  }, [isInitialized, query, profileId, userId, background, socialLinks]);
+
+  // 自動保存の実装
+  const autoSave = React.useCallback(async () => {
+    if (saveStatus === 'saving') return;
+    await saveData();
+  }, [saveData, saveStatus]);
+
+  // debounce処理付きの自動保存
+  const debouncedAutoSave = React.useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        autoSave();
+      }, 2000); // 2秒のdebounce
+    };
+  }, [autoSave]);
+
+  // エディター状態を監視して自動保存
+  React.useEffect(() => {
+    if (isInitialized) {
+      debouncedAutoSave();
+    }
+  }, [background, socialLinks, query, isInitialized, debouncedAutoSave]);
+
+  // 初期化完了を監視
+  React.useEffect(() => {
+    if (validInitialData !== null) {
+      // 初期データロード後に少し遅延して初期化完了とする
+      const timer = setTimeout(() => {
+        setIsInitialized(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [validInitialData]);
+
+  // ページ離脱時の保存
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isInitialized && saveStatus !== 'saved') {
+        // 同期的に保存を試行
+        saveData();
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isInitialized, saveStatus, saveData]);
 
   const getViewportWidth = () => {
     switch(viewMode) {
@@ -67,6 +185,89 @@ function EditorContent({ userId, username, initialData, profileId }: PageEditorP
       case 'tablet': return '768px';
       case 'desktop': return '100%';
     }
+  };
+
+  const getBackgroundStyle = () => {
+    if (!background) return {};
+
+    const opacity = background.opacity || 1;
+
+    switch (background.type) {
+      case 'solid':
+        const color = background.color || '#ffffff';
+        // RGBAに変換して透明度を適用
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        return { backgroundColor: `rgba(${r}, ${g}, ${b}, ${opacity})` };
+      case 'gradient':
+        // グラデーションの場合は背景レイヤーとして分離
+        return {
+          position: 'relative' as const,
+        };
+      case 'image':
+        // 画像の場合は背景レイヤーとして分離
+        return {
+          position: 'relative' as const,
+        };
+      case 'pattern':
+        // パターンの場合は背景レイヤーとして分離
+        return {
+          position: 'relative' as const,
+        };
+      default:
+        return {};
+    }
+  };
+
+  const getBackgroundLayer = () => {
+    if (!background || background.type === 'solid') return null;
+
+    const opacity = background.opacity || 1;
+
+    let backgroundStyle = {};
+    switch (background.type) {
+      case 'gradient':
+        backgroundStyle = {
+          background: `linear-gradient(${background.direction || 'to bottom right'}, ${background.from}, ${background.to})`,
+        };
+        break;
+      case 'image':
+        const size = background.backgroundSize || 'cover';
+        let backgroundSize = size;
+        if (size === 'custom') {
+          const scale = background.scale || 100;
+          backgroundSize = `${scale}%`;
+        }
+
+        const positionX = background.positionX || 50;
+        const positionY = background.positionY || 50;
+
+        backgroundStyle = {
+          backgroundImage: `url(${background.imageUrl})`,
+          backgroundSize: backgroundSize,
+          backgroundPosition: `${positionX}% ${positionY}%`,
+          backgroundRepeat: 'no-repeat',
+        };
+        break;
+      case 'pattern':
+        backgroundStyle = {
+          // パターンのスタイルをここに追加
+        };
+        break;
+    }
+
+    return (
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          ...backgroundStyle,
+          opacity: opacity,
+          zIndex: 0,
+        }}
+      />
+    );
   };
 
   return (
@@ -77,12 +278,12 @@ function EditorContent({ userId, username, initialData, profileId }: PageEditorP
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/dashboard/edit')}
+            onClick={() => router.push('/dashboard')}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            編集ページへ戻る
+            ダッシュボード
           </Button>
-          <h2 className="text-xl font-semibold">ページエディター</h2>
+          <h2 className="text-xl font-semibold">デザインエディター</h2>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'mobile' ? 'default' : 'outline'}
@@ -109,6 +310,13 @@ function EditorContent({ userId, username, initialData, profileId }: PageEditorP
         </div>
 
         <div className="flex items-center gap-2">
+          {!isPreview && (
+            <BackgroundSettingsButton
+              userId={userId}
+              background={background}
+              onBackgroundChange={setBackground}
+            />
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -118,48 +326,81 @@ function EditorContent({ userId, username, initialData, profileId }: PageEditorP
             {isPreview ? '編集' : 'プレビュー'}
           </Button>
           <Button
+            variant="outline"
             size="sm"
-            onClick={saveDesign}
-            disabled={isSaving}
+            onClick={() => {
+              if (confirm('現在のデザインをリセットして新しいデザインを開始しますか？この操作は元に戻せません。')) {
+                // 現在のエディターをクリア
+                setValidInitialData(null);
+                // ページをリロードして完全にリセット
+                window.location.reload();
+              }
+            }}
           >
-            <Save className="mr-2 h-4 w-4" />
-            保存
+            新規作成
           </Button>
+          {/* 自動保存状態表示 */}
+          <div className="flex items-center gap-2 text-sm">
+            {saveStatus === 'saving' && (
+              <>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                <span className="text-blue-600">保存中...</span>
+              </>
+            )}
+            {saveStatus === 'saved' && (
+              <>
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span className="text-green-600">保存済み</span>
+              </>
+            )}
+            {saveStatus === 'error' && (
+              <>
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <span className="text-red-600">保存エラー</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* メインコンテンツ */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* ツールボックス */}
-        {!isPreview && (
-          <div className="w-72 border-r bg-muted/30 overflow-y-auto">
-            <Toolbox />
-          </div>
-        )}
-
+      <div className="flex-1 flex overflow-hidden relative">
         {/* キャンバス */}
-        <div className="flex-1 bg-gray-100 overflow-auto p-4">
+        <div className="flex-1 bg-gray-100 overflow-auto p-4 relative">
           <div
             className="mx-auto bg-white rounded-lg shadow-lg transition-all"
             style={{
               width: getViewportWidth(),
-              minHeight: '100vh'
+              minHeight: '100vh',
+              ...getBackgroundStyle()
             }}
           >
-            <Frame data={initialData}>
-              <Element is="div" canvas className="p-6 min-h-screen">
-                {/* 初期状態は空にして、ドラッグ&ドロップでコンポーネントを追加 */}
+            {/* 背景レイヤー（透明度付き） */}
+            {getBackgroundLayer()}
+
+            <Frame data={validInitialData}>
+              <Element
+                is="div"
+                canvas
+                className="flex flex-col items-center gap-4 p-6 min-h-screen relative"
+                style={{ zIndex: 1 }}
+              >
+                {/* 初期のコンポーネント追加ボタン（画面内に配置） */}
+                {!isPreview && (
+                  <Element
+                    is={AddComponentPlaceholder}
+                    socialLinks={socialLinks}
+                    onSocialLinksChange={(links) => {
+                      setSocialLinks(links);
+                    }}
+                    userId={userId}
+                  />
+                )}
               </Element>
             </Frame>
           </div>
         </div>
 
-        {/* 設定パネル */}
-        {!isPreview && (
-          <div className="w-80 border-l bg-muted/30 overflow-y-auto">
-            <SettingsPanel />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -167,13 +408,18 @@ function EditorContent({ userId, username, initialData, profileId }: PageEditorP
 
 export function PageEditor(props: PageEditorProps) {
   return (
-    <Editor
-      resolver={{
-        Text,
-        Container,
-      }}
-    >
-      <EditorContent {...props} />
-    </Editor>
+    <EditorErrorBoundary>
+      <Editor
+        resolver={{
+          Text,
+          ImageUpload,
+          LinkButton,
+          ProfileInfo,
+          AddComponentPlaceholder,
+        }}
+      >
+        <EditorContent {...props} />
+      </Editor>
+    </EditorErrorBoundary>
   );
 }

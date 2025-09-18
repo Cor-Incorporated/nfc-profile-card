@@ -37,6 +37,10 @@
 - ✅ **ビジュアルエディター** - ドラッグ&ドロップでページをカスタマイズ
 - ✅ **背景カスタマイズ** - 色・グラデーション・画像・パターンの設定
 - ✅ **画像アップロード** - Firebase Storage連携による画像管理
+- ✅ **コンポーネント編集** - テキスト、画像、リンクボタン、登録情報の追加・編集・削除
+- ✅ **VCardダウンロード** - iPhone対応のVCard生成（VERSION:3.0準拠）
+- ✅ **モバイルファーストUI** - スマホ中心のエディターデザイン
+- ✅ **キャンバス内コンポーネント追加** - 編集エリア内でのドラッグ&ドロップ操作
 
 ### 🌐 公開プロフィールページ
 - ✅ `/p/[username]`でアクセス可能
@@ -83,14 +87,22 @@ cp .env.example .env.local
 - Firebaseコンソールでプロジェクト作成
 - Authentication（Email/Password, Google）を有効化
 - Firestore Databaseを有効化
+- Storage（us-central1）を有効化
 - 設定値を.env.localに追加
 
 詳細な設定手順は以下のドキュメントを参照：
 - [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Firebase初期設定
 - [FIREBASE_AUTH_SETUP.md](./FIREBASE_AUTH_SETUP.md) - 認証設定ガイド
 - [FIREBASE_AUTH_BEST_PRACTICES.md](./FIREBASE_AUTH_BEST_PRACTICES.md) - 認証実装のベストプラクティス
+- [FIREBASE_STORAGE_SETUP.md](./FIREBASE_STORAGE_SETUP.md) - Storage設定ガイド
 
-5. **開発サーバーの起動**
+5. **Firebase Storage CORS設定（重要）**
+```bash
+# CORS設定を適用（画像アップロードに必要）
+./setup-cors.sh
+```
+
+6. **開発サーバーの起動**
 ```bash
 npm run dev
 ```

@@ -10,7 +10,7 @@ interface ContainerProps {
 }
 
 export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
-  ({ background = '#ffffff', padding = 20, children, className }, ref) => {
+  ({ background = 'transparent', padding = 20, children, className }, ref) => {
     const { connectors: { connect, drag } } = useNode();
 
     return (
@@ -22,10 +22,11 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
             else if (ref) ref.current = element;
           }
         }}
-        className={cn('min-h-[100px]', className)}
+        className={cn('min-h-[100px] flex flex-col items-center gap-4', className)}
         style={{
           backgroundColor: background,
           padding: `${padding}px`,
+          width: '100%',
         }}
       >
         {children}

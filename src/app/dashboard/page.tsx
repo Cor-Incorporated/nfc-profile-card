@@ -125,8 +125,8 @@ export default function DashboardPage() {
             <p className="text-gray-600 mb-4">
               プロフィール情報を編集して、あなたの魅力を最大限に伝えましょう
             </p>
-            <Link href="/dashboard/edit" className="block w-full px-4 py-2 bg-primary text-white text-center rounded-lg hover:bg-primary/90 transition-colors">
-              編集する
+            <Link href="/dashboard/edit/design" className="block w-full px-4 py-2 bg-primary text-white text-center rounded-lg hover:bg-primary/90 transition-colors">
+              デザインを編集
             </Link>
           </div>
 
@@ -143,8 +143,8 @@ export default function DashboardPage() {
             <p className="text-gray-600 mb-4">
               SNSやポートフォリオのリンクを追加・編集できます
             </p>
-            <Link href="/dashboard/edit" className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors">
-              管理する
+            <Link href="/dashboard/edit/design" className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors">
+              デザインを編集
             </Link>
           </div>
 

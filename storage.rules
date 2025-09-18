@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 認証済みユーザーは自分のファイルのみ読み書き可能
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true; // プロフィール画像は公開
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 一時的なアップロード用（開発環境用）
+    match /temp/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // デフォルトユーザー用（開発環境用）
+    match /default-user/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

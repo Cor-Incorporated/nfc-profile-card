@@ -14,6 +14,8 @@ export default function DesignEditorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialData, setInitialData] = useState(null);
   const [username, setUsername] = useState('');
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
+  const [background, setBackground] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,6 +34,8 @@ export default function DesignEditorPage() {
         const data = userDoc.data();
         setUsername(data.username || '');
         setInitialData(data.profile?.editorContent || null);
+        setSocialLinks(data.profile?.socialLinks || []);
+        setBackground(data.profile?.background || null);
       }
     } catch (error) {
       console.error('データ読み込みエラー:', error);
@@ -57,6 +61,8 @@ export default function DesignEditorPage() {
       userId={user.uid}
       username={username}
       initialData={initialData}
+      socialLinks={socialLinks}
+      initialBackground={background}
     />
   );
 }
