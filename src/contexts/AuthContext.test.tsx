@@ -1,8 +1,7 @@
-import { render, screen, waitFor, renderHook, act } from '@testing-library/react'
-import { AuthProvider, useAuth } from './AuthContext'
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 import * as firebaseAuth from 'firebase/auth'
 import * as firestore from 'firebase/firestore'
-import { useRouter } from 'next/navigation'
+import { AuthProvider, useAuth } from './AuthContext'
 
 // Routerのモック
 const mockPush = jest.fn()
@@ -109,6 +108,17 @@ describe('AuthContext', () => {
         displayName: 'Test User',
         photoURL: null,
         providerData: [],
+        isAnonymous: false,
+        metadata: {},
+        refreshToken: '',
+        tenantId: null,
+        delete: jest.fn(),
+        getIdToken: jest.fn(),
+        getIdTokenResult: jest.fn(),
+        reload: jest.fn(),
+        toJSON: jest.fn(),
+        phoneNumber: null,
+        providerId: 'firebase',
       } as firebaseAuth.User
 
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {
@@ -447,6 +457,20 @@ describe('AuthContext', () => {
         uid: 'test-uid',
         email: 'test@example.com',
         providerData: [],
+        emailVerified: false,
+        isAnonymous: false,
+        metadata: {},
+        refreshToken: '',
+        tenantId: null,
+        delete: jest.fn(),
+        getIdToken: jest.fn(),
+        getIdTokenResult: jest.fn(),
+        reload: jest.fn(),
+        toJSON: jest.fn(),
+        displayName: null,
+        photoURL: null,
+        phoneNumber: null,
+        providerId: 'firebase',
       } as firebaseAuth.User
 
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {

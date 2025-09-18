@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2, Plus, Trash2, Link2 } from 'lucide-react';
+import { Save, Loader2, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { SUPPORTED_SERVICES } from '@/types';
 
 interface ProfileData {
   name: string;
@@ -25,12 +24,6 @@ interface ProfileData {
   phone: string;
   website: string;
   address: string;
-  links: Array<{
-    id: string;
-    title: string;
-    url: string;
-    service?: string;
-  }>;
 }
 
 export default function EditProfilePage() {
@@ -48,7 +41,6 @@ export default function EditProfilePage() {
     phone: '',
     website: '',
     address: '',
-    links: [],
   });
 
   useEffect(() => {
@@ -77,7 +69,6 @@ export default function EditProfilePage() {
           phone: data.phone || '',
           website: data.website || '',
           address: data.address || '',
-          links: data.links || [],
         });
       } else {
         setProfile(prev => ({
@@ -103,73 +94,6 @@ export default function EditProfilePage() {
     setProfile(prev => ({
       ...prev,
       [field]: value,
-    }));
-  };
-
-  const handleLinkChange = (index: number, field: 'title' | 'url', value: string) => {
-    const newLinks = [...profile.links];
-    newLinks[index] = {
-      ...newLinks[index],
-      [field]: value,
-    };
-
-    if (field === 'url') {
-      const service = detectService(value);
-      if (service) {
-        newLinks[index].service = service;
-        if (!newLinks[index].title) {
-          newLinks[index].title = service.charAt(0).toUpperCase() + service.slice(1);
-        }
-      }
-    }
-
-    setProfile(prev => ({
-      ...prev,
-      links: newLinks,
-    }));
-  };
-
-  const detectService = (url: string): string | undefined => {
-    const lowercaseUrl = url.toLowerCase();
-    for (const [service, patterns] of Object.entries(SUPPORTED_SERVICES)) {
-      if (Array.isArray(patterns)) {
-        for (const pattern of patterns) {
-          if (lowercaseUrl.includes(pattern)) {
-            return service;
-          }
-        }
-      }
-    }
-    return undefined;
-  };
-
-  const addLink = () => {
-    if (profile.links.length >= 10) {
-      toast({
-        title: '制限',
-        description: 'リンクは最大10個まで追加できます',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setProfile(prev => ({
-      ...prev,
-      links: [
-        ...prev.links,
-        {
-          id: Date.now().toString(),
-          title: '',
-          url: '',
-        },
-      ],
-    }));
-  };
-
-  const removeLink = (index: number) => {
-    setProfile(prev => ({
-      ...prev,
-      links: prev.links.filter((_, i) => i !== index),
     }));
   };
 
@@ -338,53 +262,19 @@ export default function EditProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>ソーシャルリンク</CardTitle>
+            <CardTitle>デザインカスタマイズ</CardTitle>
             <CardDescription>
-              SNSやポートフォリオサイトなどのリンクを追加できます（最大10個）
+              プロフィールページのデザインをカスタマイズできます
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {profile.links.map((link, index) => (
-              <div key={link.id} className="flex flex-col sm:flex-row gap-2">
-                <div className="flex gap-2 flex-1">
-                  <Input
-                    value={link.title}
-                    onChange={(e) => handleLinkChange(index, 'title', e.target.value)}
-                    placeholder="タイトル"
-                    className="flex-1"
-                  />
-                  <Input
-                    value={link.url}
-                    onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                    placeholder="https://..."
-                    className="flex-2"
-                  />
-                </div>
-                <div className="flex gap-2 items-center">
-                  {link.service && (
-                    <div className="flex items-center px-2 text-sm text-muted-foreground">
-                      {link.service}
-                    </div>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeLink(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-
+          <CardContent>
             <Button
+              onClick={() => router.push('/dashboard/edit/design')}
               variant="outline"
-              onClick={addLink}
-              disabled={profile.links.length >= 10}
               className="w-full"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              リンクを追加
+              <Palette className="mr-2 h-4 w-4" />
+              デザインエディターを開く
             </Button>
           </CardContent>
         </Card>

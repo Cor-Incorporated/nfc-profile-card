@@ -94,3 +94,31 @@ The project requires configuration in `.env.local`:
 - **Performance**: Target <2s initial load, >90 Lighthouse score
 - **Browser Support**: Latest 2 versions of Chrome, Safari, Firefox, Edge
 - **Mobile Support**: iPhone 12+, Android 10+
+
+## Recent Implementation Notes (Sep 2025)
+
+### Editor UI Improvements
+- **Issue Fixed**: Component addition buttons moved from external sidebar to inside the canvas area for better mobile UX
+- **Implementation**: Created AddComponentPlaceholder component as CraftJS-compatible draggable component
+- **Approach**: Used proven drag-and-drop pattern with `connectors.create()` instead of programmatic component addition
+- **Mobile-First**: Removed sidebar dependencies to focus on mobile-first design
+
+### VCard Format Compliance
+- **Issue Fixed**: VCard format was not iPhone-compatible
+- **Solution**: Updated to VERSION:3.0 specification with proper TEL;TYPE=CELL format for Japanese phone numbers
+- **Implementation**: ProfileInfo component generates compliant VCard files with UTF-8 encoding
+
+### Component Management
+- **Deletion Buttons**: All editable components (Text, ImageUpload, LinkButton, ProfileInfo) have deletion functionality
+- **Image Upload**: ProfileInfo component supports avatar upload with Firebase Storage integration
+- **Scrollable Popups**: All editing popups use `max-h-96 overflow-y-auto` for mobile compatibility
+
+### Architecture Patterns
+- **CraftJS Integration**: Always use `connectors.create()` for drag-and-drop instead of programmatic node creation
+- **Component Registration**: All CraftJS components must be registered in the resolver
+- **Element Wrapping**: Components inside Frame must be wrapped with `<Element is={ComponentName} />` pattern
+
+### Auto-save Implementation
+- **Debounced Saving**: 2-second debounce on all editor changes
+- **State Monitoring**: Watches background, socialLinks, and editor query changes
+- **Status Display**: Visual indicators for saving, saved, and error states

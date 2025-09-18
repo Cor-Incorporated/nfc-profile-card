@@ -34,6 +34,15 @@
 - ✅ 連絡先情報の管理（メール、電話、ウェブサイト、住所）
 - ✅ ソーシャルリンクの追加・編集・削除
 - ✅ ユーザー名の設定
+- ✅ **ビジュアルエディター** - ドラッグ&ドロップでページをカスタマイズ
+- ✅ **背景カスタマイズ** - 色・グラデーション・画像・パターンの設定
+- ✅ **画像アップロード** - Firebase Storage連携による画像管理
+- ✅ **コンポーネント編集** - テキスト、画像、リンクボタン、登録情報の追加・編集・削除
+- ✅ **VCardダウンロード** - iPhone対応のVCard生成（VERSION:3.0準拠）
+- ✅ **モバイルファーストUI** - スマホ中心のエディターデザイン
+- ✅ **キャンバス内コンポーネント追加** - 編集エリア内でのドラッグ&ドロップ操作
+- ✅ **データ永続化** - 編集内容の自動保存と復元機能
+- ✅ **読み取り専用レンダラー** - 公開ページでのCraft.jsコンテンツ表示
 
 ### 🌐 公開プロフィールページ
 - ✅ `/p/[username]`でアクセス可能
@@ -41,6 +50,9 @@
 - ✅ プロフィール情報の表示
 - ✅ ソーシャルリンク一覧
 - ✅ VCardダウンロード機能
+- ✅ **QRコード生成** - プロフィールURLのQRコードを生成・ダウンロード
+- ✅ **Craft.jsコンテンツ表示** - エディターで作成したカスタムレイアウトの表示
+- ✅ **フォールバック機能** - 従来の静的テンプレートとの互換性
 
 ## 🔮 今後実装予定の機能
 
@@ -79,14 +91,22 @@ cp .env.example .env.local
 - Firebaseコンソールでプロジェクト作成
 - Authentication（Email/Password, Google）を有効化
 - Firestore Databaseを有効化
+- Storage（us-central1）を有効化
 - 設定値を.env.localに追加
 
 詳細な設定手順は以下のドキュメントを参照：
 - [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Firebase初期設定
 - [FIREBASE_AUTH_SETUP.md](./FIREBASE_AUTH_SETUP.md) - 認証設定ガイド
 - [FIREBASE_AUTH_BEST_PRACTICES.md](./FIREBASE_AUTH_BEST_PRACTICES.md) - 認証実装のベストプラクティス
+- [FIREBASE_STORAGE_SETUP.md](./FIREBASE_STORAGE_SETUP.md) - Storage設定ガイド
 
-5. **開発サーバーの起動**
+5. **Firebase Storage CORS設定（重要）**
+```bash
+# CORS設定を適用（画像アップロードに必要）
+./setup-cors.sh
+```
+
+6. **開発サーバーの起動**
 ```bash
 npm run dev
 ```
@@ -99,24 +119,33 @@ http://localhost:3000 でアプリケーションが起動します。
 src/
 ├── app/                    # Next.js App Router
 │   ├── dashboard/         # ダッシュボード関連ページ
+│   │   └── edit/         # プロフィール編集
+│   │       └── design/   # デザインエディター
 │   ├── p/[username]/      # 公開プロフィールページ
 │   ├── signin/            # サインインページ
 │   └── api/               # API ルート
 ├── components/            # Reactコンポーネント
-│   └── ui/               # shadcn/ui コンポーネント
+│   ├── ui/               # shadcn/ui コンポーネント
+│   ├── editor/           # エディター関連コンポーネント
+│   └── profile/          # プロフィール関連コンポーネント
 ├── contexts/             # React Context (認証など)
 ├── lib/                  # ユーティリティ関数
+├── styles/               # グローバルスタイル、テーマ
 └── types/                # TypeScript型定義
 ```
 
 ## 🛠️ 技術スタック
 
 - **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui
+- **Styling**: Tailwind CSS, shadcn/ui, vanilla-extract
 - **Authentication**: Firebase Authentication
 - **Backend**: Firebase (Firestore, Functions, Storage)
 - **State Management**: React Context API
 - **Form Handling**: React Hook Form
+- **Editor**: Craft.js (ドラッグ&ドロップエディター)
+- **DnD**: @dnd-kit (ドラッグ&ドロップライブラリ)
+- **QRCode**: qr-code-styling (QRコード生成)
+- **Color Picker**: react-colorful
 - **Hosting**: Vercel
 
 ## 📝 開発コマンド
