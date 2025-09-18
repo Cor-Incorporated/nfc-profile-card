@@ -20,7 +20,7 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-            NFC Profile Card
+            TapForge
           </h1>
           <p className="text-xl text-gray-600 mb-8">
             物理的なNFCカードとデジタルプロフィールを統合した

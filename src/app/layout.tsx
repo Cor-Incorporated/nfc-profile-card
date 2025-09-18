@@ -6,12 +6,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NFC Profile Card | デジタル名刺ソリューション",
+  title: "TapForge | デジタル名刺ソリューション",
   description:
     "物理的なNFCカードとデジタルプロフィールを統合した、次世代のネットワーキングツール",
-  keywords: "NFC, デジタル名刺, プロフィール, ネットワーキング",
+  keywords: "NFC, デジタル名刺, プロフィール, ネットワーキング, TapForge",
   openGraph: {
-    title: "NFC Profile Card",
+    title: "TapForge",
     description: "タップするだけでプロフィールを共有",
     type: "website",
     locale: "ja_JP",
