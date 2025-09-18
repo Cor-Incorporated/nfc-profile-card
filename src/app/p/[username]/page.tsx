@@ -104,17 +104,7 @@ export default function ProfilePage() {
     );
   }
 
-  // editorContentが存在する場合はCraftRendererを使用
-  if (user.profile?.editorContent) {
-    return (
-      <CraftRenderer
-        data={user.profile.editorContent}
-        background={user.profile.background}
-      />
-    );
-  }
-
-  // 従来の静的テンプレート
+  // VCardデータの準備（両方のテンプレートで使用）
   const vcardData = {
     firstName: user.name?.split(" ")[0] || "",
     lastName: user.name?.split(" ").slice(1).join(" ") || "",
@@ -130,6 +120,44 @@ export default function ProfilePage() {
       : undefined,
   };
 
+  // editorContentが存在する場合はCraftRendererを使用
+  if (user.profile?.editorContent) {
+    return (
+      <>
+        <CraftRenderer
+          data={user.profile.editorContent}
+          background={user.profile.background}
+        />
+        {/* フローティングボタン */}
+        <div className="fixed bottom-6 right-6 flex gap-3 z-50">
+          <VCardButton
+            profileData={vcardData}
+            variant="default"
+            className="shadow-lg"
+          />
+          <button
+            onClick={() => setShowQRCode(true)}
+            className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+            aria-label="QRコード表示"
+          >
+            <QrCode className="h-6 w-6 text-gray-700" />
+          </button>
+        </div>
+        {/* QRコードモーダル */}
+        {user && (
+          <QRCodeModal
+            isOpen={showQRCode}
+            onClose={() => setShowQRCode(false)}
+            url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${username}`}
+            username={user.username}
+            logoUrl={user.photoURL}
+          />
+        )}
+      </>
+    );
+  }
+
+  // 従来の静的テンプレート
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -264,7 +292,7 @@ export default function ProfilePage() {
             />
             <button
               onClick={() => setShowQRCode(true)}
-              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
               aria-label="QRコード表示"
             >
               <QrCode className="h-5 w-5" />
