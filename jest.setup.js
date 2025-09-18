@@ -1,9 +1,17 @@
 import '@testing-library/jest-dom'
-import { TextEncoder, TextDecoder } from 'util'
+import { TextDecoder, TextEncoder } from 'util'
 
 // TextEncoderとTextDecoderの設定
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
+
+// Jest DOMマッチャーの拡張
+import { toBeDisabled, toBeInTheDocument, toHaveClass } from '@testing-library/jest-dom/matchers'
+expect.extend({
+  toBeInTheDocument,
+  toHaveClass,
+  toBeDisabled,
+})
 
 // グローバルなモックの設定
 global.fetch = jest.fn()

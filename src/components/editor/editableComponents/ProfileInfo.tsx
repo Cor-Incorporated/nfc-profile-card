@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useNode } from '@craftjs/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { User, Download, Edit, Trash2, Upload, Camera } from 'lucide-react';
-import { uploadCompressedImage } from '@/lib/storage';
 import { useToast } from '@/components/ui/use-toast';
+import { uploadCompressedImage } from '@/lib/storage';
+import { useEditor, useNode } from '@craftjs/core';
+import { Camera, Download, Edit, Trash2, User } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface ProfileInfoProps {
   name?: string;
@@ -35,13 +35,17 @@ export function ProfileInfo({
 }: ProfileInfoProps) {
   const {
     connectors: { connect, drag },
-    actions: { setProp, delete: deleteNode },
+    actions: { setProp },
     isActive,
-    isHovered
+    isHovered,
+    id
   } = useNode((state) => ({
     isActive: state.events.selected,
-    isHovered: state.events.hovered
+    isHovered: state.events.hovered,
+    id: state.id
   }));
+
+  const { actions } = useEditor();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -109,7 +113,7 @@ export function ProfileInfo({
 
     setIsUploading(true);
     try {
-      const imageUrl = await uploadCompressedImage(userId, file, 'profile');
+      const imageUrl = await uploadCompressedImage(userId, file, 'content');
       setProp((props: ProfileInfoProps) => {
         props.avatarUrl = imageUrl;
       });
@@ -144,7 +148,7 @@ export function ProfileInfo({
             className="h-8 w-8"
             onClick={(e) => {
               e.stopPropagation();
-              deleteNode();
+              actions.delete(id);
             }}
           >
             <Trash2 className="h-4 w-4" />

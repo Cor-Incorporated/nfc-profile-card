@@ -1,5 +1,5 @@
-import { GET, POST } from './route'
 import vCardsJS from 'vcards-js'
+import { GET, POST } from './route'
 
 // NextRequestのモック
 class MockNextRequest {
@@ -10,11 +10,49 @@ class MockNextRequest {
   nextUrl: {
     searchParams: URLSearchParams
   }
+  cookies: any
+  geo: any
+  ip: any
+  page: any
+  ua: any
+  internals: any
+  cache: any
+  credentials: any
+  destination: any
+  integrity: any
+  keepalive: any
+  mode: any
+  redirect: any
+  referrer: any
+  referrerPolicy: any
+  signal: any
+  duplex: any
+  bodyUsed: boolean
+  bytes: any
 
   constructor(url: string, options: any = {}) {
     this.url = url
     this.method = options.method || 'GET'
     this.headers = new Headers(options.headers || {})
+    this.cookies = options.cookies || {}
+    this.geo = options.geo || {}
+    this.ip = options.ip || '127.0.0.1'
+    this.page = options.page || {}
+    this.ua = options.ua || ''
+    this.internals = options.internals || {}
+    this.cache = options.cache || 'default'
+    this.bodyUsed = false
+    this.bytes = options.bytes || null
+    this.credentials = options.credentials || 'same-origin'
+    this.destination = options.destination || ''
+    this.integrity = options.integrity || ''
+    this.keepalive = options.keepalive || false
+    this.mode = options.mode || 'cors'
+    this.redirect = options.redirect || 'follow'
+    this.referrer = options.referrer || 'about:client'
+    this.referrerPolicy = options.referrerPolicy || ''
+    this.signal = options.signal || null
+    this.duplex = options.duplex || 'half'
 
     const urlObj = new URL(url)
     this.nextUrl = {
@@ -43,6 +81,36 @@ class MockNextRequest {
       return JSON.parse(text)
     }
     return {}
+  }
+
+  async text() {
+    if (this.body) {
+      const reader = this.body.getReader()
+      const { value } = await reader.read()
+      return new TextDecoder().decode(value)
+    }
+    return ''
+  }
+
+  async arrayBuffer() {
+    if (this.body) {
+      const reader = this.body.getReader()
+      const { value } = await reader.read()
+      return value.buffer
+    }
+    return new ArrayBuffer(0)
+  }
+
+  async blob() {
+    return new Blob()
+  }
+
+  async formData() {
+    return new FormData()
+  }
+
+  clone() {
+    return new MockNextRequest(this.url, { method: this.method })
   }
 }
 
@@ -105,7 +173,7 @@ describe('VCard API Routes', () => {
         },
       })
 
-      const response = await POST(request)
+      const response = await POST(request as any)
 
       expect(response.status).toBe(200)
       expect(response.headers.get('Content-Type')).toBe('text/vcard;charset=utf-8')
@@ -154,7 +222,7 @@ describe('VCard API Routes', () => {
         },
       })
 
-      const response = await POST(request)
+      const response = await POST(request as any)
 
       expect(response.status).toBe(200)
 
@@ -180,7 +248,7 @@ describe('VCard API Routes', () => {
         },
       })
 
-      const response = await POST(request)
+      const response = await POST(request as any)
 
       expect(response.status).toBe(200)
       expect(response.headers.get('Content-Disposition')).toContain('attachment; filename="contact_card.vcf"')
@@ -195,7 +263,7 @@ describe('VCard API Routes', () => {
         },
       })
 
-      const response = await POST(request)
+      const response = await POST(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(500)
@@ -222,7 +290,7 @@ describe('VCard API Routes', () => {
         },
       })
 
-      const response = await POST(request)
+      const response = await POST(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(500)
@@ -259,7 +327,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
 
       expect(response.status).toBe(200)
       expect(response.headers.get('Content-Type')).toBe('text/vcard;charset=utf-8')
@@ -289,7 +357,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
 
       expect(response.status).toBe(200)
 
@@ -311,7 +379,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
 
       expect(response.status).toBe(200)
 
@@ -331,7 +399,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
 
       expect(response.status).toBe(200)
 
@@ -346,7 +414,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(400)
@@ -362,7 +430,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(404)
@@ -376,7 +444,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(500)
@@ -405,7 +473,7 @@ describe('VCard API Routes', () => {
         method: 'GET',
       })
 
-      const response = await GET(request)
+      const response = await GET(request as any)
       const data = await response.json()
 
       expect(response.status).toBe(500)

@@ -35,7 +35,7 @@ const renderNode = (nodeId: string, nodeData: any, allNodes: any): React.ReactNo
   }
 
   // コンポーネントが見つからない場合はスキップ
-  const Component = componentMap[resolvedName];
+  const Component = componentMap[resolvedName as keyof typeof componentMap];
   if (!Component) {
     console.warn(`Unknown component: ${resolvedName}`);
     return null;
@@ -48,9 +48,9 @@ const renderNode = (nodeId: string, nodeData: any, allNodes: any): React.ReactNo
 
   // コンポーネントをレンダリング
   if (children.length > 0) {
-    return React.createElement(Component, { key: nodeId, ...props }, children);
+    return React.createElement(Component as any, { key: nodeId, ...props }, children);
   } else {
-    return React.createElement(Component, { key: nodeId, ...props });
+    return React.createElement(Component as any, { key: nodeId, ...props });
   }
 };
 
