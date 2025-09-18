@@ -6,9 +6,9 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function DesignEditorPage() {
+function DesignEditorContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -150,5 +150,19 @@ export default function DesignEditorPage() {
       initialBackground={background}
       profileData={profileData}
     />
+  );
+}
+
+export default function DesignEditorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <DesignEditorContent />
+    </Suspense>
   );
 }
