@@ -4,16 +4,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { LogOut, ExternalLink, Eye } from "lucide-react";
+import { getActiveProfileId } from "@/lib/migration/profileMigration";
+import { getAnalyticsSummary } from "@/lib/analytics";
 
 export default function DashboardPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<{
+    totalViews: number;
+    lastViewedAt: Date | null;
+    todayViews: number;
+    weekViews: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,6 +40,14 @@ export default function DashboardPage() {
       if (userSnap.exists()) {
         setUserProfile(userSnap.data());
       }
+
+      // Get active profile ID - TEMPORARILY DISABLED FOR P0 FIX
+      // const profileId = await getActiveProfileId(user.uid);
+      // setActiveProfileId(profileId);
+
+      // Fetch analytics data
+      const analyticsData = await getAnalyticsSummary(user.uid);
+      setAnalytics(analyticsData);
     } catch (error) {
       console.error("Error fetching user profile:", error);
     } finally {
@@ -126,12 +143,12 @@ export default function DashboardPage() {
         )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* プロフィール編集カード */}
+          {/* プロフィール編集（統合版） */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center mb-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
+              <div className="p-3 bg-blue-100 rounded-lg">
                 <svg
-                  className="w-6 h-6 text-primary"
+                  className="w-6 h-6 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -140,29 +157,37 @@ export default function DashboardPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold ml-4">プロフィール</h2>
+              <h2 className="text-xl font-semibold ml-4">プロフィール編集</h2>
             </div>
-            <p className="text-gray-600 mb-4">
-              プロフィール情報を編集して、あなたの魅力を最大限に伝えましょう
+            <p className="text-gray-600 mb-2">
+              プロフィール情報とリンクを管理
             </p>
+            <ul className="text-sm text-gray-600 mb-4 space-y-1">
+              <li>✓ 基本情報の編集</li>
+              <li>✓ SNSリンクの追加・編集</li>
+              <li>✓ デザインのカスタマイズ</li>
+            </ul>
             <Link
-              href="/dashboard/edit/design"
-              className="block w-full px-4 py-2 bg-primary text-white text-center rounded-lg hover:bg-primary/90 transition-colors"
+              href={activeProfileId ? `/dashboard/edit/design?profileId=${activeProfileId}` : "/dashboard/edit/design"}
+              className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
             >
-              デザインを編集
+              編集画面へ
             </Link>
           </div>
 
-          {/* リンク管理カード */}
-          <div className="bg-white rounded-lg shadow p-6">
+          {/* プロファイル管理（新機能） */}
+          <div className="bg-white rounded-lg shadow p-6 relative border-2 border-green-500">
+            <div className="absolute -top-3 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+              新機能
+            </div>
             <div className="flex items-center mb-4">
-              <div className="p-3 bg-secondary/10 rounded-lg">
+              <div className="p-3 bg-green-100 rounded-lg">
                 <svg
-                  className="w-6 h-6 text-secondary"
+                  className="w-6 h-6 text-green-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -171,22 +196,24 @@ export default function DashboardPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold ml-4">リンク管理</h2>
+              <h2 className="text-xl font-semibold ml-4">
+                複数プロファイル管理
+              </h2>
             </div>
             <p className="text-gray-600 mb-4">
-              SNSやポートフォリオのリンクを追加・編集できます
+              ビジネス用、クリエイター用など、シーンに応じた複数のプロファイルを作成・管理
             </p>
-            <Link
-              href="/dashboard/edit/design"
-              className="block w-full px-4 py-2 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors"
-            >
-              デザインを編集
+            <Link href="/dashboard/profiles">
+              <Button className="w-full bg-green-600 hover:bg-green-700">
+                プロファイル管理へ
+              </Button>
             </Link>
           </div>
+
 
           {/* アナリティクスカード */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -208,11 +235,38 @@ export default function DashboardPage() {
               </div>
               <h2 className="text-xl font-semibold ml-4">アナリティクス</h2>
             </div>
-            <p className="text-gray-600 mb-4">
-              プロフィールの閲覧数やリンククリック数を確認
-            </p>
-            <button className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors">
-              確認する
+            {analytics ? (
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">総閲覧数</span>
+                  <span className="font-semibold text-lg">{analytics.totalViews}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">今日の閲覧数</span>
+                  <span className="font-semibold">{analytics.todayViews}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">今週の閲覧数</span>
+                  <span className="font-semibold">{analytics.weekViews}</span>
+                </div>
+                {analytics.lastViewedAt && (
+                  <div className="pt-2 border-t">
+                    <span className="text-xs text-gray-500">
+                      最終閲覧: {new Date(analytics.lastViewedAt).toLocaleString("ja-JP")}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-600 mb-4">
+                プロフィールの閲覧数やリンククリック数を確認
+              </p>
+            )}
+            <button
+              className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+              disabled
+            >
+              詳細を見る
             </button>
           </div>
 

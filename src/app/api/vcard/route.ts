@@ -45,14 +45,19 @@ export async function POST(request: NextRequest) {
     if (data.url) vCard.url = data.url;
 
     if (data.workAddress) {
-      vCard.workAddress.street = data.workAddress.street || "";
-      vCard.workAddress.city = data.workAddress.city || "";
-      vCard.workAddress.stateProvince = data.workAddress.stateProvince || "";
-      vCard.workAddress.postalCode = data.workAddress.postalCode || "";
-      vCard.workAddress.countryRegion = data.workAddress.countryRegion || "";
+      vCard.workAddress = {
+        street: data.workAddress.street || "",
+        city: data.workAddress.city || "",
+        stateProvince: data.workAddress.stateProvince || "",
+        postalCode: data.workAddress.postalCode || "",
+        countryRegion: data.workAddress.countryRegion || "",
+      };
     }
 
     if (data.socialUrls) {
+      if (!vCard.socialUrls) {
+        vCard.socialUrls = {};
+      }
       if (data.socialUrls.facebook)
         vCard.socialUrls.facebook = data.socialUrls.facebook;
       if (data.socialUrls.linkedIn)
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
         vCard.socialUrls.instagram = data.socialUrls.instagram;
     }
 
-    if (data.photo) {
+    if (data.photo && vCard.photo && vCard.photo.embedFromString) {
       vCard.photo.embedFromString(data.photo, "image/jpeg");
     }
 
@@ -120,11 +125,19 @@ export async function GET(request: NextRequest) {
     vCard.url = profile.website || "";
 
     if (profile.address) {
-      vCard.workAddress.street = profile.address;
-      vCard.workAddress.postalCode = profile.postalCode || "";
+      vCard.workAddress = {
+        street: profile.address || "",
+        city: "",
+        stateProvince: "",
+        postalCode: profile.postalCode || "",
+        countryRegion: "",
+      };
     }
 
     if (profile.links && profile.links.length > 0) {
+      if (!vCard.socialUrls) {
+        vCard.socialUrls = {};
+      }
       profile.links.forEach((link: any) => {
         if (link.url.includes("linkedin")) {
           vCard.socialUrls.linkedIn = link.url;

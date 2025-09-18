@@ -1,6 +1,71 @@
 import vCardsJS from "vcards-js";
 import { GET, POST } from "./route";
 
+// NextResponseのモック
+jest.mock("next/server", () => {
+  class MockResponse {
+    status: number;
+    headers: {
+      get: (key: string) => string | null;
+      set: (key: string, value: string) => void;
+      has: (key: string) => boolean;
+      _data: Map<string, string>;
+    };
+    body: any;
+
+    constructor(body?: BodyInit | null, init?: ResponseInit) {
+      this.body = body;
+      this.status = init?.status || 200;
+
+      const headersData = new Map<string, string>();
+      this.headers = {
+        _data: headersData,
+        get: (key: string) => headersData.get(key.toLowerCase()) || null,
+        set: (key: string, value: string) => headersData.set(key.toLowerCase(), value),
+        has: (key: string) => headersData.has(key.toLowerCase()),
+      };
+
+      if (init?.headers) {
+        const h = init.headers;
+        if (h instanceof Headers) {
+          h.forEach((value, key) => this.headers.set(key, value));
+        } else if (Array.isArray(h)) {
+          h.forEach(([key, value]) => this.headers.set(key, value));
+        } else if (typeof h === 'object') {
+          Object.entries(h).forEach(([key, value]) => {
+            this.headers.set(key, value as string);
+          });
+        }
+      }
+    }
+
+    json() {
+      if (typeof this.body === 'string') {
+        return Promise.resolve(JSON.parse(this.body));
+      }
+      return Promise.resolve(this.body);
+    }
+  }
+
+  class NextResponse extends MockResponse {
+    static json(body: any, init?: ResponseInit) {
+      const response = new MockResponse(JSON.stringify(body), {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(init?.headers || {}),
+        },
+      });
+      return response;
+    }
+  }
+
+  return {
+    NextResponse,
+    NextRequest: jest.fn(),
+  };
+});
+
 // NextRequestのモック
 class MockNextRequest {
   url: string;
@@ -78,7 +143,16 @@ class MockNextRequest {
       const reader = this.body.getReader();
       const { value } = await reader.read();
       const text = new TextDecoder().decode(value);
-      return JSON.parse(text);
+      // 空文字列チェックを追加
+      if (!text || text.trim() === '') {
+        return {};
+      }
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        return {};
+      }
     }
     return {};
   }

@@ -2,12 +2,15 @@
 
 import { CraftRenderer } from "@/components/profile/CraftRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
+import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { db } from "@/lib/firebase";
+import { trackPageView } from "@/lib/analytics";
 import { SUPPORTED_SERVICES } from "@/types";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { QrCode } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -46,6 +49,7 @@ export default function ProfilePage() {
   const params = useParams();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showQRCode, setShowQRCode] = useState(false);
   const username = params.username as string;
 
   useEffect(() => {
@@ -70,6 +74,11 @@ export default function ProfilePage() {
     };
 
     fetchUserProfile();
+
+    // アナリティクストラッキングを追加
+    if (username) {
+      trackPageView(username).catch(console.error);
+    }
   }, [username]);
 
   if (loading) {
@@ -247,12 +256,19 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-          <div className="mt-6">
+          <div className="mt-6 flex gap-3">
             <VCardButton
               profileData={vcardData}
               variant="default"
-              className="w-full"
+              className="flex-1"
             />
+            <button
+              onClick={() => setShowQRCode(true)}
+              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              aria-label="QRコード表示"
+            >
+              <QrCode className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -294,6 +310,17 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* QRコードモーダル */}
+      {user && (
+        <QRCodeModal
+          isOpen={showQRCode}
+          onClose={() => setShowQRCode(false)}
+          url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${username}`}
+          username={user.username}
+          logoUrl={user.photoURL}
+        />
+      )}
     </div>
   );
 }

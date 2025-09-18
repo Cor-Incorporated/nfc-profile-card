@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { db } from "@/lib/firebase";
+import { logCraftError, logFirestoreError } from "@/lib/errorTracking";
 import { Editor, Element, Frame, useEditor } from "@craftjs/core";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
 import {
   ArrowLeft,
   Eye,
@@ -71,13 +72,22 @@ function EditorContent({
   const router = useRouter();
 
   // デフォルトのエディター構造を取得
-  const getDefaultEditorContent = () => ({
-    ROOT: {
-      type: { resolvedName: "Container" },
-      nodes: [],
-      props: {},
-    },
-  });
+  const getDefaultEditorContent = () => {
+    // Craft.jsが期待する完全な構造を返す
+    return JSON.stringify({
+      ROOT: {
+        type: { resolvedName: "Container" },
+        nodes: [],
+        props: {},
+        displayName: "Container",
+        custom: {},
+        hidden: false,
+        isCanvas: true,
+        parent: null,
+        linkedNodes: {}
+      }
+    });
+  };
 
   // initialDataのバリデーションとクリーンアップ
   const validateAndCleanData = (data: any) => {
@@ -94,8 +104,12 @@ function EditorContent({
         cleanedData = JSON.parse(data);
       }
 
-      // 深いコピーを作成
-      cleanedData = JSON.parse(JSON.stringify(cleanedData));
+      // 深いコピーを作成（エラーハンドリング付き）
+      try {
+        cleanedData = JSON.parse(JSON.stringify(cleanedData));
+      } catch (e) {
+        console.warn("Failed to clone data, using original:", e);
+      }
 
       if (cleanedData && typeof cleanedData === "object") {
         // 有効なCraft.jsノード構造かチェック
@@ -105,7 +119,8 @@ function EditorContent({
         Object.keys(cleanedData).forEach((key) => {
           const node = cleanedData[key];
 
-          if (node && node.type) {
+          // nodeが存在し、typeプロパティを持っているかチェック
+          if (node && typeof node === 'object' && node.type) {
             // resolvedNameが存在するかチェック
             const resolvedName = node.type.resolvedName || node.type;
 
@@ -145,6 +160,8 @@ function EditorContent({
       setDataLoadError(false);
     } catch (error) {
       console.error("Failed to process initial data:", error);
+      // エラートラッキングに記録
+      logCraftError(error, initialData);
       setDataLoadError(true);
       setValidInitialData(getDefaultEditorContent());
       toast({
@@ -167,14 +184,32 @@ function EditorContent({
       const serialized = query.serialize();
 
       if (profileId) {
-        await updateDoc(doc(db, "users", userId), {
-          [`contextualProfiles.${profileId}.content`]: serialized,
-          [`contextualProfiles.${profileId}.background`]: background,
-          [`contextualProfiles.${profileId}.socialLinks`]: socialLinks,
-          [`contextualProfiles.${profileId}.updatedAt`]: serverTimestamp(),
+        // 新しい構造: profiles サブコレクションに保存
+        await updateDoc(doc(db, "users", userId, "profiles", profileId), {
+          editorContent: serialized,
+          background: background,
+          socialLinks: socialLinks,
+          updatedAt: serverTimestamp(),
         });
       } else {
-        // 従来のプロフィール情報とエディター情報の両方を保存
+        // 従来の構造: profile ドキュメントに保存（後方互換性のため）
+        const profileRef = doc(db, "users", userId, "profile", "data");
+        await updateDoc(profileRef, {
+          editorContent: serialized,
+          background: background,
+          socialLinks: socialLinks,
+          updatedAt: serverTimestamp(),
+        }).catch(async () => {
+          // プロフィールドキュメントが存在しない場合は作成
+          await setDoc(profileRef, {
+            editorContent: serialized,
+            background: background,
+            socialLinks: socialLinks,
+            updatedAt: serverTimestamp(),
+          });
+        });
+
+        // ユーザードキュメントにも基本情報を保存（後方互換性）
         const updateData: any = {
           "profile.editorContent": serialized,
           "profile.background": background,
@@ -201,6 +236,8 @@ function EditorContent({
       setSaveStatus("saved");
     } catch (error) {
       console.error("保存エラー:", error);
+      // エラートラッキングに記録
+      logFirestoreError("save", error, profileId ? `profiles/${profileId}` : "profile/data");
       setSaveStatus("error");
     }
   }, [isInitialized, query, profileId, userId, background, socialLinks]);
@@ -235,9 +272,34 @@ function EditorContent({
   React.useEffect(() => {
     if (validInitialData && actions) {
       try {
-        actions.deserialize(validInitialData);
+        // データの妥当性を再度チェック
+        if (typeof validInitialData === 'object' && validInitialData !== null) {
+          // ROOTノードが存在することを確認
+          if (validInitialData.ROOT) {
+            actions.deserialize(validInitialData);
+          } else {
+            // ROOTノードがない場合はデフォルト構造を設定
+            console.warn("No ROOT node found, using default structure");
+            logCraftError(new Error("No ROOT node in validInitialData"), validInitialData);
+            actions.deserialize(getDefaultEditorContent());
+          }
+        } else {
+          console.warn("Invalid data format, using default structure");
+          logCraftError(new Error("Invalid data format"), validInitialData);
+          actions.deserialize(getDefaultEditorContent());
+        }
       } catch (error) {
         console.error("Failed to set initial data:", error);
+        // エラートラッキングに記録
+        logCraftError(error, validInitialData);
+
+        // エラー時はデフォルト構造を設定
+        try {
+          actions.deserialize(getDefaultEditorContent());
+        } catch (fallbackError) {
+          console.error("Failed to set default content:", fallbackError);
+          logCraftError(fallbackError, null);
+        }
       }
     }
   }, [validInitialData, actions]);

@@ -89,6 +89,55 @@ export interface CraftJsSerializedData {
   ROOT: any; // Craft.jsが生成する構造
 }
 
+// コンテクスチュアル・プロファイルのコンテキスト列挙
+export type ProfileContextType = 'business' | 'creator' | 'sales' | 'personal';
+
+// 新しいプロファイル構造（profiles サブコレクション用）
+export interface Profile {
+  id: string;
+  name: string;
+  context: ProfileContextType;
+  description?: string;
+  isActive: boolean;
+  isDefault?: boolean;
+  editorContent?: any;
+  background?: BackgroundSettings;
+  backgroundColor?: string;
+  backgroundImage?: string | null;
+  backgroundGradient?: any;
+  backgroundOpacity?: number;
+  socialLinks?: SocialLink[];
+  customFields?: Record<string, any>;
+  fontSettings?: {
+    family: string;
+    size: string;
+    color: string;
+  };
+  analytics?: {
+    views: number;
+    clicks: number;
+    lastViewed: Timestamp | Date | null;
+  };
+  priority?: number;
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
+// コンテクスチュアル・プロファイル（後方互換性のため維持）
+export interface ProfileContext {
+  id: string;
+  userId: string;
+  name: string;  // "ビジネス", "クリエイター", "セールス" など
+  description?: string;
+  isActive: boolean;
+  editorContent?: any;  // Craft.jsのコンテンツ
+  background?: BackgroundSettings;
+  socialLinks?: SocialLink[];
+  priority: number;  // 表示優先度
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
+}
+
 // プロフィールリンク
 export interface ProfileLink {
   url: string;
@@ -100,10 +149,37 @@ export interface ProfileLink {
 
 // NFCカード情報
 export interface NFCCard {
-  cardId: string; // カードのユニークID
+  id: string;
+  userId: string;
+  serialNumber: string;
+  nickname?: string;
+  assignedProfileId?: string;  // 割り当てられたプロファイルID
   isActive: boolean;
+  lastTapped?: Timestamp | Date;
+  tapCount: number;
   createdAt: Timestamp | Date;
-  lastUsed?: Timestamp | Date;
+}
+
+// 背景設定
+export interface BackgroundSettings {
+  type: "solid" | "gradient" | "image" | "pattern";
+  color?: string;
+  gradient?: {
+    from: string;
+    to: string;
+    direction: string;
+  };
+  image?: string;
+  pattern?: string;
+}
+
+// ソーシャルリンク
+export interface SocialLink {
+  id: string;
+  title: string;
+  url: string;
+  icon?: string;
+  order: number;
 }
 
 // サブスクリプション情報

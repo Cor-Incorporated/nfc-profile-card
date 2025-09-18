@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import DOMPurify from "dompurify";
+import { JAPANESE_FONTS } from "@/lib/fonts";
 
 interface TextProps {
   text: string;
@@ -99,15 +100,13 @@ export const Text = ({
     });
   };
 
+  // 標準フォントとJAPANESE_FONTSを組み合わせる
   const fonts = [
-    { value: "sans-serif", label: "サンセリフ" },
-    { value: "serif", label: "セリフ" },
-    { value: "monospace", label: "等幅" },
-    { value: "cursive", label: "筆記体" },
-    { value: "fantasy", label: "ファンタジー" },
-    { value: "system-ui", label: "システム" },
-    { value: '"Noto Sans JP", sans-serif', label: "Noto Sans JP" },
-    { value: '"Hiragino Sans", sans-serif', label: "ヒラギノ角ゴ" },
+    { value: "sans-serif", label: "デフォルト" },
+    ...JAPANESE_FONTS.map((font) => ({
+      value: font.className,
+      label: font.label,
+    })),
   ];
 
   const fontSizes = [
@@ -361,15 +360,13 @@ const TextSettings = () => {
     padding: node.data.props.padding,
   }));
 
+  // 標準フォントとJAPANESE_FONTSを組み合わせる
   const fonts = [
-    { value: "sans-serif", label: "サンセリフ" },
-    { value: "serif", label: "セリフ" },
-    { value: "monospace", label: "等幅" },
-    { value: "cursive", label: "筆記体" },
-    { value: "fantasy", label: "ファンタジー" },
-    { value: "system-ui", label: "システム" },
-    { value: '"Noto Sans JP", sans-serif', label: "Noto Sans JP" },
-    { value: '"Hiragino Sans", sans-serif', label: "ヒラギノ角ゴ" },
+    { value: "sans-serif", label: "デフォルト" },
+    ...JAPANESE_FONTS.map((font) => ({
+      value: font.className,
+      label: font.label,
+    })),
   ];
 
   return (
