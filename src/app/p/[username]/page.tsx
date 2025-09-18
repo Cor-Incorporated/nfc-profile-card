@@ -128,13 +128,8 @@ export default function ProfilePage() {
           data={user.profile.editorContent}
           background={user.profile.background}
         />
-        {/* フローティングボタン */}
-        <div className="fixed bottom-6 right-6 flex gap-3 z-50">
-          <VCardButton
-            profileData={vcardData}
-            variant="default"
-            className="shadow-lg"
-          />
+        {/* フローティングボタン - ProfileInfo内にVCard機能があるため、QRコードボタンのみ表示 */}
+        <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={() => setShowQRCode(true)}
             className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
@@ -286,6 +281,7 @@ export default function ProfilePage() {
           </div>
           <div className="mt-6 flex gap-3">
             <VCardButton
+              username={username}
               profileData={vcardData}
               variant="default"
               className="flex-1"

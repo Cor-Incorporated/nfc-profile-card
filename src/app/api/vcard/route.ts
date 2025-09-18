@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import vCardsJS from "vcards-js";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 export interface VCardData {
   firstName?: string;
@@ -78,11 +80,16 @@ export async function POST(request: NextRequest) {
 
     const vcardString = vCard.getFormattedString();
 
+    // ファイル名をASCII文字のみに変換
+    const safeFileName = `${data.firstName || "contact"}_${data.lastName || "card"}`
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .substring(0, 50) || "contact";
+
     return new NextResponse(vcardString, {
       status: 200,
       headers: {
         "Content-Type": "text/vcard;charset=utf-8",
-        "Content-Disposition": `attachment; filename="${data.firstName || "contact"}_${data.lastName || "card"}.vcf"`,
+        "Content-Disposition": `attachment; filename="${safeFileName}.vcf"`,
       },
     });
   } catch (error) {
@@ -103,73 +110,86 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/profiles/${username}`,
-    );
-    const profile = await response.json();
+    console.log("Fetching profile for username:", username);
 
-    if (!profile) {
+    // Firebaseから直接ユーザープロファイルを取得
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("username", "==", username));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      console.error("Profile not found for username:", username);
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const vCard = vCardsJS();
+    const profile = snapshot.docs[0].data();
+    console.log("Profile data:", profile);
 
+    // シンプルなVCardフォーマットで直接生成
+    const vcardLines = [];
+    vcardLines.push("BEGIN:VCARD");
+    vcardLines.push("VERSION:3.0");
+
+    // 名前
     const nameParts = profile.name?.split(" ") || [];
-    vCard.firstName = nameParts[0] || "";
-    vCard.lastName = nameParts.slice(1).join(" ") || "";
-    vCard.organization = profile.company || "";
-    vCard.title = profile.position || "";
-    vCard.email = profile.email || "";
-    vCard.workPhone = profile.phone || "";
-    vCard.cellPhone = profile.mobile || "";
-    vCard.url = profile.website || "";
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+    if (firstName || lastName) {
+      vcardLines.push(`FN:${profile.name || ""}`);
+      vcardLines.push(`N:${lastName};${firstName};;;`);
+    }
 
+    // 組織情報
+    if (profile.company) {
+      vcardLines.push(`ORG:${profile.company}`);
+    }
+    if (profile.position) {
+      vcardLines.push(`TITLE:${profile.position}`);
+    }
+
+    // 連絡先
+    if (profile.email) {
+      vcardLines.push(`EMAIL:${profile.email}`);
+    }
+    if (profile.phone) {
+      vcardLines.push(`TEL;TYPE=WORK,VOICE:${profile.phone}`);
+    }
+    if (profile.mobile) {
+      vcardLines.push(`TEL;TYPE=CELL:${profile.mobile}`);
+    }
+    if (profile.website) {
+      vcardLines.push(`URL:${profile.website}`);
+    }
+
+    // 住所
     if (profile.address) {
-      vCard.workAddress = {
-        street: profile.address || "",
-        city: "",
-        stateProvince: "",
-        postalCode: profile.postalCode || "",
-        countryRegion: "",
-      };
+      vcardLines.push(`ADR;TYPE=WORK:;;${profile.address};;;;`);
     }
 
-    if (profile.links && profile.links.length > 0) {
-      if (!vCard.socialUrls) {
-        vCard.socialUrls = {};
-      }
-      profile.links.forEach((link: any) => {
-        if (link.url.includes("linkedin")) {
-          vCard.socialUrls.linkedIn = link.url;
-        } else if (link.url.includes("twitter") || link.url.includes("x.com")) {
-          vCard.socialUrls.twitter = link.url;
-        } else if (link.url.includes("facebook")) {
-          vCard.socialUrls.facebook = link.url;
-        } else if (link.url.includes("instagram")) {
-          vCard.socialUrls.instagram = link.url;
-        }
-      });
-    }
-
+    // ノート
     if (profile.bio) {
-      vCard.note = profile.bio;
+      vcardLines.push(`NOTE:${profile.bio.replace(/\n/g, "\\n")}`);
     }
 
-    vCard.version = "3.0";
+    vcardLines.push("END:VCARD");
 
-    const vcardString = vCard.getFormattedString();
+    const vcardString = vcardLines.join("\r\n");
+    console.log("Generated VCard:", vcardString);
+
+    // ファイル名をASCII文字のみに変換
+    const safeFileName = username.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 50) || "profile";
 
     return new NextResponse(vcardString, {
       status: 200,
       headers: {
         "Content-Type": "text/vcard;charset=utf-8",
-        "Content-Disposition": `attachment; filename="${username}.vcf"`,
+        "Content-Disposition": `attachment; filename="${safeFileName}.vcf"`,
       },
     });
   } catch (error) {
     console.error("VCard generation error:", error);
     return NextResponse.json(
-      { error: "Failed to generate VCard" },
+      { error: "Failed to generate VCard", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },
     );
   }
