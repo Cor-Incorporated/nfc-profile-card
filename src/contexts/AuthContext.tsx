@@ -35,6 +35,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
+  getIdToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -46,6 +47,7 @@ const AuthContext = createContext<AuthContextType>({
   resetPassword: async () => {},
   resendVerificationEmail: async () => {},
   signOut: async () => {},
+  getIdToken: async () => null,
 });
 
 export const useAuth = () => {
@@ -334,6 +336,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // IDトークンを取得
+  const getIdToken = async (): Promise<string | null> => {
+    if (!user) {
+      return null;
+    }
+    try {
+      const token = await user.getIdToken();
+      return token;
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -345,6 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         resetPassword,
         resendVerificationEmail,
         signOut,
+        getIdToken,
       }}
     >
       {children}

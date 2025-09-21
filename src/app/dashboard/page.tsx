@@ -325,7 +325,10 @@ export default function DashboardPage() {
           </div>
 
           {/* 名刺スキャン */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 relative border-2 border-pink-500">
+            <div className="absolute -top-3 left-4 bg-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+              新機能
+            </div>
             <div className="flex items-center mb-4">
               <div className="p-3 bg-pink-100 rounded-lg">
                 <svg
@@ -351,14 +354,14 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold ml-4">名刺スキャン</h2>
             </div>
             <p className="text-gray-600 mb-4">
-              カメラで名刺を撮影して連絡先を自動登録（近日実装予定）
+              カメラで名刺を撮影して連絡先を自動登録
             </p>
-            <button
-              className="w-full px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
-              disabled
+            <Link
+              href="/dashboard/business-cards/scan"
+              className="block w-full px-4 py-3 bg-pink-600 text-white text-center rounded-lg hover:bg-pink-700 transition-colors text-base font-medium touch-manipulation"
             >
-              近日実装予定
-            </button>
+              📸 スキャンする
+            </Link>
           </div>
         </div>
       </div>
