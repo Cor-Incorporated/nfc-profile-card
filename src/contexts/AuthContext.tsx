@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   User,
-  signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -215,28 +214,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     try {
-      // ポップアップでサインインを試みる
-      const result = await signInWithPopup(auth, provider);
-      console.log("Google sign in successful:", result.user.email);
-      await createOrUpdateUserDocument(result.user);
-      router.push("/dashboard");
+      // リダイレクト方式を使用（COOPエラーを回避）
+      await signInWithRedirect(auth, provider);
+      // リダイレクト後の処理はgetRedirectResultで行う
     } catch (error: any) {
-      // ポップアップがブロックされた場合はリダイレクト方式を使用
-      if (
-        error.code === "auth/popup-blocked" ||
-        error.code === "auth/popup-closed-by-user" ||
-        error.code === "auth/cancelled-popup-request"
-      ) {
-        console.log("Popup blocked/cancelled, using redirect");
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectError: any) {
-          throw new Error(getErrorMessage(redirectError));
-        }
-      } else {
-        console.error("Google sign in error:", error);
-        throw new Error(getErrorMessage(error));
-      }
+      console.error("Google sign in error:", error);
+      throw new Error(getErrorMessage(error));
     }
   };
 

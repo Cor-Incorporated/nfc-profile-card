@@ -31,6 +31,7 @@ function DesignEditorContent() {
   const loadUserData = async () => {
     if (!user) return;
 
+    console.log('[DesignEditorPage] Loading user data for user:', user.uid);
     try {
       // プロファイルIDが指定されている場合
       if (profileId) {
@@ -47,6 +48,11 @@ function DesignEditorContent() {
           } else {
             setInitialData(null);
           }
+          console.log('[DesignEditorPage] Profile data loaded:', {
+            hasSocialLinks: !!data.socialLinks,
+            socialLinksCount: data.socialLinks?.length || 0,
+            socialLinks: data.socialLinks
+          });
           setSocialLinks(data.socialLinks || []);
           setBackground(data.background || null);
 
@@ -82,6 +88,11 @@ function DesignEditorContent() {
             } else {
               setInitialData(null);
             }
+            console.log('[DesignEditorPage] Profile subcollection data loaded:', {
+              hasSocialLinks: !!profileData.socialLinks,
+              socialLinksCount: profileData.socialLinks?.length || 0,
+              socialLinks: profileData.socialLinks
+            });
             setSocialLinks(profileData.socialLinks || []);
             setBackground(profileData.background || null);
           }
@@ -104,6 +115,11 @@ function DesignEditorContent() {
             } else {
               setInitialData(null);
             }
+            console.log('[DesignEditorPage] User document profile data loaded:', {
+              hasSocialLinks: !!data.profile?.socialLinks,
+              socialLinksCount: data.profile?.socialLinks?.length || 0,
+              socialLinks: data.profile?.socialLinks
+            });
             setSocialLinks(data.profile?.socialLinks || []);
             setBackground(data.profile?.background || null);
           }
@@ -140,6 +156,16 @@ function DesignEditorContent() {
   if (!user) {
     return null;
   }
+
+  console.log('[DesignEditorPage] Rendering PageEditor with:', {
+    userId: user.uid,
+    username,
+    hasinitialData: !!initialData,
+    socialLinksCount: socialLinks.length,
+    socialLinks,
+    hasBackground: !!background,
+    hasProfileData: !!profileData
+  });
 
   return (
     <PageEditor

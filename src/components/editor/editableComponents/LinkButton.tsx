@@ -124,19 +124,17 @@ export const LinkButton = ({
   };
 
   return (
-    <div
-      ref={(ref) => connect(drag(ref as any))}
-      className="relative group"
-      style={{
-        width,
-        padding: "4px",
-        border: selected ? "2px solid #3B82F6" : "none",
-        borderRadius: `${borderRadius + 4}px`,
-        cursor: "pointer",
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="profile-component-wrapper">
+      <div
+        ref={(ref) => connect(drag(ref as any))}
+        className={`relative group ${selected ? "ring-2 ring-blue-500" : ""}`}
+        style={{
+          cursor: "pointer",
+          borderRadius: `${borderRadius + 4}px`,
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
       {/* ホバー時のコントロール */}
       {selected && isHovered && (
         <div className="absolute -top-10 right-0 flex gap-1 z-50 bg-background border rounded-lg shadow-lg p-1">
@@ -259,7 +257,6 @@ export const LinkButton = ({
           padding,
           textDecoration: "none",
           transition: "opacity 0.2s",
-          width: "100%",
           fontFamily: fontFamily,
           backdropFilter:
             backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
@@ -276,6 +273,7 @@ export const LinkButton = ({
         {IconComponent && <IconComponent size={20} />}
         {text}
       </a>
+      </div>
     </div>
   );
 };

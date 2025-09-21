@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/profile-components.css";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { db } from "@/lib/firebase";
@@ -69,6 +70,17 @@ function EditorContent({
   const { query, actions } = useEditor((state) => ({
     nodesLength: Object.keys(state.nodes).length,
   }));
+
+  // グローバルハンドラーを設定（windowオブジェクトに設定）
+  React.useEffect(() => {
+    (window as any).__socialLinksHandler = (links: any[]) => {
+      console.log('[PageEditor] Global handler called with links:', links);
+      setSocialLinks(links);
+    };
+    return () => {
+      (window as any).__socialLinksHandler = null;
+    };
+  }, []);
   const router = useRouter();
 
   // デフォルトのエディター構造を取得
@@ -76,10 +88,10 @@ function EditorContent({
     // Craft.jsが期待する完全な構造を返す
     return JSON.stringify({
       ROOT: {
-        type: { resolvedName: "Container" },
+        type: "div",
         nodes: [],
         props: {},
-        displayName: "Container",
+        displayName: "div",
         custom: {},
         hidden: false,
         isCanvas: true,
@@ -112,35 +124,52 @@ function EditorContent({
       }
 
       if (cleanedData && typeof cleanedData === "object") {
-        // 有効なCraft.jsノード構造かチェック
-        let hasValidContentNodes = false;
-        let validContentNodeCount = 0;
+        console.log('[PageEditor] Before cleaning, nodes:', Object.keys(cleanedData));
+        console.log('[PageEditor] Node details:', Object.entries(cleanedData).map(([key, node]: [string, any]) => ({
+          key,
+          type: node?.type?.resolvedName || node?.type || 'unknown',
+          displayName: node?.displayName
+        })));
 
-        Object.keys(cleanedData).forEach((key) => {
-          const node = cleanedData[key];
-
-          // nodeが存在し、typeプロパティを持っているかチェック
-          if (node && typeof node === 'object' && node.type) {
-            // resolvedNameが存在するかチェック
-            const resolvedName = node.type.resolvedName || node.type;
-
-            // ROOTノードとAddComponentPlaceholderは除外し、実際のコンテンツノードのみをカウント
-            if (
-              resolvedName &&
-              resolvedName !== "Container" &&
-              resolvedName !== "AddComponentPlaceholder" &&
-              key !== "ROOT"
-            ) {
-              hasValidContentNodes = true;
-              validContentNodeCount++;
+        // AddComponentPlaceholderノードを削除（初期データのみ、エディタ内のものは残す）
+        // 注意: 初期データからのみ削除し、エディタで追加されたものは残す
+        const nodesToDelete: string[] = [];
+        if (data === initialData) {
+          Object.keys(cleanedData).forEach((key) => {
+            const node = cleanedData[key];
+            if (node && typeof node === 'object' && node.type) {
+              const resolvedName = node.type.resolvedName || node.type;
+              if (resolvedName === "AddComponentPlaceholder") {
+                nodesToDelete.push(key);
+              }
             }
-          }
+          });
+        }
+
+        console.log('[PageEditor] Nodes to delete:', nodesToDelete);
+
+        // AddComponentPlaceholderノードを削除
+        nodesToDelete.forEach(nodeId => {
+          delete cleanedData[nodeId];
+          // 親ノードからの参照も削除
+          Object.values(cleanedData).forEach((node: any) => {
+            if (node && node.nodes && Array.isArray(node.nodes)) {
+              const index = node.nodes.indexOf(nodeId);
+              if (index > -1) {
+                node.nodes.splice(index, 1);
+              }
+            }
+          });
         });
 
-        // 有効なコンテンツノードがある場合はそのまま返す、そうでなければデフォルト構造を返す
-        if (hasValidContentNodes) {
+        console.log('[PageEditor] After cleaning, nodes:', Object.keys(cleanedData));
+
+        // データが空でない場合はそのまま返す（ROOT以外のノードがあれば有効とする）
+        if (Object.keys(cleanedData).length > 1 || (cleanedData.ROOT && cleanedData.ROOT.nodes && cleanedData.ROOT.nodes.length > 0)) {
+          console.log('[PageEditor] Returning cleaned data with nodes');
           return cleanedData;
         } else {
+          console.log('[PageEditor] No valid content nodes, returning default');
           return getDefaultEditorContent();
         }
       }
@@ -183,64 +212,54 @@ function EditorContent({
     try {
       const serialized = query.serialize();
 
-      if (profileId) {
-        // 新しい構造: profiles サブコレクションに保存
-        await updateDoc(doc(db, "users", userId, "profiles", profileId), {
+      // 単一プロファイル構造: profile ドキュメントに保存
+      const profileRef = doc(db, "users", userId, "profile", "data");
+      await updateDoc(profileRef, {
+        editorContent: serialized,
+        background: background,
+        socialLinks: socialLinks,
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        // プロフィールドキュメントが存在しない場合は作成
+        await setDoc(profileRef, {
           editorContent: serialized,
           background: background,
           socialLinks: socialLinks,
           updatedAt: serverTimestamp(),
         });
-      } else {
-        // 従来の構造: profile ドキュメントに保存（後方互換性のため）
-        const profileRef = doc(db, "users", userId, "profile", "data");
-        await updateDoc(profileRef, {
-          editorContent: serialized,
-          background: background,
-          socialLinks: socialLinks,
-          updatedAt: serverTimestamp(),
-        }).catch(async () => {
-          // プロフィールドキュメントが存在しない場合は作成
-          await setDoc(profileRef, {
-            editorContent: serialized,
-            background: background,
-            socialLinks: socialLinks,
-            updatedAt: serverTimestamp(),
-          });
-        });
+      });
 
-        // ユーザードキュメントにも基本情報を保存（後方互換性）
-        const updateData: any = {
-          "profile.editorContent": serialized,
-          "profile.background": background,
-          "profile.socialLinks": socialLinks,
-          "profile.updatedAt": serverTimestamp(),
-        };
+      // ユーザードキュメントにも基本情報を保存（後方互換性）
+      const updateData: any = {
+        "profile.editorContent": serialized,
+        "profile.background": background,
+        "profile.socialLinks": socialLinks,
+        "profile.updatedAt": serverTimestamp(),
+      };
 
-        // プロフィールデータが存在する場合は従来形式も保存
-        if (profileData) {
-          updateData.name = profileData.name;
-          updateData.company = profileData.company;
-          updateData.position = profileData.position;
-          updateData.bio = profileData.bio;
-          updateData.email = profileData.email;
-          updateData.phone = profileData.phone;
-          updateData.website = profileData.website;
-          updateData.address = profileData.address;
-          updateData.links = profileData.links;
-        }
-
-        await updateDoc(doc(db, "users", userId), updateData);
+      // プロフィールデータが存在する場合は従来形式も保存
+      if (profileData) {
+        updateData.name = profileData.name;
+        updateData.company = profileData.company;
+        updateData.position = profileData.position;
+        updateData.bio = profileData.bio;
+        updateData.email = profileData.email;
+        updateData.phone = profileData.phone;
+        updateData.website = profileData.website;
+        updateData.address = profileData.address;
+        updateData.links = profileData.links;
       }
+
+      await updateDoc(doc(db, "users", userId), updateData);
 
       setSaveStatus("saved");
     } catch (error) {
       console.error("保存エラー:", error);
       // エラートラッキングに記録
-      logFirestoreError("save", error, profileId ? `profiles/${profileId}` : "profile/data");
+      logFirestoreError("save", error, "profile/data");
       setSaveStatus("error");
     }
-  }, [isInitialized, query, profileId, userId, background, socialLinks]);
+  }, [isInitialized, query, userId, background, socialLinks, profileData]);
 
   // 自動保存の実装
   const autoSave = React.useCallback(async () => {
@@ -259,46 +278,47 @@ function EditorContent({
     };
   }, [autoSave]);
 
-  // 自動保存を一時的に無効化（手動保存のみ）
-  // React.useEffect(() => {
-  //   console.log('Editor state changed, isInitialized:', isInitialized);
-  //   if (isInitialized) {
-  //     console.log('Triggering auto save');
-  //     debouncedAutoSave();
-  //   }
-  // }, [background, socialLinks, isInitialized, debouncedAutoSave]);
+  // リンク変更時の自動保存ハンドラー
+  const handleSave = React.useCallback(async (data?: { socialLinks?: any[] }) => {
+    if (data?.socialLinks) {
+      setSocialLinks(data.socialLinks);
+      // 自動保存をトリガー
+      if (isInitialized) {
+        await saveData();
+      }
+    }
+  }, [saveData, isInitialized]);
 
-  // 初期データをEditorに設定
+  // シンプルな自動保存（初期化後のみ）
+  React.useEffect(() => {
+    if (isInitialized) {
+      console.log('[PageEditor] Editor initialized, setting up auto save');
+      debouncedAutoSave();
+    }
+  }, [isInitialized, debouncedAutoSave]);
+
+  // background と socialLinks の変更時も自動保存
+  React.useEffect(() => {
+    if (isInitialized) {
+      debouncedAutoSave();
+    }
+  }, [background, socialLinks, isInitialized]);
+
+  // シンプルな初期データ設定
   React.useEffect(() => {
     if (validInitialData && actions) {
       try {
-        // データの妥当性を再度チェック
-        if (typeof validInitialData === 'object' && validInitialData !== null) {
-          // ROOTノードが存在することを確認
-          if (validInitialData.ROOT) {
-            actions.deserialize(validInitialData);
-          } else {
-            // ROOTノードがない場合はデフォルト構造を設定
-            console.warn("No ROOT node found, using default structure");
-            logCraftError(new Error("No ROOT node in validInitialData"), validInitialData);
-            actions.deserialize(getDefaultEditorContent());
-          }
-        } else {
-          console.warn("Invalid data format, using default structure");
-          logCraftError(new Error("Invalid data format"), validInitialData);
-          actions.deserialize(getDefaultEditorContent());
-        }
+        console.log('[PageEditor] Setting initial data:', validInitialData);
+        actions.deserialize(validInitialData);
+        console.log('[PageEditor] Initial data set successfully');
       } catch (error) {
         console.error("Failed to set initial data:", error);
-        // エラートラッキングに記録
-        logCraftError(error, validInitialData);
-
         // エラー時はデフォルト構造を設定
         try {
           actions.deserialize(getDefaultEditorContent());
+          console.log('[PageEditor] Default content set successfully');
         } catch (fallbackError) {
           console.error("Failed to set default content:", fallbackError);
-          logCraftError(fallbackError, null);
         }
       }
     }
@@ -482,6 +502,20 @@ function EditorContent({
           <Button
             variant="outline"
             size="sm"
+            onClick={async () => {
+              console.log('Manual save clicked');
+              await saveData();
+              toast({
+                title: "保存しました",
+                description: "変更が保存されました",
+              });
+            }}
+          >
+            手動保存
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsPreview(!isPreview)}
           >
             {isPreview ? (
@@ -535,40 +569,42 @@ function EditorContent({
 
       {/* メインコンテンツ */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* キャンバス */}
-        <div className="flex-1 bg-gray-100 overflow-auto p-4 relative">
-          <div
-            className="mx-auto bg-white rounded-lg shadow-lg transition-all"
-            style={{
-              width: getViewportWidth(),
-              minHeight: "100vh",
-              ...getBackgroundStyle(),
-            }}
-          >
-            {/* 背景レイヤー（透明度付き） */}
-            {getBackgroundLayer()}
-
-            <Frame data={validInitialData}>
-              <Element
-                is="div"
-                canvas
-                className="flex flex-col items-center gap-4 p-6 min-h-screen relative"
-                style={{ zIndex: 1 }}
+        <div className="flex-1 flex flex-col">
+            {/* キャンバス */}
+            <div className="flex-1 bg-gray-100 overflow-auto p-4 relative">
+              <div
+                className="mx-auto bg-white rounded-lg shadow-lg transition-all"
+                style={{
+                  width: getViewportWidth(),
+                  minHeight: "100vh",
+                  ...getBackgroundStyle(),
+                }}
               >
-                {/* 初期のコンポーネント追加ボタン（画面内に配置） */}
-                {!isPreview && (
+                {/* 背景レイヤー（透明度付き） */}
+                {getBackgroundLayer()}
+
+                <Frame>
                   <Element
-                    is={AddComponentPlaceholder}
-                    socialLinks={socialLinks}
-                    onSocialLinksChange={(links) => {
-                      setSocialLinks(links);
-                    }}
-                    userId={userId}
-                  />
-                )}
-              </Element>
-            </Frame>
-          </div>
+                    is="div"
+                    canvas
+                    className="flex flex-col items-center gap-4 p-6 min-h-screen relative z-10"
+                  >
+                    {/* コンポーネント追加ツール（Frame内に配置） */}
+                    {!isPreview && (
+                      <Element
+                        is={AddComponentPlaceholder}
+                        socialLinks={socialLinks}
+                        userId={userId}
+                        onSocialLinksChange={(links: any[]) => {
+                          console.log('[PageEditor] Social links changed:', links);
+                          setSocialLinks(links);
+                        }}
+                      />
+                    )}
+                  </Element>
+                </Frame>
+              </div>
+            </div>
         </div>
       </div>
     </div>

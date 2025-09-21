@@ -67,9 +67,25 @@ export const Text = ({
   const { actions } = useEditor();
 
   const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (actions && id) {
+    console.log('[Text] Delete attempt - id:', id, 'actions:', actions);
+
+    if (!actions) {
+      console.error('[Text] actions is null/undefined');
+      return;
+    }
+
+    if (!id) {
+      console.error('[Text] id is null/undefined');
+      return;
+    }
+
+    try {
       actions.delete(id);
+      console.log('[Text] Delete called successfully');
+    } catch (error) {
+      console.error('[Text] Delete error:', error);
     }
   };
 
@@ -121,28 +137,28 @@ export const Text = ({
   ];
 
   return (
-    <div
-      ref={(ref) => connect(drag(ref as any))}
-      className="relative"
-      style={{
-        padding: `${padding}px`,
+    <div className="profile-component-wrapper">
+      <div
+        ref={(ref) => connect(drag(ref as any))}
+        className={`profile-text-card relative ${selected ? 'ring-2 ring-blue-500' : ''}`}
+        style={{
         fontSize: `${fontSize}px`,
         color: color,
         textAlign: textAlign,
         fontFamily: fontFamily,
         fontWeight: fontWeight,
-        border: selected ? "2px solid #3B82F6" : "none",
         cursor: "text",
         minHeight: "40px",
-        backgroundColor:
-          backgroundColor !== "transparent"
-            ? `${backgroundColor}${Math.round(backgroundOpacity * 255)
-                .toString(16)
-                .padStart(2, "0")}`
-            : "transparent",
-        backdropFilter:
-          backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
-        borderRadius: "6px",
+        // カスタム背景色が設定されている場合のみ上書き
+        ...(backgroundColor !== "transparent" && {
+          backgroundColor: `${backgroundColor}${Math.round(backgroundOpacity * 255)
+            .toString(16)
+            .padStart(2, "0")}`,
+        }),
+        // カスタムぼかしが設定されている場合のみ上書き
+        ...(backgroundBlur > 0 && {
+          backdropFilter: `blur(${backgroundBlur}px)`,
+        }),
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -330,6 +346,7 @@ export const Text = ({
         }}
       >
         {text}
+      </div>
       </div>
     </div>
   );

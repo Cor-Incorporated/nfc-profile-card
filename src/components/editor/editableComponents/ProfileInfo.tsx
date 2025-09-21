@@ -136,12 +136,13 @@ export function ProfileInfo({
   };
 
   return (
-    <div
-      ref={(ref: any) => connect(drag(ref))}
-      className={`relative p-6 bg-white rounded-lg shadow-sm border transition-all ${
-        isActive ? "ring-2 ring-blue-500" : ""
-      } ${isHovered ? "shadow-md" : ""}`}
-    >
+    <div className="profile-component-wrapper">
+      <div
+        ref={(ref: any) => connect(drag(ref))}
+        className={`profile-text-card relative transition-all ${
+          isActive ? "ring-2 ring-blue-500" : ""
+        } ${isHovered ? "shadow-md" : ""}`}
+      >
       {/* ホバー時の編集コントロール */}
       {isHovered && (
         <div className="absolute top-2 right-2 flex gap-2 z-10">
@@ -359,6 +360,7 @@ export function ProfileInfo({
           <Download className="mr-2 h-4 w-4" />
           連絡先をダウンロード
         </Button>
+      </div>
       </div>
     </div>
   );

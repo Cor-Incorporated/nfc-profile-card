@@ -115,9 +115,22 @@ export const ImageUpload = ({
   );
 
   const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    console.log('[ImageUpload] Delete clicked - id:', id);
+    console.log('[ImageUpload] Actions available:', !!actions);
+    console.log('[ImageUpload] Actions methods:', actions ? Object.keys(actions) : 'none');
+
     if (actions && id) {
-      actions.delete(id);
+      try {
+        console.log('[ImageUpload] Calling actions.delete with id:', id);
+        actions.delete(id);
+        console.log('[ImageUpload] Delete called successfully');
+      } catch (error) {
+        console.error('[ImageUpload] Error deleting component:', error);
+      }
+    } else {
+      console.error('[ImageUpload] Cannot delete - missing actions or id', { hasActions: !!actions, id });
     }
   };
 
@@ -176,34 +189,45 @@ export const ImageUpload = ({
 
   return (
     <>
-      <div
-        ref={(ref) => connect(drag(ref as any))}
-        className="relative"
-        style={{
-          width,
-          height,
-          border: selected ? "2px solid #3B82F6" : "none",
-          borderRadius: "8px",
-          overflow: "hidden",
-          cursor: "pointer",
-          minHeight: "200px",
-          backgroundColor: "#f3f4f6",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* ホバー時の削除ボタン */}
+      <div className="profile-component-wrapper">
+        <div
+          ref={(ref) => connect(drag(ref as any))}
+          className={`relative ${selected ? "ring-2 ring-blue-500" : ""}`}
+          style={{
+            height,
+            borderRadius: "8px",
+            overflow: "hidden",
+            cursor: "pointer",
+            minHeight: "200px",
+            backgroundColor: "#f3f4f6",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+          }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+        {/* 削除ボタン（統合版） */}
         {selected && isHovered && (
-          <div className="absolute -top-10 right-0 z-50">
+          <div
+            className="absolute top-2 right-2 z-50"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              console.log('[ImageUpload] Delete button area mousedown');
+            }}
+          >
             <Button
-              variant="ghost"
+              variant="destructive"
               size="icon"
-              className="h-8 w-8 bg-background border shadow-lg hover:bg-destructive hover:text-destructive-foreground"
-              onClick={handleDelete}
+              className="h-8 w-8 shadow-lg"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ImageUpload] Delete button mousedown');
+                handleDelete(e as any);
+              }}
+              type="button"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -216,12 +240,12 @@ export const ImageUpload = ({
             alt={alt}
             style={{
               width: "100%",
-              height: "100%",
+              height: "auto",
               objectFit,
             }}
           />
         ) : (
-          <label className="w-full h-full flex items-center justify-center cursor-pointer">
+          <label className="h-full flex items-center justify-center cursor-pointer">
             <input
               type="file"
               accept="image/*"
@@ -235,6 +259,7 @@ export const ImageUpload = ({
             </div>
           </label>
         )}
+        </div>
       </div>
 
       {/* クロップダイアログ */}

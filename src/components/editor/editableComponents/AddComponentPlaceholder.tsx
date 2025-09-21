@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useNode, useEditor, Element } from "@craftjs/core";
+import { useEditor } from "@craftjs/core";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -44,33 +44,40 @@ const getServiceColor = (service: string): string => {
   return colors[service.toLowerCase()] || "#3B82F6";
 };
 
+// グローバルハンドラーを参照
+declare global {
+  interface Window {
+    __socialLinksHandler?: (links: any[]) => void;
+  }
+}
+
 export function AddComponentPlaceholder({
   socialLinks = [],
   onSocialLinksChange,
   userId,
 }: AddComponentPlaceholderProps) {
-  const {
-    connectors: { connect, drag },
-    isActive,
-    isHovered,
-  } = useNode((state) => ({
-    isActive: state.events.selected,
-    isHovered: state.events.hovered,
-  }));
-
   const { connectors } = useEditor();
   const [isOpen, setIsOpen] = useState(false);
 
+  // グローバルハンドラーを使用
+  const effectiveOnSocialLinksChange = onSocialLinksChange || window.__socialLinksHandler;
+
+  console.log('[AddComponentPlaceholder] Props and globals:', {
+    socialLinksCount: socialLinks?.length || 0,
+    hasOnSocialLinksChange: !!onSocialLinksChange,
+    hasGlobalHandler: !!window.__socialLinksHandler,
+    hasEffectiveHandler: !!effectiveOnSocialLinksChange,
+    userId: userId || 'not provided',
+    isOpen
+  });
+
   return (
-    <div
-      ref={(ref: any) => connect(drag(ref))}
-      className={`relative w-full ${isActive ? "ring-2 ring-blue-500 rounded" : ""}`}
-    >
+    <div className="add-component-button-container">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full h-20 border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors"
+            className="add-button"
           >
             <Plus className="h-6 w-6 mr-2" />
             コンポーネントを追加
@@ -91,10 +98,7 @@ export function AddComponentPlaceholder({
                 <div className="space-y-2">
                   <div
                     ref={(ref: any) =>
-                      connectors.create(
-                        ref,
-                        <Text text="新しいテキスト" fontSize={16} />,
-                      )
+                      connectors.create(ref, <Text text="新しいテキスト" fontSize={16} />)
                     }
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
@@ -104,7 +108,9 @@ export function AddComponentPlaceholder({
                   </div>
 
                   <div
-                    ref={(ref: any) => connectors.create(ref, <ImageUpload />)}
+                    ref={(ref: any) =>
+                      connectors.create(ref, <ImageUpload />)
+                    }
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
@@ -114,10 +120,7 @@ export function AddComponentPlaceholder({
 
                   <div
                     ref={(ref: any) =>
-                      connectors.create(
-                        ref,
-                        <ProfileInfo userId={userId || ""} />,
-                      )
+                      connectors.create(ref, <ProfileInfo userId={userId || ""} />)
                     }
                     className="flex items-center gap-2 p-3 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
                     onClick={() => setIsOpen(false)}
@@ -129,17 +132,17 @@ export function AddComponentPlaceholder({
               </TabsContent>
 
               <TabsContent value="links" className="p-4 h-full overflow-y-auto">
-                {onSocialLinksChange ? (
+                {effectiveOnSocialLinksChange ? (
                   <>
                     <SocialLinksManager
                       links={socialLinks}
-                      onChange={onSocialLinksChange}
+                      onChange={effectiveOnSocialLinksChange}
                     />
 
                     {socialLinks.length > 0 && (
                       <div className="mt-6 space-y-2">
                         <h3 className="text-sm font-semibold mb-2">
-                          ドラッグしてページに追加
+                          クリックしてページに追加
                         </h3>
                         {socialLinks.map((link, index) => (
                           <div key={index} className="group relative">
@@ -150,12 +153,9 @@ export function AddComponentPlaceholder({
                                   <LinkButton
                                     text={link.title || link.service}
                                     url={link.url}
-                                    backgroundColor={getServiceColor(
-                                      link.service,
-                                    )}
-                                    width="100%"
+                                    backgroundColor={getServiceColor(link.service)}
                                     textColor="#FFFFFF"
-                                  />,
+                                  />
                                 )
                               }
                               className="flex items-center gap-2 p-3 pr-10 bg-background border rounded-lg hover:bg-muted cursor-move transition-colors"
@@ -172,11 +172,15 @@ export function AddComponentPlaceholder({
                               className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (onSocialLinksChange) {
+                                console.log('[AddComponentPlaceholder] Removing link at index:', index);
+                                if (effectiveOnSocialLinksChange) {
                                   const newLinks = socialLinks.filter(
                                     (_, i) => i !== index,
                                   );
-                                  onSocialLinksChange(newLinks);
+                                  console.log('[AddComponentPlaceholder] New links after removal:', newLinks);
+                                  effectiveOnSocialLinksChange(newLinks);
+                                } else {
+                                  console.error('[AddComponentPlaceholder] No handler available (neither prop nor global)!');
                                 }
                               }}
                             >
@@ -200,12 +204,3 @@ export function AddComponentPlaceholder({
     </div>
   );
 }
-
-AddComponentPlaceholder.craft = {
-  displayName: "AddComponentPlaceholder",
-  props: {
-    socialLinks: [],
-    userId: "",
-  },
-  related: {},
-};
