@@ -135,3 +135,30 @@ The project requires configuration in `.env.local`:
 - **Debounced Saving**: 2-second debounce on all editor changes
 - **State Monitoring**: Watches background, socialLinks, and editor query changes
 - **Status Display**: Visual indicators for saving, saved, and error states
+
+## Patent Risk Information (Updated: Sep 21, 2025)
+
+### 🚨 Features to AVOID (High Patent Infringement Risk)
+
+1. **Dynamic NFC Cards** - Cloud-synced cards that update profile data dynamically (Lifes. Patent #7356776)
+2. **Camera Roll Auto-Detection** - Background monitoring for business card images (Yusoner Patent #7393248)
+3. **Email Signature Parsing** - Auto-extraction from forwarded emails (Yusoner Patent #5538512)
+4. **Enterprise B2B Features** - Avoid direct competition with Sansan's enterprise market
+
+### ✅ Safe Implementation Guidelines
+
+- **NFC**: Use static URL linking only - no dynamic data fetching
+- **OCR**: Implement in-app camera scanning with explicit user action
+- **Target Market**: Focus on individuals and small teams, not enterprise B2B
+- **Innovation Areas**: Visual customization, AI-powered features, community/social functions
+
+### 📝 Before Implementing New Features
+
+Always check the "特許リスク回避開発ガイドライン.md" document and consult with legal counsel when planning:
+
+- NFC card management features
+- Business card scanning/OCR
+- Automated data collection
+- Enterprise-level features
+
+Detailed risk assessment available in "特許リスク評価レポート_TapForge_20250921.md"
