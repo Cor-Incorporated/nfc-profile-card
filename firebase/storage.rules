@@ -18,16 +18,30 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024; // 5MB以下
     }
     
-    // ユーザープロフィール画像
+    // ユーザープロフィール画像（具体的なパス指定）
+    match /profiles/{userId}/images/{imageId} {
+      // プロフィール画像は誰でも読める（公開プロフィール）
+      allow read: if true;
+
+      // 本人のみアップロード・更新可能
+      allow write: if isOwner(userId) &&
+                     isImageFile() &&
+                     isValidFileSize();
+
+      // 本人のみ削除可能
+      allow delete: if isOwner(userId);
+    }
+
+    // プロフィール画像フォルダ全体（バックアップ）
     match /profiles/{userId}/{allPaths=**} {
       // プロフィール画像は誰でも読める（公開プロフィール）
       allow read: if true;
-      
-      // 本人のみアップロード可能
-      allow write: if isOwner(userId) && 
-                     isImageFile() && 
+
+      // 本人のみアップロード・更新可能
+      allow write: if isOwner(userId) &&
+                     isImageFile() &&
                      isValidFileSize();
-      
+
       // 本人のみ削除可能
       allow delete: if isOwner(userId);
     }

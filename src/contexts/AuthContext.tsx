@@ -16,6 +16,7 @@ import {
   AuthError,
   getRedirectResult,
   signInWithRedirect,
+  signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -179,17 +180,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await createOrUpdateUserDocument(user);
         setUser(user);
 
+        // ログイン直後の場合、ダッシュボードへリダイレクト
+        if (window.location.pathname === "/signin") {
+          console.log("Redirecting to dashboard...");
+          router.push("/dashboard");
+        }
+
         // メール未確認の場合の警告
         if (
           !user.emailVerified &&
           user.providerData[0]?.providerId === "password"
         ) {
           console.log("User email not verified");
-        }
-
-        // サインインページにいる場合はダッシュボードへリダイレクト
-        if (window.location.pathname === "/signin") {
-          router.push("/dashboard");
         }
       } else {
         setUser(null);
@@ -208,15 +210,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Googleでサインイン
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Google認証画面で毎回アカウント選択を表示
-    provider.setCustomParameters({
-      prompt: "select_account",
-    });
-
     try {
-      // リダイレクト方式を使用（COOPエラーを回避）
-      await signInWithRedirect(auth, provider);
-      // リダイレクト後の処理はgetRedirectResultで行う
+      const result = await signInWithPopup(auth, provider);
+      console.log("Google sign in successful:", result.user.email);
+
+      // ユーザードキュメント作成/更新
+      await createOrUpdateUserDocument(result.user);
+
+      // 明示的にダッシュボードへリダイレクト
+      router.push("/dashboard");
     } catch (error: any) {
       console.error("Google sign in error:", error);
       throw new Error(getErrorMessage(error));
@@ -228,13 +230,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log("Email sign in successful:", result.user.email);
+
+      // ユーザードキュメント更新
       await createOrUpdateUserDocument(result.user);
 
-      // メール確認の警告
-      if (!result.user.emailVerified) {
-        console.log("Warning: Email not verified");
-      }
-
+      // 明示的にダッシュボードへリダイレクト
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Email sign in error:", error);

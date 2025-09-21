@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 
 function SignInForm() {
+  const router = useRouter();
   const {
     signInWithGoogle,
     signInWithEmail,
@@ -35,6 +36,7 @@ function SignInForm() {
     resetPassword,
     user,
     resendVerificationEmail,
+    loading,
   } = useAuth();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +59,13 @@ function SignInForm() {
       setDefaultTab(tab);
     }
   }, [searchParams]);
+
+  // 既にログイン済みの場合はダッシュボードへリダイレクト
+  useEffect(() => {
+    if (user && !loading) {
+      router.push("/dashboard");
+    }
+  }, [user, loading, router]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
