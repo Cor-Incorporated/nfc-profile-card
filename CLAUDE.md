@@ -105,36 +105,53 @@ The project requires configuration in `.env.local`:
 
 ## Recent Implementation Notes (Sep 2025)
 
-### Editor UI Improvements
+### 🚀 SimpleEditor v2.0 完全実装 (Phase 5 完了)
 
-- **Issue Fixed**: Component addition buttons moved from external sidebar to inside the canvas area for better mobile UX
-- **Implementation**: Created AddComponentPlaceholder component as CraftJS-compatible draggable component
-- **Approach**: Used proven drag-and-drop pattern with `connectors.create()` instead of programmatic component addition
-- **Mobile-First**: Removed sidebar dependencies to focus on mobile-first design
+**Major Architecture Change**: Complete migration from CraftJS to @dnd-kit-based SimpleEditor
 
-### VCard Format Compliance
+#### New Editor System (SimpleEditor v2.0)
+- **Implementation**: `/src/components/simple-editor/SimplePageEditor.tsx`
+- **Drag & Drop**: @dnd-kit library for component reordering
+- **Auto-save**: 3-second debounced saving to Firestore
+- **Mobile-First**: Responsive design optimized for mobile editing
+- **Components**: Text, Image, Link, Profile components with modal editing
 
-- **Issue Fixed**: VCard format was not iPhone-compatible
-- **Solution**: Updated to VERSION:3.0 specification with proper TEL;TYPE=CELL format for Japanese phone numbers
-- **Implementation**: ProfileInfo component generates compliant VCard files with UTF-8 encoding
+#### Image Upload System
+- **Firebase Storage**: Direct integration with user-specific paths
+- **Path Structure**: `profiles/{userId}/images/{timestamp}-{filename}`
+- **Validation**: 5MB file size limit, image type validation
+- **UI**: Mobile-optimized upload interface with error handling
+- **Authentication**: User ownership verification before upload
 
-### Component Management
+#### Social Link Auto-Recognition
+- **Services**: GitHub, Twitter, Facebook, Instagram, LinkedIn, YouTube, TikTok等
+- **Auto-Detection**: URL入力時の自動サービス認識
+- **Visual**: Service-specific icons and colors
+- **Implementation**: `/src/utils/socialLinks.ts`
 
-- **Deletion Buttons**: All editable components (Text, ImageUpload, LinkButton, ProfileInfo) have deletion functionality
-- **Image Upload**: ProfileInfo component supports avatar upload with Firebase Storage integration
-- **Scrollable Popups**: All editing popups use `max-h-96 overflow-y-auto` for mobile compatibility
+#### Data Migration & Cleanup
+- **Migration Tool**: `/src/utils/cleanupProfileData.ts`
+- **Data Structure**: Simplified ProfileComponent interface
+- **Backward Compatibility**: Automatic migration from CraftJS format
+- **Database**: Firestore subcollection structure (`users/{userId}/profile/data`)
 
-### Architecture Patterns
+#### Technical Improvements
+- **Code Reduction**: -2487 lines (4393 deletions, 1906 insertions)
+- **TypeScript**: Complete error resolution
+- **Performance**: Lighter bundle without CraftJS dependencies
+- **Mobile UX**: Touch-optimized interface
 
-- **CraftJS Integration**: Always use `connectors.create()` for drag-and-drop instead of programmatic node creation
-- **Component Registration**: All CraftJS components must be registered in the resolver
-- **Element Wrapping**: Components inside Frame must be wrapped with `<Element is={ComponentName} />` pattern
+### 🗑️ Deprecated/Removed (Breaking Changes)
+- **CraftJS**: Completely removed all CraftJS components and dependencies
+- **Old PageEditor**: `/src/components/editor/` directory deleted
+- **Craft Components**: All editableComponents removed
+- **Legacy APIs**: Old editor APIs no longer supported
 
-### Auto-save Implementation
-
-- **Debounced Saving**: 2-second debounce on all editor changes
-- **State Monitoring**: Watches background, socialLinks, and editor query changes
-- **Status Display**: Visual indicators for saving, saved, and error states
+### Architecture Patterns (Updated)
+- **@dnd-kit Integration**: Use `useSortable()` hook for drag-and-drop
+- **Component Structure**: Modal-based editing with ComponentEditor
+- **State Management**: Local state with Firestore sync
+- **Error Handling**: Comprehensive error boundaries and user feedback
 
 ## Patent Risk Information (Updated: Sep 21, 2025)
 
