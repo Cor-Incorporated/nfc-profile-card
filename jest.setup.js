@@ -66,14 +66,16 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Firebase のモック
+const mockApp = { name: '[DEFAULT]', options: {} };
+
 jest.mock("firebase/app", () => ({
-  initializeApp: jest.fn(),
-  getApps: jest.fn(() => []),
-  getApp: jest.fn(),
+  initializeApp: jest.fn(() => mockApp),
+  getApps: jest.fn(() => [mockApp]),
+  getApp: jest.fn(() => mockApp),
 }));
 
 jest.mock("firebase/auth", () => ({
-  getAuth: jest.fn(),
+  getAuth: jest.fn(() => ({})),
   signInWithEmailAndPassword: jest.fn(),
   createUserWithEmailAndPassword: jest.fn(),
   signOut: jest.fn(),
@@ -84,7 +86,7 @@ jest.mock("firebase/auth", () => ({
 }));
 
 jest.mock("firebase/firestore", () => ({
-  getFirestore: jest.fn(),
+  getFirestore: jest.fn(() => ({})),
   doc: jest.fn(),
   getDoc: jest.fn(),
   setDoc: jest.fn(),
@@ -100,6 +102,14 @@ jest.mock("firebase/firestore", () => ({
     now: jest.fn(() => ({ toDate: () => new Date() })),
     fromDate: jest.fn((date) => ({ toDate: () => date })),
   },
+}));
+
+jest.mock("firebase/storage", () => ({
+  getStorage: jest.fn(() => ({})),
+  ref: jest.fn(() => ({})),
+  uploadBytes: jest.fn(),
+  getDownloadURL: jest.fn(),
+  deleteObject: jest.fn(),
 }));
 
 // 環境変数のモック
