@@ -455,15 +455,19 @@ function SignInForm() {
             <div>
               続行することで、
               <Link
-                href="/terms"
+                href="https://tapforge.pages.dev/terms/"
                 className="underline underline-offset-4 hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 利用規約
               </Link>
               と
               <Link
-                href="/privacy"
+                href="https://tapforge.pages.dev/privacy/"
                 className="underline underline-offset-4 hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 プライバシーポリシー
               </Link>
