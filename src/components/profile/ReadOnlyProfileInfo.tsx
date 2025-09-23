@@ -102,30 +102,30 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
             .padStart(2, "0")}`,
         }}
       >
-        {/* ヘッダー部分（最適化されたパディング） */}
+        {/* ヘッダー部分（コンパクトな設計） */}
         <div
-          className="px-3 py-2 sm:px-4 sm:py-2.5 text-white"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 text-white"
           style={{
             backgroundColor: cardBackgroundColor,
             filter: "brightness(0.9)",
           }}
         >
-          <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-3 space-y-2 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center sm:space-x-3 space-y-1 sm:space-y-0">
             {photoURL ? (
               <img
                 src={photoURL}
                 alt={displayName}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-white object-cover flex-shrink-0"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-white object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white bg-opacity-30 flex items-center justify-center flex-shrink-0">
-                <User className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white bg-opacity-30 flex items-center justify-center flex-shrink-0">
+                <User className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
             )}
-            <div className="text-center sm:text-left sm:py-1">
-              <h2 className="text-lg sm:text-xl font-bold">{displayName}</h2>
-              {position && <p className="text-xs sm:text-sm opacity-90">{position}</p>}
-              {company && <p className="text-xs sm:text-sm opacity-90">{company}</p>}
+            <div className="text-center sm:text-left">
+              <h2 className="text-base sm:text-lg font-bold leading-tight">{displayName}</h2>
+              {position && <p className="text-xs opacity-90 leading-tight">{position}</p>}
+              {company && <p className="text-xs opacity-90 leading-tight">{company}</p>}
             </div>
           </div>
         </div>
