@@ -88,14 +88,22 @@ jest.mock("firebase/auth", () => ({
 jest.mock("firebase/firestore", () => ({
   getFirestore: jest.fn(() => ({})),
   doc: jest.fn(),
-  getDoc: jest.fn(),
+  getDoc: jest.fn().mockResolvedValue({
+    exists: () => true,
+    data: () => ({}),
+  }),
   setDoc: jest.fn(),
   updateDoc: jest.fn(),
   deleteDoc: jest.fn(),
   collection: jest.fn(),
   query: jest.fn(),
   where: jest.fn(),
-  getDocs: jest.fn(),
+  getDocs: jest.fn().mockResolvedValue({
+    empty: false,
+    docs: [],
+    forEach: jest.fn(),
+    size: 0,
+  }),
   onSnapshot: jest.fn(),
   serverTimestamp: jest.fn(),
   Timestamp: {

@@ -1,5 +1,6 @@
 import vCardsJS from "vcards-js";
 import { GET, POST } from "./route";
+import { getDocs } from "firebase/firestore";
 
 // NextResponseのモック
 jest.mock("next/server", () => {
@@ -404,8 +405,14 @@ describe("VCard API Routes", () => {
         ],
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => mockProfile,
+      // Mock Firestore getDocs to return profile data
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
       });
 
       const request = new MockNextRequest(
@@ -441,8 +448,14 @@ describe("VCard API Routes", () => {
         links: [{ url: "https://x.com/testuser" }],
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => mockProfile,
+      // Mock Firestore getDocs to return profile data
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
       });
 
       const request = new MockNextRequest(
@@ -466,8 +479,14 @@ describe("VCard API Routes", () => {
         email: "john@example.com",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => mockProfile,
+      // Mock Firestore getDocs to return profile data
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
       });
 
       const request = new MockNextRequest(
@@ -489,8 +508,14 @@ describe("VCard API Routes", () => {
     it("必須フィールドが存在しない場合でも処理できる", async () => {
       const mockProfile = {};
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => mockProfile,
+      // Mock Firestore getDocs to return profile data
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
       });
 
       const request = new MockNextRequest(
@@ -523,8 +548,10 @@ describe("VCard API Routes", () => {
     });
 
     it("プロファイルが見つからない場合404エラーを返す", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => null,
+      // Mock Firestore getDocs to return empty result
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: true,
+        docs: [],
       });
 
       const request = new MockNextRequest(
@@ -542,7 +569,8 @@ describe("VCard API Routes", () => {
     });
 
     it("プロファイルAPI呼び出しが失敗した場合500エラーを返す", async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("API Error"));
+      // Mock Firestore getDocs to throw an error
+      (getDocs as jest.Mock).mockRejectedValueOnce(new Error("Firestore Error"));
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=error",
@@ -564,8 +592,14 @@ describe("VCard API Routes", () => {
         email: "test@example.com",
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        json: async () => mockProfile,
+      // Mock Firestore getDocs to return profile data
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
       });
       (vCardsJS as jest.Mock).mockImplementationOnce(() => ({
         firstName: "",
