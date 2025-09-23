@@ -22,12 +22,21 @@ if (!getApps().length) {
       initializeApp({
         credential: cert(serviceAccount),
       });
+    } else if (process.env.NODE_ENV === 'development') {
+      // Only try to load service account file in development
+      try {
+        const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
+        initializeApp({
+          credential: cert(serviceAccount),
+        });
+      } catch (e) {
+        console.warn("Firebase Admin SDK service account file not found. Using default config.");
+        initializeApp();
+      }
     } else {
-      // Fallback to service account file in development
-      const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
+      // Production without environment variables - use default
+      console.warn("Firebase Admin SDK credentials not configured properly");
+      initializeApp();
     }
   } catch (error) {
     console.error("Failed to initialize Firebase Admin SDK:", error);
