@@ -59,7 +59,8 @@ export function ComponentEditor({ component, onSave, onClose, userId }: Componen
 
 // テキストエディタ
 function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [text, setText] = useState(component.content?.text || '');
+  const content = component.content as any;
+  const [text, setText] = useState(content?.text || '');
 
   const handleSave = () => {
     onSave({
@@ -96,8 +97,9 @@ function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps
 
 // 画像エディタ
 function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [imageUrl, setImageUrl] = useState(component.content?.src || '');
-  const [alt, setAlt] = useState(component.content?.alt || '');
+  const content = component.content as any;
+  const [imageUrl, setImageUrl] = useState(content?.src || '');
+  const [alt, setAlt] = useState(content?.alt || '');
   const [useUpload, setUseUpload] = useState(true);
 
   const handleSave = () => {
@@ -180,8 +182,9 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
 
 // リンクエディタ
 function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [url, setUrl] = useState(component.content?.url || '');
-  const [label, setLabel] = useState(component.content?.label || '');
+  const content = component.content as any;
+  const [url, setUrl] = useState(content?.url || '');
+  const [label, setLabel] = useState(content?.label || '');
   const [useAutoLabel, setUseAutoLabel] = useState(true);
 
   // URLが変更されたら自動的にラベルを設定

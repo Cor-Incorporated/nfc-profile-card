@@ -8,26 +8,28 @@ import { getBackgroundStyle } from '../simple-editor/BackgroundCustomizer';
 
 // 各コンポーネントタイプの表示コンポーネント
 function TextComponent({ component }: { component: ProfileComponent }) {
+  const content = component.content as any;
   return (
     <div
       className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
       <p className="text-gray-800">
-        {component.content?.text || 'テキストコンテンツ'}
+        {content?.text || 'テキストコンテンツ'}
       </p>
     </div>
   );
 }
 
 function ImageComponent({ component }: { component: ProfileComponent }) {
+  const content = component.content as any;
   return (
     <div
       className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
-      {component.content?.src ? (
+      {content?.src ? (
         <img
-          src={component.content.src}
-          alt={component.content?.alt || '画像'}
+          src={content.src}
+          alt={content?.alt || '画像'}
           className="w-full h-auto rounded"
         />
       ) : (
@@ -40,7 +42,8 @@ function ImageComponent({ component }: { component: ProfileComponent }) {
 }
 
 function LinkComponent({ component }: { component: ProfileComponent }) {
-  const { url, label } = component.content || {};
+  const content = component.content as any;
+  const { url, label } = content || {};
 
   // ソーシャルリンクの自動認識
   return (

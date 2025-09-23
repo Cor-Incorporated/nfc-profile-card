@@ -22,7 +22,7 @@ interface ReadOnlyProfileInfoProps {
 export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
-  const content = component.content || {};
+  const content = component.content as any || {};
   const {
     firstName,
     lastName,
