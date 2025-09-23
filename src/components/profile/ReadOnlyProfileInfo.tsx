@@ -102,36 +102,36 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
             .padStart(2, "0")}`,
         }}
       >
-        {/* ヘッダー部分（コンパクトな設計） */}
+        {/* ヘッダー部分（最小限のパディング） */}
         <div
-          className="px-3 py-1.5 sm:px-4 sm:py-2 text-white"
+          className="px-2 py-1 sm:px-3 sm:py-1.5 text-white"
           style={{
             backgroundColor: cardBackgroundColor,
             filter: "brightness(0.9)",
           }}
         >
-          <div className="flex flex-col sm:flex-row items-center sm:items-center sm:space-x-3 space-y-1 sm:space-y-0">
+          <div className="flex items-center gap-2 sm:gap-3">
             {photoURL ? (
               <img
                 src={photoURL}
                 alt={displayName}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-white object-cover flex-shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white bg-opacity-30 flex items-center justify-center flex-shrink-0">
-                <User className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white bg-opacity-30 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             )}
-            <div className="text-center sm:text-left">
-              <h2 className="text-base sm:text-lg font-bold leading-tight">{displayName}</h2>
-              {position && <p className="text-xs opacity-90 leading-tight">{position}</p>}
-              {company && <p className="text-xs opacity-90 leading-tight">{company}</p>}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm sm:text-base font-bold leading-none truncate">{displayName}</h2>
+              {position && <p className="text-xs opacity-90 leading-none mt-0.5 truncate">{position}</p>}
+              {company && <p className="text-xs opacity-90 leading-none mt-0.5 truncate">{company}</p>}
             </div>
           </div>
         </div>
 
         {/* コンテンツ部分 */}
-        <div className="p-3 sm:p-4 space-y-3 bg-white bg-opacity-90">
+        <div className="p-2.5 sm:p-3 space-y-2.5 bg-white bg-opacity-90">
           {/* VCardダウンロードボタン（常に表示） */}
           <div className="flex justify-center">
             <VCardButton
