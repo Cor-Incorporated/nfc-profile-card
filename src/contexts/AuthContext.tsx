@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   User,
-  signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -17,6 +16,7 @@ import {
   AuthError,
   getRedirectResult,
   signInWithRedirect,
+  signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -35,6 +35,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
+  getIdToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -46,6 +47,7 @@ const AuthContext = createContext<AuthContextType>({
   resetPassword: async () => {},
   resendVerificationEmail: async () => {},
   signOut: async () => {},
+  getIdToken: async () => null,
 });
 
 export const useAuth = () => {
@@ -178,17 +180,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await createOrUpdateUserDocument(user);
         setUser(user);
 
+        // ログイン直後の場合、ダッシュボードへリダイレクト
+        if (window.location.pathname === "/signin") {
+          console.log("Redirecting to dashboard...");
+          router.push("/dashboard");
+        }
+
         // メール未確認の場合の警告
         if (
           !user.emailVerified &&
           user.providerData[0]?.providerId === "password"
         ) {
           console.log("User email not verified");
-        }
-
-        // サインインページにいる場合はダッシュボードへリダイレクト
-        if (window.location.pathname === "/signin") {
-          router.push("/dashboard");
         }
       } else {
         setUser(null);
@@ -207,34 +210,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Googleでサインイン
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Google認証画面で毎回アカウント選択を表示
-    provider.setCustomParameters({
-      prompt: "select_account",
-    });
-
     try {
-      // ポップアップでサインインを試みる
       const result = await signInWithPopup(auth, provider);
       console.log("Google sign in successful:", result.user.email);
+
+      // ユーザードキュメント作成/更新
       await createOrUpdateUserDocument(result.user);
+
+      // 明示的にダッシュボードへリダイレクト
       router.push("/dashboard");
     } catch (error: any) {
-      // ポップアップがブロックされた場合はリダイレクト方式を使用
-      if (
-        error.code === "auth/popup-blocked" ||
-        error.code === "auth/popup-closed-by-user" ||
-        error.code === "auth/cancelled-popup-request"
-      ) {
-        console.log("Popup blocked/cancelled, using redirect");
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (redirectError: any) {
-          throw new Error(getErrorMessage(redirectError));
-        }
-      } else {
-        console.error("Google sign in error:", error);
-        throw new Error(getErrorMessage(error));
-      }
+      console.error("Google sign in error:", error);
+      throw new Error(getErrorMessage(error));
     }
   };
 
@@ -243,13 +230,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log("Email sign in successful:", result.user.email);
+
+      // ユーザードキュメント更新
       await createOrUpdateUserDocument(result.user);
 
-      // メール確認の警告
-      if (!result.user.emailVerified) {
-        console.log("Warning: Email not verified");
-      }
-
+      // 明示的にダッシュボードへリダイレクト
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Email sign in error:", error);
@@ -334,6 +319,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // IDトークンを取得
+  const getIdToken = async (): Promise<string | null> => {
+    if (!user) {
+      return null;
+    }
+    try {
+      const token = await user.getIdToken();
+      return token;
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -345,6 +344,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         resetPassword,
         resendVerificationEmail,
         signOut,
+        getIdToken,
       }}
     >
       {children}

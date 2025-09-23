@@ -4,13 +4,13 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import {
   notoSansJP,
-  notoSerifJP,
-  mPlus1p,
-  mPlusRounded,
-  sawarabiMincho,
-  sawarabiGothic,
-  kosugiMaru,
-  zenMaruGothic
+  // notoSerifJP,
+  // mPlus1p,
+  // mPlusRounded,
+  // sawarabiMincho,
+  // sawarabiGothic,
+  // kosugiMaru,
+  // zenMaruGothic
 } from "@/lib/fonts";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -44,16 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`
-        ${notoSansJP.variable}
-        ${notoSerifJP.variable}
-        ${mPlus1p.variable}
-        ${mPlusRounded.variable}
-        ${sawarabiMincho.variable}
-        ${sawarabiGothic.variable}
-        ${kosugiMaru.variable}
-        ${zenMaruGothic.variable}
-      `}
+      className={notoSansJP.variable}
     >
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>

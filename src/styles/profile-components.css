@@ -1,0 +1,81 @@
+/* 全コンポーネント共通のレイアウト */
+.profile-component-wrapper {
+  width: 75%;
+  max-width: 400px;
+  margin: 0 auto 1rem;
+}
+
+/* テキストコンポーネントの背景処理 */
+.profile-text-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .profile-text-card {
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* コンポーネント追加ボタンの位置 */
+.add-component-button-container {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75%;
+  max-width: 400px;
+  z-index: 40;
+}
+
+/* 追加ボタンのスタイル */
+.add-component-button-container .add-button {
+  width: 100%;
+  padding: 1rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: #6b7280;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.add-component-button-container .add-button:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+  color: #3b82f6;
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .add-component-button-container {
+    border-top-color: #374151;
+  }
+
+  .add-component-button-container .add-button {
+    background: rgba(30, 30, 30, 0.8);
+    border-color: #4b5563;
+    color: #9ca3af;
+  }
+
+  .add-component-button-container .add-button:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+}

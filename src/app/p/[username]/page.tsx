@@ -1,16 +1,16 @@
 "use client";
 
-import { CraftRenderer } from "@/components/profile/CraftRenderer";
+import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
 import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { db } from "@/lib/firebase";
 import { trackPageView } from "@/lib/analytics";
 import { SUPPORTED_SERVICES } from "@/types";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { QrCode } from "lucide-react";
+import { QrCode, Camera } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -47,7 +47,9 @@ function getServiceIcon(url: string) {
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(false);
   const username = params.username as string;
@@ -61,13 +63,32 @@ export default function ProfilePage() {
 
         if (snapshot.empty) {
           setUser(null);
+          setProfileData(null);
         } else {
           const userData = snapshot.docs[0].data() as UserProfile;
+          const userId = snapshot.docs[0].id;
           setUser(userData);
+
+          // Load profile data from subcollection
+          try {
+            const profileDoc = await getDoc(doc(db, "users", userId, "profile", "data"));
+            if (profileDoc.exists()) {
+              const profile = profileDoc.data();
+              console.log('[ProfilePage] Profile data loaded:', profile);
+              setProfileData(profile);
+            } else {
+              console.log('[ProfilePage] No profile data found');
+              setProfileData(null);
+            }
+          } catch (profileError) {
+            console.error("Error fetching profile data:", profileError);
+            setProfileData(null);
+          }
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
         setUser(null);
+        setProfileData(null);
       } finally {
         setLoading(false);
       }
@@ -120,20 +141,32 @@ export default function ProfilePage() {
       : undefined,
   };
 
-  // editorContentが存在する場合はCraftRendererを使用
-  if (user.profile?.editorContent) {
+  // 新しいプロファイルデータが存在する場合はSimpleRendererを使用
+  if (profileData?.components && Array.isArray(profileData.components)) {
     return (
       <>
-        <CraftRenderer
-          data={user.profile.editorContent}
-          background={user.profile.background}
+        <SimpleRenderer
+          components={profileData.components}
+          background={profileData.background}
         />
-        {/* フローティングボタン - ProfileInfo内にVCard機能があるため、QRコードボタンのみ表示 */}
-        <div className="fixed bottom-6 right-6 z-50">
+        {/* フローティングボタン - QRコードと名刺スキャン */}
+        <div className="fixed bottom-6 right-6 z-50 space-y-3">
+          {/* 名刺スキャンボタン */}
+          <button
+            onClick={() => router.push('/dashboard/business-cards/scan')}
+            className="p-3 bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center"
+            aria-label="名刺をスキャン"
+            title="名刺をスキャン"
+          >
+            <Camera className="h-6 w-6" />
+          </button>
+
+          {/* QRコードボタン */}
           <button
             onClick={() => setShowQRCode(true)}
             className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
             aria-label="QRコード表示"
+            title="QRコード表示"
           >
             <QrCode className="h-6 w-6 text-gray-700" />
           </button>

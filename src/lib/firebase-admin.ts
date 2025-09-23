@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin
 if (!getApps().length) {
@@ -21,12 +22,21 @@ if (!getApps().length) {
       initializeApp({
         credential: cert(serviceAccount),
       });
+    } else if (process.env.NODE_ENV === 'development') {
+      // Only try to load service account file in development
+      try {
+        const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
+        initializeApp({
+          credential: cert(serviceAccount),
+        });
+      } catch (e) {
+        console.warn("Firebase Admin SDK service account file not found. Using default config.");
+        initializeApp();
+      }
     } else {
-      // Fallback to service account file in development
-      const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
+      // Production without environment variables - use default
+      console.warn("Firebase Admin SDK credentials not configured properly");
+      initializeApp();
     }
   } catch (error) {
     console.error("Failed to initialize Firebase Admin SDK:", error);
@@ -34,6 +44,7 @@ if (!getApps().length) {
 }
 
 export const adminDb = getFirestore();
+export const adminAuth = getAuth();
 
 // Helper function to create a user document
 export async function createUserDocument(userData: {
@@ -83,4 +94,22 @@ export async function deleteUserDocument(uid: string) {
     deleted: true,
     deletedAt: new Date(),
   });
+}
+
+// Helper function to verify Firebase ID token
+export async function verifyIdToken(idToken: string) {
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    return {
+      success: true,
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+    };
+  } catch (error) {
+    console.error("Error verifying ID token:", error);
+    return {
+      success: false,
+      error: "Invalid or expired token",
+    };
+  }
 }

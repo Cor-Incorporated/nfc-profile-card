@@ -1,192 +1,244 @@
-import DOMPurify from "dompurify";
-import { Briefcase, Building, Globe, Mail, Phone, User, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import React, { useState } from 'react';
+import { VCardButton } from './VCardButton';
+import {
+  Mail,
+  Phone,
+  Building,
+  MapPin,
+  Globe,
+  User,
+  Briefcase,
+  Smartphone,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
+import type { ProfileComponent } from '../simple-editor/utils/dataStructure';
+import { Button } from '@/components/ui/button';
 
 interface ReadOnlyProfileInfoProps {
-  name?: string;
-  company?: string;
-  title?: string;
-  description?: string;
-  email?: string;
-  phone?: string;
-  website?: string;
-  avatarUrl?: string;
+  component: ProfileComponent;
 }
 
-export function ReadOnlyProfileInfo({
-  name = "山田太郎",
-  company = "サンプル株式会社",
-  title = "エンジニア",
-  description = "よろしくお願いします",
-  email = "taro@example.com",
-  phone = "090-1234-5678",
-  website = "https://example.com",
-  avatarUrl = "",
-}: ReadOnlyProfileInfoProps) {
-  const { toast } = useToast();
+export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
+  const content = component.content || {};
+  const {
+    firstName,
+    lastName,
+    phoneticFirstName,
+    phoneticLastName,
+    name,
+    email,
+    phone,
+    cellPhone,
+    company,
+    position,
+    department,
+    address,
+    city,
+    postalCode,
+    website,
+    bio,
+    photoURL
+  } = content;
 
-  // テキストをサニタイズ
-  const sanitizeText = (text: string) => {
-    return DOMPurify.sanitize(text, {
-      ALLOWED_TAGS: [],
-      ALLOWED_ATTR: [],
-    });
+  // 表示名の決定
+  const displayName = name || `${lastName || ''} ${firstName || ''}`.trim() || '名前未設定';
+
+  // VCard用データの準備
+  const vCardData = {
+    firstName: firstName || '',
+    lastName: lastName || '',
+    phoneticFirstName: phoneticFirstName || '',
+    phoneticLastName: phoneticLastName || '',
+    organization: company || '',
+    title: position || '',
+    email: email || '',
+    workPhone: phone || '',
+    cellPhone: cellPhone || '',
+    url: website || '',
+    workAddress: {
+      street: address || '',
+      city: city || '',
+      postalCode: postalCode || '',
+      countryRegion: '日本'
+    },
+    photo: photoURL || '',
+    note: bio || ''
   };
 
-  // VCard生成関数
-  const generateVCard = () => {
-    const vcardLines = ["BEGIN:VCARD", "VERSION:3.0"];
+  // 詳細情報があるかチェック
+  const hasDetails = email || phone || cellPhone || website || company || department || address || city || postalCode;
 
-    // 名前
-    if (name) {
-      vcardLines.push(`N:${name}`);
-      vcardLines.push(`FN:${name}`);
-    }
-
-    // 会社・役職
-    if (company) {
-      vcardLines.push(`ORG:${company}`);
-    }
-    if (title) {
-      vcardLines.push(`TITLE:${title}`);
-    }
-
-    // 連絡先情報
-    if (email) {
-      vcardLines.push(`EMAIL:${email}`);
-    }
-    if (phone) {
-      const phoneClean = phone.replace(/[\s-]/g, "");
-      vcardLines.push(`TEL;TYPE=CELL:${phoneClean}`);
-    }
-    if (website) {
-      vcardLines.push(`URL:${website}`);
-    }
-
-    // 一言メッセージ
-    if (description) {
-      vcardLines.push(`NOTE:${description}`);
-    }
-
-    vcardLines.push("END:VCARD");
-
-    const vcard = vcardLines.join("\n");
-
-    // ダウンロード処理
-    const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name || "contact"}.vcf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "成功",
-      description: "連絡先をダウンロードしました",
-    });
+  // レスポンシブ対応のコンテナー幅
+  const getContainerClass = () => {
+    return "w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-6";
   };
+
+  // カード背景色の決定
+  const cardBackgroundColor = content.cardBackgroundColor || '#3b82f6'; // デフォルトはブルー
+  const cardBackgroundOpacity = content.cardBackgroundOpacity ?? 95; // デフォルトは95%
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full">
-      <div className="text-center">
-        {/* アバター */}
-        <div className="mb-6">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={sanitizeText(name)}
-              className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-100"
+    <div className={getContainerClass()}>
+      <div
+        className="rounded-lg shadow-lg overflow-hidden"
+        style={{
+          backgroundColor: `${cardBackgroundColor}${Math.round(cardBackgroundOpacity * 2.55).toString(16).padStart(2, '0')}`
+        }}
+      >
+        {/* ヘッダー部分（パディングを縮小） */}
+        <div className="p-4 sm:p-4 text-white" style={{
+          backgroundColor: cardBackgroundColor,
+          filter: 'brightness(0.9)'
+        }}>
+          <div className="flex items-center space-x-4">
+            {photoURL ? (
+              <img
+                src={photoURL}
+                alt={displayName}
+                className="w-16 h-16 rounded-full border-2 border-white object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-white bg-opacity-30 flex items-center justify-center">
+                <User className="w-8 h-8 text-white" />
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-bold">{displayName}</h2>
+              {position && (
+                <p className="text-sm opacity-90">{position}</p>
+              )}
+              {company && (
+                <p className="text-sm opacity-90">{company}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* コンテンツ部分（パディングを縮小） */}
+        <div className="p-4 sm:p-4 space-y-3 bg-white bg-opacity-90">
+          {/* VCardダウンロードボタン（常に表示） */}
+          <div className="flex justify-center">
+            <VCardButton
+              username={displayName}
+              profileData={vCardData}
+              className="w-full max-w-xs"
+              variant="default"
+              size="lg"
             />
-          ) : (
-            <div className="w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <User className="w-12 h-12 text-white" />
+          </div>
+
+          {/* 自己紹介（3行制限と展開機能） */}
+          {bio && (
+            <div className="pb-3 border-b border-gray-200">
+              <p className={`text-gray-700 text-sm ${!isProfileExpanded ? 'line-clamp-3' : ''}`}>
+                {bio}
+              </p>
+              {bio.length > 150 && (
+                <button
+                  onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                  className="text-blue-600 hover:text-blue-700 text-sm mt-1"
+                >
+                  {isProfileExpanded ? '閉じる' : '...続きを読む'}
+                </button>
+              )}
             </div>
           )}
-        </div>
 
-        {/* 名前 */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          {sanitizeText(name)}
-        </h1>
-
-        {/* 会社・役職 */}
-        <div className="mb-4">
-          {company && (
-            <div className="flex items-center justify-center gap-2 text-gray-600 mb-1">
-              <Building className="w-4 h-4" />
-              <span>{sanitizeText(company)}</span>
-            </div>
+          {/* 詳細情報の展開ボタン */}
+          {hasDetails && (
+            <Button
+              variant="ghost"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
+            >
+              <span>詳細情報を{isExpanded ? '非表示' : '表示'}</span>
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
           )}
-          {title && (
-            <div className="flex items-center justify-center gap-2 text-gray-600">
-              <Briefcase className="w-4 h-4" />
-              <span>{sanitizeText(title)}</span>
-            </div>
-          )}
-        </div>
 
-        {/* 説明 */}
-        {description && (
-          <p className="text-gray-700 mb-6 leading-relaxed">
-            {sanitizeText(description)}
-          </p>
-        )}
-
-        {/* VCardダウンロードボタン */}
-        <div className="mb-6">
-          <Button
-            onClick={generateVCard}
-            variant="default"
-            className="w-full"
+          {/* 折りたたみ可能な詳細情報 */}
+          <div
+            className={`space-y-3 overflow-hidden transition-all duration-300 ${
+              isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
           >
-            <Download className="mr-2 h-4 w-4" />
-            連絡先を保存
-          </Button>
-        </div>
+            {email && (
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-gray-400" />
+                <a
+                  href={`mailto:${email}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {email}
+                </a>
+              </div>
+            )}
 
-        {/* 連絡先情報 */}
-        <div className="space-y-3">
-          {email && (
-            <div className="flex items-center justify-center gap-3 text-gray-600">
-              <Mail className="w-4 h-4" />
-              <a
-                href={`mailto:${email}`}
-                className="hover:text-blue-600 transition-colors"
-              >
-                {sanitizeText(email)}
-              </a>
-            </div>
-          )}
+            {phone && (
+              <div className="flex items-center space-x-3">
+                <Phone className="w-5 h-5 text-gray-400" />
+                <a
+                  href={`tel:${phone}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {phone}
+                </a>
+              </div>
+            )}
 
-          {phone && (
-            <div className="flex items-center justify-center gap-3 text-gray-600">
-              <Phone className="w-4 h-4" />
-              <a
-                href={`tel:${phone}`}
-                className="hover:text-blue-600 transition-colors"
-              >
-                {sanitizeText(phone)}
-              </a>
-            </div>
-          )}
+            {cellPhone && (
+              <div className="flex items-center space-x-3">
+                <Smartphone className="w-5 h-5 text-gray-400" />
+                <a
+                  href={`tel:${cellPhone}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {cellPhone}
+                </a>
+              </div>
+            )}
 
-          {website && (
-            <div className="flex items-center justify-center gap-3 text-gray-600">
-              <Globe className="w-4 h-4" />
-              <a
-                href={website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-blue-600 transition-colors"
-              >
-                {sanitizeText(website)}
-              </a>
-            </div>
-          )}
+            {website && (
+              <div className="flex items-center space-x-3">
+                <Globe className="w-5 h-5 text-gray-400" />
+                <a
+                  href={website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {website}
+                </a>
+              </div>
+            )}
+
+            {(company || department) && (
+              <div className="flex items-center space-x-3">
+                <Building className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-700">
+                  {company}
+                  {department && ` - ${department}`}
+                </span>
+              </div>
+            )}
+
+            {(address || city || postalCode) && (
+              <div className="flex items-center space-x-3">
+                <MapPin className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-700">
+                  {postalCode && `〒${postalCode} `}
+                  {city} {address}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
