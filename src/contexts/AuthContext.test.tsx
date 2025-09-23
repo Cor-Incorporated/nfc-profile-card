@@ -388,6 +388,7 @@ describe("AuthContext", () => {
         uid: "test-uid",
         email: "test@example.com",
         emailVerified: false,
+        providerData: [{ providerId: "password" }],
       } as firebaseAuth.User;
 
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {
@@ -428,6 +429,7 @@ describe("AuthContext", () => {
       const mockUser = {
         uid: "test-uid",
         email: "test@example.com",
+        providerData: [{ providerId: "password" }],
       } as firebaseAuth.User;
 
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {

@@ -1,11 +1,24 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { VCardButton } from "./VCardButton";
 import { toast } from "@/components/ui/use-toast";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // Toastのモック
 jest.mock("@/components/ui/use-toast", () => ({
   toast: jest.fn(),
 }));
+
+// Test wrapper component with both providers
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <LanguageProvider>
+        {children}
+      </LanguageProvider>
+    </AuthProvider>
+  );
+}
 
 // fetchのモックをセットアップ
 global.fetch = jest.fn();
@@ -34,7 +47,7 @@ describe("VCardButton", () => {
 
   describe("レンダリング", () => {
     it("デフォルトの状態で正しくレンダリングされる", () => {
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       expect(button).toBeInTheDocument();
@@ -53,6 +66,7 @@ describe("VCardButton", () => {
           size="lg"
           className="custom-class"
         />,
+        { wrapper: TestWrapper }
       );
 
       const button = screen.getByRole("button");
@@ -68,7 +82,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -104,7 +118,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={profileData} />);
+      render(<VCardButton profileData={profileData} />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -158,7 +172,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={fullProfileData} />);
+      render(<VCardButton profileData={fullProfileData} />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -177,7 +191,7 @@ describe("VCardButton", () => {
 
   describe("エラーハンドリング", () => {
     it("usernameもprofileDataも提供されていない場合エラーを表示する", async () => {
-      render(<VCardButton />);
+      render(<VCardButton />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -197,7 +211,7 @@ describe("VCardButton", () => {
         status: 500,
       });
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -216,7 +230,7 @@ describe("VCardButton", () => {
         new Error("Network error"),
       );
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -246,7 +260,7 @@ describe("VCardButton", () => {
           }),
       );
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -266,7 +280,7 @@ describe("VCardButton", () => {
         () => new Promise(() => {}), // Never resolves
       );
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -284,7 +298,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton username="testuser" />);
+      render(<VCardButton username="testuser" />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -304,7 +318,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={{ firstName: "John" }} />);
+      render(<VCardButton profileData={{ firstName: "John" }} />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -324,7 +338,7 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={{}} />);
+      render(<VCardButton profileData={{}} />, { wrapper: TestWrapper });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
