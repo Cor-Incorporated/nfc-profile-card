@@ -110,7 +110,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
             filter: "brightness(0.9)",
           }}
         >
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
             {photoURL ? (
               <img
                 src={photoURL}
@@ -122,7 +122,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
                 <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             )}
-            <div className="text-center sm:text-left">
+            <div>
               <h2 className="text-sm sm:text-base font-bold leading-none">{displayName}</h2>
               {position && <p className="text-xs opacity-90 leading-none mt-0.5">{position}</p>}
               {company && <p className="text-xs opacity-90 leading-none mt-0.5">{company}</p>}
