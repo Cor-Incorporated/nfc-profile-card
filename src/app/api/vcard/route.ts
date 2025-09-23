@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import vCardsJS from "vcards-js";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import { standardRateLimit } from "@/lib/rateLimit";
 
 export interface VCardData {
   firstName?: string;
@@ -33,6 +34,12 @@ export interface VCardData {
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (30 requests per minute)
+    const rateLimitResponse = await standardRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     // ミドルウェアで認証チェック済み
 
     const data: VCardData = await request.json();
