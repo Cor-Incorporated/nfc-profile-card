@@ -90,7 +90,7 @@ export interface CraftJsSerializedData {
 }
 
 // コンテクスチュアル・プロファイルのコンテキスト列挙
-export type ProfileContextType = 'business' | 'creator' | 'sales' | 'personal';
+export type ProfileContextType = "business" | "creator" | "sales" | "personal";
 
 // 新しいプロファイル構造（profiles サブコレクション用）
 export interface Profile {
@@ -127,13 +127,13 @@ export interface Profile {
 export interface ProfileContext {
   id: string;
   userId: string;
-  name: string;  // "ビジネス", "クリエイター", "セールス" など
+  name: string; // "ビジネス", "クリエイター", "セールス" など
   description?: string;
   isActive: boolean;
-  editorContent?: any;  // Craft.jsのコンテンツ
+  editorContent?: any; // Craft.jsのコンテンツ
   background?: BackgroundSettings;
   socialLinks?: SocialLink[];
-  priority: number;  // 表示優先度
+  priority: number; // 表示優先度
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 }
@@ -153,7 +153,7 @@ export interface NFCCard {
   userId: string;
   serialNumber: string;
   nickname?: string;
-  assignedProfileId?: string;  // 割り当てられたプロファイルID
+  assignedProfileId?: string; // 割り当てられたプロファイルID
   isActive: boolean;
   lastTapped?: Timestamp | Date;
   tapCount: number;

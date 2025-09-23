@@ -3,7 +3,7 @@
  * Type-safe API responses for all endpoints
  */
 
-import { ContactInfo } from './business-card';
+import { ContactInfo } from "./business-card";
 
 // Base API Response structure
 export interface ApiResponse<T = unknown> {
@@ -46,19 +46,19 @@ export interface TokenVerificationResult {
 
 // Generic API Handler types
 export type ApiHandler<TRequest = unknown, TResponse = unknown> = (
-  request: TRequest
+  request: TRequest,
 ) => Promise<ApiResponse<TResponse>>;
 
 // Next.js API Route Response helpers
 export type NextApiResponse<T = unknown> = ApiResponse<T>;
 
 export type ErrorCode =
-  | 'AUTH_REQUIRED'
-  | 'AUTH_INVALID_TOKEN'
-  | 'IMAGE_REQUIRED'
-  | 'IMAGE_PROCESSING_FAILED'
-  | 'OCR_TIMEOUT'
-  | 'UNKNOWN_ERROR';
+  | "AUTH_REQUIRED"
+  | "AUTH_INVALID_TOKEN"
+  | "IMAGE_REQUIRED"
+  | "IMAGE_PROCESSING_FAILED"
+  | "OCR_TIMEOUT"
+  | "UNKNOWN_ERROR";
 
 export interface TypedApiError extends Error {
   code?: ErrorCode;

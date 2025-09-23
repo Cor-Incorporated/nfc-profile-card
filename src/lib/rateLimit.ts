@@ -1,12 +1,12 @@
 // src/lib/rateLimit.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 // In-memory store for rate limiting (for production, use Redis or similar)
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 
 interface RateLimitConfig {
-  limit: number;         // Maximum requests allowed
-  windowMs: number;      // Time window in milliseconds
+  limit: number; // Maximum requests allowed
+  windowMs: number; // Time window in milliseconds
   identifier?: (req: NextRequest) => string; // Function to identify client
 }
 
@@ -22,7 +22,7 @@ export function createRateLimiter(config: RateLimitConfig) {
     const clientId = identifier ? identifier(req) : getClientIp(req);
 
     if (!clientId) {
-      console.warn('Unable to identify client for rate limiting');
+      console.warn("Unable to identify client for rate limiting");
       return null; // Allow request if we can't identify client
     }
 
@@ -48,19 +48,19 @@ export function createRateLimiter(config: RateLimitConfig) {
       const retryAfter = Math.ceil((clientData.resetTime - now) / 1000);
       return NextResponse.json(
         {
-          error: 'Too many requests',
+          error: "Too many requests",
           message: `Rate limit exceeded. Please try again in ${retryAfter} seconds.`,
           retryAfter,
         },
         {
           status: 429,
           headers: {
-            'Retry-After': retryAfter.toString(),
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString(),
+            "Retry-After": retryAfter.toString(),
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(clientData.resetTime).toISOString(),
           },
-        }
+        },
       );
     }
 
@@ -77,24 +77,24 @@ export function createRateLimiter(config: RateLimitConfig) {
  */
 function getClientIp(req: NextRequest): string {
   // Try various headers that might contain the real IP
-  const forwardedFor = req.headers.get('x-forwarded-for');
+  const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
+    return forwardedFor.split(",")[0].trim();
   }
 
-  const realIp = req.headers.get('x-real-ip');
+  const realIp = req.headers.get("x-real-ip");
   if (realIp) {
     return realIp;
   }
 
   // Vercel-specific headers
-  const vercelForwardedFor = req.headers.get('x-vercel-forwarded-for');
+  const vercelForwardedFor = req.headers.get("x-vercel-forwarded-for");
   if (vercelForwardedFor) {
-    return vercelForwardedFor.split(',')[0].trim();
+    return vercelForwardedFor.split(",")[0].trim();
   }
 
   // Fallback to a generic identifier
-  return 'unknown';
+  return "unknown";
 }
 
 /**

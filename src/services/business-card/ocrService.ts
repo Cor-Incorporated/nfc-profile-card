@@ -12,16 +12,16 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
-  lastName: '',
-  firstName: '',
-  phoneticLastName: '',
-  phoneticFirstName: '',
-  company: '',
-  department: '',
-  title: '',
+  lastName: "",
+  firstName: "",
+  phoneticLastName: "",
+  phoneticFirstName: "",
+  company: "",
+  department: "",
+  title: "",
   addresses: [],
-  email: '',
-  website: '',
+  email: "",
+  website: "",
   phoneNumbers: [],
 };
 
@@ -88,7 +88,7 @@ export interface OcrResult {
  */
 export async function processBusinessCardImage(
   image: string,
-  mimeType: string
+  mimeType: string,
 ): Promise<OcrResult> {
   const startTime = Date.now();
 
@@ -97,41 +97,44 @@ export async function processBusinessCardImage(
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Remove data URL prefix if present
-    const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+    const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
 
     // Generate content with Gemini (with timeout)
     const generateWithTimeout = async () => {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(ERROR_MESSAGES.OCR_TIMEOUT)), 10000)
+        setTimeout(() => reject(new Error(ERROR_MESSAGES.OCR_TIMEOUT)), 10000),
       );
 
       const ocrPromise = model.generateContent([
         {
           inlineData: {
             data: base64Image,
-            mimeType: mimeType
-          }
+            mimeType: mimeType,
+          },
         },
-        OCR_PROMPT
+        OCR_PROMPT,
       ]);
 
       return Promise.race([ocrPromise, timeoutPromise]);
     };
 
-    const result = await generateWithTimeout() as any;
+    const result = (await generateWithTimeout()) as any;
     const response = result.response;
     const text = response.text();
 
     // Calculate processing time
     const processingTime = Date.now() - startTime;
     console.log(`OCR processing completed in ${processingTime}ms`);
-    console.log('Gemini response:', text);
+    console.log("Gemini response:", text);
 
     // Try to parse the JSON response
     let contactInfo: ContactInfo;
     try {
       // Remove any markdown code blocks if present
-      const jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const jsonText = text
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
       const parsedJson = JSON.parse(jsonText);
 
       contactInfo = {
@@ -151,9 +154,8 @@ export async function processBusinessCardImage(
     return {
       success: true,
       contactInfo,
-      processingTime
+      processingTime,
     };
-
   } catch (error) {
     const processingTime = Date.now() - startTime;
     console.error("Error in OCR processing:", error);
@@ -161,7 +163,8 @@ export async function processBusinessCardImage(
     return {
       success: false,
       processingTime,
-      error: error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR
+      error:
+        error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
     };
   }
 }

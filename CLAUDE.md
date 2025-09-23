@@ -110,6 +110,7 @@ The project requires configuration in `.env.local`:
 **Major Architecture Change**: Complete migration from CraftJS to @dnd-kit-based SimpleEditor
 
 #### New Editor System (SimpleEditor v2.0)
+
 - **Implementation**: `/src/components/simple-editor/SimplePageEditor.tsx`
 - **Drag & Drop**: @dnd-kit library for component reordering
 - **Auto-save**: 3-second debounced saving to Firestore
@@ -117,6 +118,7 @@ The project requires configuration in `.env.local`:
 - **Components**: Text, Image, Link, Profile components with modal editing
 
 #### Image Upload System
+
 - **Firebase Storage**: Direct integration with user-specific paths
 - **Path Structure**: `profiles/{userId}/images/{timestamp}-{filename}`
 - **Validation**: 5MB file size limit, image type validation
@@ -124,30 +126,35 @@ The project requires configuration in `.env.local`:
 - **Authentication**: User ownership verification before upload
 
 #### Social Link Auto-Recognition
+
 - **Services**: GitHub, Twitter, Facebook, Instagram, LinkedIn, YouTube, TikTok等
 - **Auto-Detection**: URL入力時の自動サービス認識
 - **Visual**: Service-specific icons and colors
 - **Implementation**: `/src/utils/socialLinks.ts`
 
 #### Data Migration & Cleanup
+
 - **Migration Tool**: `/src/utils/cleanupProfileData.ts`
 - **Data Structure**: Simplified ProfileComponent interface
 - **Backward Compatibility**: Automatic migration from CraftJS format
 - **Database**: Firestore subcollection structure (`users/{userId}/profile/data`)
 
 #### Technical Improvements
+
 - **Code Reduction**: -2487 lines (4393 deletions, 1906 insertions)
 - **TypeScript**: Complete error resolution
 - **Performance**: Lighter bundle without CraftJS dependencies
 - **Mobile UX**: Touch-optimized interface
 
 ### 🗑️ Deprecated/Removed (Breaking Changes)
+
 - **CraftJS**: Completely removed all CraftJS components and dependencies
 - **Old PageEditor**: `/src/components/editor/` directory deleted
 - **Craft Components**: All editableComponents removed
 - **Legacy APIs**: Old editor APIs no longer supported
 
 ### Architecture Patterns (Updated)
+
 - **@dnd-kit Integration**: Use `useSortable()` hook for drag-and-drop
 - **Component Structure**: Modal-based editing with ComponentEditor
 - **State Management**: Local state with Firestore sync
@@ -178,4 +185,4 @@ Always check the "特許リスク回避開発ガイドライン.md" document and
 - Automated data collection
 - Enterprise-level features
 
-Detailed risk assessment available in "特許リスク評価レポート_TapForge_20250921.md"
+Detailed risk assessment available in "特許リスク評価レポート\_TapForge_20250921.md"

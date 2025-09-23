@@ -5,7 +5,7 @@ import { processBusinessCardImage } from "@/services/business-card/ocrService";
 import {
   BusinessCardScanRequest,
   BusinessCardScanResponse,
-  ApiErrorResponse
+  ApiErrorResponse,
 } from "@/types/api";
 import { strictRateLimit } from "@/lib/rateLimit";
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!authorization || !authorization.startsWith("Bearer ")) {
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: ERROR_MESSAGES.AUTH_REQUIRED
+        error: ERROR_MESSAGES.AUTH_REQUIRED,
       };
       return NextResponse.json(errorResponse, { status: 401 });
     }
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!tokenVerification.success) {
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: ERROR_MESSAGES.AUTH_INVALID_TOKEN
+        error: ERROR_MESSAGES.AUTH_INVALID_TOKEN,
       };
       return NextResponse.json(errorResponse, { status: 401 });
     }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!image || !mimeType) {
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: ERROR_MESSAGES.IMAGE_REQUIRED
+        error: ERROR_MESSAGES.IMAGE_REQUIRED,
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: ERROR_MESSAGES.IMAGE_PROCESSING_FAILED,
-        details: ocrResult.error
+        details: ocrResult.error,
       };
       return NextResponse.json(errorResponse, { status: 500 });
     }
@@ -66,18 +66,18 @@ export async function POST(request: NextRequest) {
     const successResponse: BusinessCardScanResponse = {
       success: true,
       data: ocrResult.contactInfo!,
-      processingTime: ocrResult.processingTime
+      processingTime: ocrResult.processingTime,
     };
 
     return NextResponse.json(successResponse, { status: 200 });
-
   } catch (error) {
     console.error("Error in business card scan API:", error);
 
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: ERROR_MESSAGES.IMAGE_PROCESSING_FAILED,
-      details: error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR
+      details:
+        error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
     };
 
     return NextResponse.json(errorResponse, { status: 500 });

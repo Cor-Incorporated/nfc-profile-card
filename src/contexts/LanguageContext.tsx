@@ -1,11 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { useAuth } from "./AuthContext";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-type Language = 'ja' | 'en';
+type Language = "ja" | "en";
 
 interface LanguageContextType {
   language: Language;
@@ -13,7 +19,9 @@ interface LanguageContextType {
   t: (key: string) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextType | undefined>(
+  undefined,
+);
 
 // Translation dictionary
 const translations = {
@@ -115,12 +123,14 @@ const translations = {
     // Profile Edit
     profileEdit: "プロフィール編集",
     editProfileDescription: "あなたのプロフィール情報を編集できます",
-    publicProfileDescription: "公開プロフィールに表示される基本的な情報を設定します",
+    publicProfileDescription:
+      "公開プロフィールに表示される基本的な情報を設定します",
     name: "名前",
     username: "ユーザー名",
     profileUrlPrefix: "プロフィールURL",
     designCustomization: "デザインカスタマイズ",
-    designCustomizationDescription: "プロフィールページのデザインをカスタマイズできます",
+    designCustomizationDescription:
+      "プロフィールページのデザインをカスタマイズできます",
     openDesignEditor: "デザインエディターを開く",
     usernameRequired: "ユーザー名は必須です",
     profileSaved: "プロフィールを保存しました",
@@ -172,7 +182,8 @@ const translations = {
     saveFailed: "保存に失敗しました",
     unsupportedComponent: "未対応のコンポーネントタイプ",
     noComponents: "コンポーネントがありません",
-    addComponentMessage: "下の「コンポーネントを追加」ボタンから追加してください",
+    addComponentMessage:
+      "下の「コンポーネントを追加」ボタンから追加してください",
     newText: "新しいテキスト",
     newLink: "リンク",
     backgroundImage: "背景画像",
@@ -261,7 +272,7 @@ const translations = {
     optional: "任意",
     viewDetails: "詳細を表示",
     noData: "データがありません",
-    tryAgain: "もう一度お試しください"
+    tryAgain: "もう一度お試しください",
   },
   en: {
     // Dashboard
@@ -331,7 +342,8 @@ const translations = {
     upgradeForMore: "Upgrade for more scans",
     backToDashboard: "Back to Dashboard",
     viewPublicProfile: "View Public Profile",
-    scanBusinessCardDescription: "Take a photo of a business card to extract contact information",
+    scanBusinessCardDescription:
+      "Take a photo of a business card to extract contact information",
     success: "Success",
     scansThisMonth: "Scans this month",
     unlimited: "Unlimited",
@@ -361,7 +373,8 @@ const translations = {
     // Profile Edit
     profileEdit: "Edit Profile",
     editProfileDescription: "Edit your profile information",
-    publicProfileDescription: "Set basic information to display on your public profile",
+    publicProfileDescription:
+      "Set basic information to display on your public profile",
     name: "Name",
     username: "Username",
     profileUrlPrefix: "Profile URL",
@@ -487,7 +500,8 @@ const translations = {
     downloadQR: "Download QR Code",
     copyLink: "Copy Link",
     linkCopied: "Link Copied",
-    qrCodeDescription: "Use this QR code on business cards and printed materials",
+    qrCodeDescription:
+      "Use this QR code on business cards and printed materials",
     generatingQRCode: "Generating QR code...",
     qrCodeDownloaded: "QR code downloaded",
     urlCopiedToClipboard: "URL copied to clipboard",
@@ -507,13 +521,13 @@ const translations = {
     optional: "Optional",
     viewDetails: "View Details",
     noData: "No data available",
-    tryAgain: "Try Again"
-  }
+    tryAgain: "Try Again",
+  },
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [language, setLanguageState] = useState<Language>('ja');
+  const [language, setLanguageState] = useState<Language>("ja");
   const [loading, setLoading] = useState(true);
 
   // Load user's language preference
@@ -521,7 +535,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (user) {
       const loadLanguage = async () => {
         try {
-          const userRef = doc(db, 'users', user.uid);
+          const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             const data = userSnap.data();
@@ -530,7 +544,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (error) {
-          console.error('Error loading language preference:', error);
+          console.error("Error loading language preference:", error);
         } finally {
           setLoading(false);
         }
@@ -538,8 +552,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loadLanguage();
     } else {
       // Load from localStorage for non-authenticated users
-      const savedLang = localStorage.getItem('userLanguage');
-      if (savedLang === 'ja' || savedLang === 'en') {
+      const savedLang = localStorage.getItem("userLanguage");
+      if (savedLang === "ja" || savedLang === "en") {
         setLanguageState(savedLang);
       }
       setLoading(false);
@@ -549,38 +563,40 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // Save language preference
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('userLanguage', lang);
+    localStorage.setItem("userLanguage", lang);
 
     if (user) {
       try {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, "users", user.uid);
         await setDoc(userRef, { language: lang }, { merge: true });
       } catch (error) {
-        console.error('Error saving language preference:', error);
+        console.error("Error saving language preference:", error);
       }
     }
   };
 
   // Translation function
   const t = (key: string): string => {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let value: any = translations[language];
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (value && typeof value === "object" && k in value) {
         value = value[k];
       } else {
         return key; // Return key if translation not found
       }
     }
 
-    return typeof value === 'string' ? value : key;
+    return typeof value === "string" ? value : key;
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-    </div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
@@ -593,7 +609,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;
 }

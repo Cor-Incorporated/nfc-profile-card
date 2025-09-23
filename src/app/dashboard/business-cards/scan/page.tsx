@@ -1,19 +1,26 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppStatus, ContactInfo } from '@/types/business-card';
-import ImageSelector from '@/components/business-card/ImageSelector';
-import LoadingSpinner from '@/components/business-card/LoadingSpinner';
-import ContactForm from '@/components/business-card/ContactForm';
-import { downloadVCard } from '@/services/business-card/vcardService';
+import { AppStatus, ContactInfo } from "@/types/business-card";
+import ImageSelector from "@/components/business-card/ImageSelector";
+import LoadingSpinner from "@/components/business-card/LoadingSpinner";
+import ContactForm from "@/components/business-card/ContactForm";
+import { downloadVCard } from "@/services/business-card/vcardService";
 import { toast } from "@/components/ui/use-toast";
-import { recordScan, getScanQuota, type ScanQuota } from '@/services/business-card/scanQuotaService';
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '@/lib/constants/error-messages';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import {
+  recordScan,
+  getScanQuota,
+  type ScanQuota,
+} from "@/services/business-card/scanQuotaService";
+import {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+} from "@/lib/constants/error-messages";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function BusinessCardScanPage() {
   const router = useRouter();
@@ -43,101 +50,104 @@ export default function BusinessCardScanPage() {
     const fetchUserProfile = async () => {
       if (user?.uid) {
         try {
-          const userRef = doc(db, 'users', user.uid);
+          const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             setUserProfile(userSnap.data());
           }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
+          console.error("Error fetching user profile:", error);
         }
       }
     };
     fetchUserProfile();
   }, [user]);
 
-  const handleImageSelected = useCallback(async (file: File) => {
-    setAppStatus(AppStatus.PROCESSING);
-    setError(null);
-    setContactInfo(null);
+  const handleImageSelected = useCallback(
+    async (file: File) => {
+      setAppStatus(AppStatus.PROCESSING);
+      setError(null);
+      setContactInfo(null);
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      if (typeof reader.result !== 'string') {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        if (typeof reader.result !== "string") {
+          setError(ERROR_MESSAGES.IMAGE_READ_FAILED);
+          setAppStatus(AppStatus.IDLE);
+          return;
+        }
+
+        const base64Data = reader.result;
+        const base64Image = base64Data.split(",")[1];
+        setImageBase64(base64Image);
+        setImageMimeType(file.type);
+
+        try {
+          // Get ID token for authentication
+          const idToken = await getIdToken();
+          if (!idToken) {
+            throw new Error(ERROR_MESSAGES.AUTH_LOGIN_REQUIRED);
+          }
+
+          // Call API route to process the image
+          const response = await fetch("/api/business-card/scan", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              image: base64Data,
+              mimeType: file.type,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to process business card");
+          }
+
+          const result = await response.json();
+
+          if (result.success) {
+            setContactInfo(result.data);
+            setAppStatus(AppStatus.EDITING);
+
+            // 処理時間をログに記録
+            if (result.processingTime) {
+              console.log(`OCR completed in ${result.processingTime}ms`);
+              const seconds = (result.processingTime / 1000).toFixed(1);
+              toast({
+                title: t("success"),
+                description: SUCCESS_MESSAGES.OCR_SUCCESS_WITH_TIME(seconds),
+              });
+            } else {
+              toast({
+                title: t("success"),
+                description: SUCCESS_MESSAGES.OCR_SUCCESS,
+              });
+            }
+          } else {
+            throw new Error(result.error || "Failed to extract information");
+          }
+        } catch (e) {
+          console.error(e);
+          setError(ERROR_MESSAGES.OCR_EXTRACTION_FAILED);
+          setAppStatus(AppStatus.IDLE);
+          toast({
+            title: t("error"),
+            description: t("failedToAnalyzeCard"),
+            variant: "destructive",
+          });
+        }
+      };
+      reader.onerror = () => {
         setError(ERROR_MESSAGES.IMAGE_READ_FAILED);
         setAppStatus(AppStatus.IDLE);
-        return;
-      }
-
-      const base64Data = reader.result;
-      const base64Image = base64Data.split(',')[1];
-      setImageBase64(base64Image);
-      setImageMimeType(file.type);
-
-      try {
-        // Get ID token for authentication
-        const idToken = await getIdToken();
-        if (!idToken) {
-          throw new Error(ERROR_MESSAGES.AUTH_LOGIN_REQUIRED);
-        }
-
-        // Call API route to process the image
-        const response = await fetch('/api/business-card/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            image: base64Data,
-            mimeType: file.type
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to process business card');
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-          setContactInfo(result.data);
-          setAppStatus(AppStatus.EDITING);
-
-          // 処理時間をログに記録
-          if (result.processingTime) {
-            console.log(`OCR completed in ${result.processingTime}ms`);
-            const seconds = (result.processingTime / 1000).toFixed(1);
-            toast({
-              title: t('success'),
-              description: SUCCESS_MESSAGES.OCR_SUCCESS_WITH_TIME(seconds),
-            });
-          } else {
-            toast({
-              title: t('success'),
-              description: SUCCESS_MESSAGES.OCR_SUCCESS,
-            });
-          }
-        } else {
-          throw new Error(result.error || 'Failed to extract information');
-        }
-      } catch (e) {
-        console.error(e);
-        setError(ERROR_MESSAGES.OCR_EXTRACTION_FAILED);
-        setAppStatus(AppStatus.IDLE);
-        toast({
-          title: t('error'),
-          description: t('failedToAnalyzeCard'),
-          variant: "destructive",
-        });
-      }
-    };
-    reader.onerror = () => {
-      setError(ERROR_MESSAGES.IMAGE_READ_FAILED);
-      setAppStatus(AppStatus.IDLE);
-    };
-  }, [getIdToken]);
+      };
+    },
+    [getIdToken],
+  );
 
   const handleSaveContact = async (updatedContactInfo: ContactInfo) => {
     try {
@@ -149,17 +159,17 @@ export default function BusinessCardScanPage() {
         const result = await recordScan(user.uid, updatedContactInfo);
         if (!result.success) {
           toast({
-            title: t('error'),
+            title: t("error"),
             description: result.error,
             variant: "destructive",
           });
           return;
         }
-        console.log('Business card saved with ID:', result.docId);
+        console.log("Business card saved with ID:", result.docId);
       }
 
       toast({
-        title: t('success'),
+        title: t("success"),
         description: SUCCESS_MESSAGES.VCARD_DOWNLOAD_SUCCESS,
       });
 
@@ -169,7 +179,7 @@ export default function BusinessCardScanPage() {
       console.error(e);
       setError(ERROR_MESSAGES.VCARD_GENERATION_FAILED);
       toast({
-        title: t('error'),
+        title: t("error"),
         description: ERROR_MESSAGES.VCARD_GENERATION_FAILED,
         variant: "destructive",
       });
@@ -203,7 +213,9 @@ export default function BusinessCardScanPage() {
       // Fallthrough to idle if contactInfo is somehow null
       case AppStatus.IDLE:
       default:
-        return <ImageSelector onImageSelected={handleImageSelected} error={error} />;
+        return (
+          <ImageSelector onImageSelected={handleImageSelected} error={error} />
+        );
     }
   };
 
@@ -212,7 +224,7 @@ export default function BusinessCardScanPage() {
       <div className="w-full px-4 py-4 bg-white border-b">
         <div className="flex justify-between items-center">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push("/dashboard")}
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 touch-manipulation"
           >
             <svg
@@ -228,7 +240,7 @@ export default function BusinessCardScanPage() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            {t('backToDashboard')}
+            {t("backToDashboard")}
           </button>
 
           {userProfile?.username && (
@@ -249,7 +261,7 @@ export default function BusinessCardScanPage() {
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                 />
               </svg>
-              {t('viewPublicProfile')}
+              {t("viewPublicProfile")}
             </button>
           )}
         </div>
@@ -259,28 +271,32 @@ export default function BusinessCardScanPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              {t('businessCardScanner')}
+              {t("businessCardScanner")}
             </h1>
             <p className="text-sm sm:text-base text-gray-600 mt-2">
-              {t('scanBusinessCardDescription')}
+              {t("scanBusinessCardDescription")}
             </p>
 
             {/* スキャン上限表示 */}
             {scanQuota && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-blue-700">{t('scansThisMonth')}</span>
+                  <span className="text-blue-700">{t("scansThisMonth")}</span>
                   <span className="font-semibold text-blue-900">
-                    {scanQuota.used} / {scanQuota.limit === 999999 ? t('unlimited') : scanQuota.limit}
+                    {scanQuota.used} /{" "}
+                    {scanQuota.limit === 999999
+                      ? t("unlimited")
+                      : scanQuota.limit}
                   </span>
                 </div>
-                {scanQuota.limit !== 999999 && scanQuota.used >= scanQuota.limit - 5 && (
-                  <p className="text-xs text-orange-600 mt-2">
-                    ⚠️ {t('approachingMonthlyLimit')}
-                  </p>
-                )}
+                {scanQuota.limit !== 999999 &&
+                  scanQuota.used >= scanQuota.limit - 5 && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      ⚠️ {t("approachingMonthlyLimit")}
+                    </p>
+                  )}
                 <p className="text-xs text-gray-500 mt-1">
-                  {t('reset')}: {scanQuota.daysRemaining} {t('daysRemaining')}
+                  {t("reset")}: {scanQuota.daysRemaining} {t("daysRemaining")}
                 </p>
               </div>
             )}

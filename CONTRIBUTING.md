@@ -23,20 +23,25 @@ TapForgeへの貢献に興味を持っていただき、ありがとうござい
 ## 🚀 貢献の方法
 
 ### 1. バグ報告
+
 バグを発見した場合は、[Issues](https://github.com/your-username/nfc-profile-card/issues)から報告してください。
 
 ### 2. 機能提案
+
 新機能のアイデアがある場合は、まずIssueを作成して議論しましょう。
 
 ### 3. ドキュメント改善
+
 誤字脱字の修正から、新しい使用例の追加まで、どんな改善も歓迎です。
 
 ### 4. コード貢献
+
 バグ修正や新機能の実装を行う場合は、以下のガイドラインに従ってください。
 
 ## 🛠️ 開発環境のセットアップ
 
 ### 前提条件
+
 - Node.js 18.0以上
 - npm 8.0以上
 - Firebaseアカウント
@@ -45,27 +50,32 @@ TapForgeへの貢献に興味を持っていただき、ありがとうござい
 ### セットアップ手順
 
 1. **リポジトリをフォーク**
+
    ```bash
    # GitHubでフォークボタンをクリック
    ```
 
 2. **ローカルにクローン**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/nfc-profile-card.git
    cd nfc-profile-card
    ```
 
 3. **上流リポジトリを追加**
+
    ```bash
    git remote add upstream https://github.com/original-owner/nfc-profile-card.git
    ```
 
 4. **依存関係をインストール**
+
    ```bash
    npm install
    ```
 
 5. **環境変数を設定**
+
    ```bash
    cp .env.example .env.local
    # .env.localを編集して必要な値を設定
@@ -92,6 +102,7 @@ git checkout -b fix/bug-description
 ```
 
 ### ブランチ命名規則
+
 - `feature/` - 新機能
 - `fix/` - バグ修正
 - `docs/` - ドキュメント更新
@@ -110,6 +121,7 @@ git checkout -b fix/bug-description
 - [DEVELOPMENT_CHECKLIST.md](./DEVELOPMENT_CHECKLIST.md)
 
 **実装してはいけない機能:**
+
 - ❌ NFCカードとクラウドの動的データ連携
 - ❌ カメラロールの自動監視によるOCR
 - ❌ メール転送による自動データ取り込み
@@ -152,6 +164,7 @@ git commit -m "feat: add user profile export feature"
 ```
 
 **Type:**
+
 - `feat`: 新機能
 - `fix`: バグ修正
 - `docs`: ドキュメント変更
@@ -161,6 +174,7 @@ git commit -m "feat: add user profile export feature"
 - `chore`: ビルドプロセスやツールの変更
 
 **例:**
+
 ```
 feat(profile): add VCard export functionality
 
@@ -198,7 +212,7 @@ async function fetchUserProfile(userId: string): Promise<UserProfile> {
     const response = await api.getUser(userId);
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch user:', error);
+    console.error("Failed to fetch user:", error);
     throw error;
   }
 }
@@ -217,15 +231,19 @@ async function getUser(id) {
 interface ButtonProps {
   onClick: () => void;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary';
+  variant?: "primary" | "secondary";
 }
 
-export function Button({ onClick, children, variant = 'primary' }: ButtonProps) {
+export function Button({
+  onClick,
+  children,
+  variant = "primary",
+}: ButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={cn('btn', variant)}
-      aria-label={typeof children === 'string' ? children : undefined}
+      className={cn("btn", variant)}
+      aria-label={typeof children === "string" ? children : undefined}
     >
       {children}
     </button>
@@ -258,22 +276,27 @@ export function Button(props) {
 
 ```markdown
 ## 概要
+
 この変更の目的と内容を簡潔に説明してください。
 
 ## 変更内容
+
 - [ ] 機能A を実装
 - [ ] バグB を修正
 - [ ] ドキュメントC を更新
 
 ## テスト
+
 - [ ] ローカルでテスト済み
 - [ ] 新しいテストを追加
 - [ ] すべてのテストがパス
 
 ## スクリーンショット（UIの変更がある場合）
+
 変更前後のスクリーンショットを添付
 
 ## チェックリスト
+
 - [ ] [DEVELOPMENT_CHECKLIST.md](./DEVELOPMENT_CHECKLIST.md)の項目を確認
 - [ ] コードがプロジェクトのスタイルガイドに従っている
 - [ ] セルフレビューを実施
@@ -282,6 +305,7 @@ export function Button(props) {
 - [ ] 破壊的変更がない（ある場合は説明を追加）
 
 ## 関連Issue
+
 Closes #(issue番号)
 ```
 
@@ -298,29 +322,36 @@ Closes #(issue番号)
 
 ```markdown
 ## バグの概要
+
 バグの簡潔な説明
 
 ## 再現手順
+
 1. '...'に移動
 2. '...'をクリック
 3. '...'までスクロール
 4. エラーが表示される
 
 ## 期待される動作
+
 本来どうなるべきか
 
 ## 実際の動作
+
 実際に何が起きたか
 
 ## スクリーンショット
+
 可能であればスクリーンショットを添付
 
 ## 環境
+
 - OS: [例: iOS 15.0]
 - ブラウザ: [例: Chrome 100]
 - バージョン: [例: v1.0.0]
 
 ## 追加情報
+
 問題解決に役立つその他の情報
 ```
 
@@ -328,28 +359,35 @@ Closes #(issue番号)
 
 ```markdown
 ## 機能の概要
+
 提案する機能の簡潔な説明
 
 ## 動機と背景
+
 なぜこの機能が必要か
 
 ## 詳細な説明
+
 機能がどのように動作すべきか
 
 ## 代替案
+
 検討した他の解決策
 
 ## 追加情報
+
 実装に役立つリンクや参考資料
 ```
 
 ## 🌐 コミュニティ
 
 ### 質問と議論
+
 - [GitHub Discussions](https://github.com/your-username/nfc-profile-card/discussions)
 - [Discord Server](https://discord.gg/your-invite)
 
 ### 連絡先
+
 - メンテナー: @your-username
 - Email: contact@tapforge.app
 

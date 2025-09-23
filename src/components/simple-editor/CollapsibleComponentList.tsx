@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, User, FileText, Image, Link } from 'lucide-react';
-import { ProfileComponent } from './utils/dataStructure';
-import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/contexts/LanguageContext';
+import React, { useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  User,
+  FileText,
+  Image,
+  Link,
+} from "lucide-react";
+import { ProfileComponent } from "./utils/dataStructure";
+import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -19,12 +26,14 @@ function CollapsibleSection({
   icon,
   isMainSection = false,
   children,
-  defaultExpanded = false
+  defaultExpanded = false,
 }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`border rounded-lg ${isMainSection ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+    <div
+      className={`border rounded-lg ${isMainSection ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white"}`}
+    >
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
@@ -45,12 +54,10 @@ function CollapsibleSection({
       {/* アニメーション付き展開エリア */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+          isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="p-4 pt-0">
-          {children}
-        </div>
+        <div className="p-4 pt-0">{children}</div>
       </div>
     </div>
   );
@@ -70,7 +77,7 @@ interface CollapsibleComponentListProps {
 
 export function CollapsibleComponentList({
   components,
-  renderComponent
+  renderComponent,
 }: CollapsibleComponentListProps) {
   const { t } = useLanguage();
   // コンポーネントをタイプごとにグループ化
@@ -87,8 +94,8 @@ export function CollapsibleComponentList({
       profile: [],
       text: [],
       image: [],
-      link: []
-    }
+      link: [],
+    },
   );
 
   // 各セクションの表示順序を保持
@@ -101,16 +108,14 @@ export function CollapsibleComponentList({
       {/* プロフィールセクション（メイン・デフォルト展開） */}
       {groupedComponents.profile.length > 0 && (
         <CollapsibleSection
-          title={`${t('profileSection')} (${groupedComponents.profile.length})`}
+          title={`${t("profileSection")} (${groupedComponents.profile.length})`}
           icon={<User className="h-5 w-5 text-blue-600" />}
           isMainSection={true}
           defaultExpanded={true}
         >
           <div className="space-y-2">
-            {sortComponents(groupedComponents.profile).map(component => (
-              <div key={component.id}>
-                {renderComponent(component)}
-              </div>
+            {sortComponents(groupedComponents.profile).map((component) => (
+              <div key={component.id}>{renderComponent(component)}</div>
             ))}
           </div>
         </CollapsibleSection>
@@ -119,15 +124,13 @@ export function CollapsibleComponentList({
       {/* テキストセクション */}
       {groupedComponents.text.length > 0 && (
         <CollapsibleSection
-          title={`${t('textSection')} (${groupedComponents.text.length})`}
+          title={`${t("textSection")} (${groupedComponents.text.length})`}
           icon={<FileText className="h-5 w-5 text-gray-600" />}
           defaultExpanded={false}
         >
           <div className="space-y-2">
-            {sortComponents(groupedComponents.text).map(component => (
-              <div key={component.id}>
-                {renderComponent(component)}
-              </div>
+            {sortComponents(groupedComponents.text).map((component) => (
+              <div key={component.id}>{renderComponent(component)}</div>
             ))}
           </div>
         </CollapsibleSection>
@@ -136,15 +139,13 @@ export function CollapsibleComponentList({
       {/* 画像セクション */}
       {groupedComponents.image.length > 0 && (
         <CollapsibleSection
-          title={`${t('imageSection')} (${groupedComponents.image.length})`}
+          title={`${t("imageSection")} (${groupedComponents.image.length})`}
           icon={<Image className="h-5 w-5 text-gray-600" />}
           defaultExpanded={false}
         >
           <div className="space-y-2">
-            {sortComponents(groupedComponents.image).map(component => (
-              <div key={component.id}>
-                {renderComponent(component)}
-              </div>
+            {sortComponents(groupedComponents.image).map((component) => (
+              <div key={component.id}>{renderComponent(component)}</div>
             ))}
           </div>
         </CollapsibleSection>
@@ -153,15 +154,13 @@ export function CollapsibleComponentList({
       {/* リンクセクション */}
       {groupedComponents.link.length > 0 && (
         <CollapsibleSection
-          title={`${t('linkSection')} (${groupedComponents.link.length})`}
+          title={`${t("linkSection")} (${groupedComponents.link.length})`}
           icon={<Link className="h-5 w-5 text-gray-600" />}
           defaultExpanded={false}
         >
           <div className="space-y-2">
-            {sortComponents(groupedComponents.link).map(component => (
-              <div key={component.id}>
-                {renderComponent(component)}
-              </div>
+            {sortComponents(groupedComponents.link).map((component) => (
+              <div key={component.id}>{renderComponent(component)}</div>
             ))}
           </div>
         </CollapsibleSection>
@@ -170,8 +169,8 @@ export function CollapsibleComponentList({
       {/* コンポーネントがない場合 */}
       {components.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          <p>{t('noComponents')}</p>
-          <p className="text-sm mt-1">{t('addComponentMessage')}</p>
+          <p>{t("noComponents")}</p>
+          <p className="text-sm mt-1">{t("addComponentMessage")}</p>
         </div>
       )}
     </div>

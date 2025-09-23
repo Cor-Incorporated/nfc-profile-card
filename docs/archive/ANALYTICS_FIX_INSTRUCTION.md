@@ -24,12 +24,12 @@ interface AnalyticsData {
   // 基本統計
   totalViews: number;
   lastViewedAt: Timestamp;
-  
+
   // 日別カウンタ（新規追加）
   dailyViews: {
     [dateKey: string]: number; // "2025-09-19": 5
   };
-  
+
   // 詳細ログ（最新10件のみ保持）
   recentViews: Array<{
     timestamp: Timestamp;
@@ -52,28 +52,32 @@ export async function trackPageView(username: string) {
 
     if (!snapshot.empty) {
       const userId = snapshot.docs[0].id;
-      const today = new Date().toISOString().split('T')[0]; // "2025-09-19"
-      
+      const today = new Date().toISOString().split("T")[0]; // "2025-09-19"
+
       const userDoc = await getDoc(doc(db, "users", userId));
       const currentData = userDoc.data();
-      
+
       // 既存のrecentViewsを取得して最新10件に制限
       const currentRecentViews = currentData?.analytics?.recentViews || [];
       const newView = {
         timestamp: new Date(),
-        referrer: typeof document !== 'undefined' ? document.referrer || "direct" : "direct",
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : "unknown"
+        referrer:
+          typeof document !== "undefined"
+            ? document.referrer || "direct"
+            : "direct",
+        userAgent:
+          typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
       };
-      
+
       // 最新10件のみ保持
       const updatedRecentViews = [newView, ...currentRecentViews].slice(0, 10);
-      
+
       // 日別カウンタを更新
       await updateDoc(doc(db, "users", userId), {
         "analytics.totalViews": increment(1),
         "analytics.lastViewedAt": serverTimestamp(),
         [`analytics.dailyViews.${today}`]: increment(1),
-        "analytics.recentViews": updatedRecentViews
+        "analytics.recentViews": updatedRecentViews,
       });
     }
   } catch (error) {
@@ -88,41 +92,41 @@ export async function trackPageView(username: string) {
 export async function getAnalyticsSummary(userId: string) {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
-    
+
     if (!userDoc.exists()) {
       return {
         totalViews: 0,
         lastViewedAt: null,
         todayViews: 0,
-        weekViews: 0
+        weekViews: 0,
       };
     }
-    
+
     const data = userDoc.data();
     const analytics = data.analytics || {};
-    
+
     // 日付の計算
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const dates = [];
-    
+
     // 過去7日分の日付を生成
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+      dates.push(date.toISOString().split("T")[0]);
     }
-    
+
     // 日別カウンタから集計
     const todayViews = analytics.dailyViews?.[today] || 0;
     const weekViews = dates.reduce((sum, date) => {
       return sum + (analytics.dailyViews?.[date] || 0);
     }, 0);
-    
+
     return {
       totalViews: analytics.totalViews || 0,
       lastViewedAt: analytics.lastViewedAt?.toDate?.() || null,
       todayViews,
-      weekViews
+      weekViews,
     };
   } catch (error) {
     console.error("Analytics summary error:", error);
@@ -130,7 +134,7 @@ export async function getAnalyticsSummary(userId: string) {
       totalViews: 0,
       lastViewedAt: null,
       todayViews: 0,
-      weekViews: 0
+      weekViews: 0,
     };
   }
 }
@@ -147,25 +151,25 @@ import { db } from "@/lib/firebase";
 export async function migrateAnalyticsData() {
   const usersRef = collection(db, "users");
   const snapshot = await getDocs(usersRef);
-  
+
   for (const userDoc of snapshot.docs) {
     const data = userDoc.data();
-    
+
     if (data.analytics?.recentViews) {
       const dailyViews: Record<string, number> = {};
-      
+
       // 既存のrecentViewsから日別カウントを生成
       data.analytics.recentViews.forEach((view: any) => {
-        const date = new Date(view.timestamp).toISOString().split('T')[0];
+        const date = new Date(view.timestamp).toISOString().split("T")[0];
         dailyViews[date] = (dailyViews[date] || 0) + 1;
       });
-      
+
       await updateDoc(doc(db, "users", userDoc.id), {
-        "analytics.dailyViews": dailyViews
+        "analytics.dailyViews": dailyViews,
       });
     }
   }
-  
+
   console.log("Migration completed");
 }
 ```

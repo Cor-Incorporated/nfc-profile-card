@@ -12,10 +12,12 @@
 ## 問題の詳細
 
 ### 初期状態
+
 - **コミット**: `bd16a08` (refactor: Improve editor UI and component management system)
 - **状態**: エディター機能は正常に動作していた
 
 ### 現在の状態
+
 - コンポーネント追加ボタンが表示されない
 - ドラッグ&ドロップ機能が動作しない
 - 既存のコンポーネントがすべて消失
@@ -24,30 +26,36 @@
 ## タイムライン
 
 ### Phase 1: 複数プロファイル機能の実装と削除
+
 1. 複数プロファイル管理機能を実装
 2. その後、機能を削除
 3. **結果**: エディター機能が完全に壊れる
 
 ### Phase 2: 初期調査と修正試行
+
 1. **問題**: CraftJSのresolverにContainerコンポーネントが登録されていない
 2. **対策**: Containerをresolverに追加
 3. **結果**: ビルドは成功するが機能は動作せず
 
 ### Phase 3: AddComponentPlaceholder配置の修正
+
 1. **問題**: AddComponentPlaceholderがFrame内に配置され、ドロップを妨害
 2. **対策**: Frame外にfloating要素として配置
 3. **結果**: 緑のドロップゾーンは表示されるが、ドロップしても追加されない
 
 ### Phase 4: データクリーンアップの実装
+
 1. **問題**: 保存データにAddComponentPlaceholderが含まれ、デシリアライズエラー発生
 2. **対策**: validateAndCleanData関数でAddComponentPlaceholderを削除
 3. **結果**: 既存のすべてのコンポーネントが消失
 
 ### Phase 5: 構造の簡略化
+
 1. **対策**: Containerをdivに変更し、標準的なCraftJS構造に戻す
 2. **結果**: ドロップゾーンは表示されるが、ドロップが機能しない
 
 ### Phase 6: 元の構造への復帰試行（最新）
+
 1. **対策**: AddComponentPlaceholderをFrame内にElementとして配置
 2. **結果**: コンポーネント追加ボタン自体が表示されなくなる
 
@@ -84,22 +92,26 @@
 ## 現在のコード状態
 
 ### PageEditor.tsx
+
 - AddComponentPlaceholderはFrame内にElementとして配置
 - resolverにAddComponentPlaceholder登録済み
 - validateAndCleanData関数が初期データからAddComponentPlaceholderを削除
 
 ### 問題点
+
 - AddComponentPlaceholderがCraftJS要素として機能するには特別な実装が必要
 - 現在の実装ではUI要素として表示されない
 
 ## リスクと影響
 
 ### ビジネスへの影響
+
 - **Critical**: プロフィール編集機能が完全に使用不可能
 - ユーザーは新規プロフィール作成も既存プロフィール編集もできない
 - プロダクトの中核機能が失われている
 
 ### データの影響
+
 - 既存ユーザーのプロフィールデータが失われた可能性
 - バックアップからの復旧が必要な可能性
 

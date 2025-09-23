@@ -95,8 +95,8 @@ export default function EditProfilePage() {
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
-        title: t('error'),
-        description: t('profileLoadError'),
+        title: t("error"),
+        description: t("profileLoadError"),
         variant: "destructive",
       });
     } finally {
@@ -116,8 +116,8 @@ export default function EditProfilePage() {
 
     if (!profile.username) {
       toast({
-        title: t('error'),
-        description: t('usernameRequired'),
+        title: t("error"),
+        description: t("usernameRequired"),
         variant: "destructive",
       });
       return;
@@ -136,16 +136,16 @@ export default function EditProfilePage() {
       );
 
       toast({
-        title: t('success'),
-        description: t('profileSaved'),
+        title: t("success"),
+        description: t("profileSaved"),
       });
 
       router.push("/dashboard");
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
-        title: t('error'),
-        description: t('profileSaveError'),
+        title: t("error"),
+        description: t("profileSaveError"),
         variant: "destructive",
       });
     } finally {
@@ -165,119 +165,117 @@ export default function EditProfilePage() {
     <div className="container mx-auto px-4 py-4 sm:p-6 max-w-4xl">
       <div className="mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-          {t('profileEdit')}
+          {t("profileEdit")}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          {t('editProfileDescription')}
+          {t("editProfileDescription")}
         </p>
       </div>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t('basicInfo')}</CardTitle>
-            <CardDescription>
-              {t('publicProfileDescription')}
-            </CardDescription>
+            <CardTitle>{t("basicInfo")}</CardTitle>
+            <CardDescription>{t("publicProfileDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">{t('name')} *</Label>
+                <Label htmlFor="name">{t("name")} *</Label>
                 <Input
                   id="name"
                   value={profile.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder={t('namePlaceholder')}
+                  placeholder={t("namePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username">{t('username')} *</Label>
+                <Label htmlFor="username">{t("username")} *</Label>
                 <Input
                   id="username"
                   value={profile.username}
                   onChange={(e) =>
                     handleInputChange("username", e.target.value)
                   }
-                  placeholder={t('usernamePlaceholder')}
+                  placeholder={t("usernamePlaceholder")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t('profileUrlPrefix')}: /p/{profile.username || "username"}
+                  {t("profileUrlPrefix")}: /p/{profile.username || "username"}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">{t('company')}</Label>
+                <Label htmlFor="company">{t("company")}</Label>
                 <Input
                   id="company"
                   value={profile.company}
                   onChange={(e) => handleInputChange("company", e.target.value)}
-                  placeholder={t('companyPlaceholder')}
+                  placeholder={t("companyPlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="position">{t('position')}</Label>
+                <Label htmlFor="position">{t("position")}</Label>
                 <Input
                   id="position"
                   value={profile.position}
                   onChange={(e) =>
                     handleInputChange("position", e.target.value)
                   }
-                  placeholder={t('positionPlaceholder')}
+                  placeholder={t("positionPlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email')}</Label>
+                <Label htmlFor="email">{t("email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={profile.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder={t('emailPlaceholder')}
+                  placeholder={t("emailPlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">{t('phone')}</Label>
+                <Label htmlFor="phone">{t("phone")}</Label>
                 <Input
                   id="phone"
                   value={profile.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder={t('phonePlaceholder')}
+                  placeholder={t("phonePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="website">{t('website')}</Label>
+                <Label htmlFor="website">{t("website")}</Label>
                 <Input
                   id="website"
                   value={profile.website}
                   onChange={(e) => handleInputChange("website", e.target.value)}
-                  placeholder={t('websitePlaceholder')}
+                  placeholder={t("websitePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">{t('address')}</Label>
+                <Label htmlFor="address">{t("address")}</Label>
                 <Input
                   id="address"
                   value={profile.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder={t('addressPlaceholder')}
+                  placeholder={t("addressPlaceholder")}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">{t('bio')}</Label>
+              <Label htmlFor="bio">{t("bio")}</Label>
               <Textarea
                 id="bio"
                 value={profile.bio}
                 onChange={(e) => handleInputChange("bio", e.target.value)}
-                placeholder={t('bioPlaceholder')}
+                placeholder={t("bioPlaceholder")}
                 rows={4}
               />
             </div>
@@ -286,9 +284,9 @@ export default function EditProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('designCustomization')}</CardTitle>
+            <CardTitle>{t("designCustomization")}</CardTitle>
             <CardDescription>
-              {t('designCustomizationDescription')}
+              {t("designCustomizationDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -298,7 +296,7 @@ export default function EditProfilePage() {
               className="w-full"
             >
               <Palette className="mr-2 h-4 w-4" />
-              {t('openDesignEditor')}
+              {t("openDesignEditor")}
             </Button>
           </CardContent>
         </Card>
@@ -310,7 +308,7 @@ export default function EditProfilePage() {
             disabled={isSaving}
             className="w-full sm:w-auto"
           >
-            {t('cancel')}
+            {t("cancel")}
           </Button>
           <Button
             onClick={handleSave}
@@ -320,12 +318,12 @@ export default function EditProfilePage() {
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('saving')}
+                {t("saving")}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                {t('save')}
+                {t("save")}
               </>
             )}
           </Button>

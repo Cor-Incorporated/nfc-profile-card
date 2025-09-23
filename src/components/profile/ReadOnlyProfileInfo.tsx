@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { VCardButton } from './VCardButton';
+import React, { useState } from "react";
+import { VCardButton } from "./VCardButton";
 import {
   Mail,
   Phone,
@@ -10,10 +10,10 @@ import {
   Briefcase,
   Smartphone,
   ChevronDown,
-  ChevronUp
-} from 'lucide-react';
-import type { ProfileComponent } from '../simple-editor/utils/dataStructure';
-import { Button } from '@/components/ui/button';
+  ChevronUp,
+} from "lucide-react";
+import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
+import { Button } from "@/components/ui/button";
 
 interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
@@ -22,7 +22,7 @@ interface ReadOnlyProfileInfoProps {
 export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
-  const content = component.content as any || {};
+  const content = (component.content as any) || {};
   const {
     firstName,
     lastName,
@@ -40,36 +40,46 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     postalCode,
     website,
     bio,
-    photoURL
+    photoURL,
   } = content;
 
   // 表示名の決定
-  const displayName = name || `${lastName || ''} ${firstName || ''}`.trim() || '名前未設定';
+  const displayName =
+    name || `${lastName || ""} ${firstName || ""}`.trim() || "名前未設定";
 
   // VCard用データの準備
   const vCardData = {
-    firstName: firstName || '',
-    lastName: lastName || '',
-    phoneticFirstName: phoneticFirstName || '',
-    phoneticLastName: phoneticLastName || '',
-    organization: company || '',
-    title: position || '',
-    email: email || '',
-    workPhone: phone || '',
-    cellPhone: cellPhone || '',
-    url: website || '',
+    firstName: firstName || "",
+    lastName: lastName || "",
+    phoneticFirstName: phoneticFirstName || "",
+    phoneticLastName: phoneticLastName || "",
+    organization: company || "",
+    title: position || "",
+    email: email || "",
+    workPhone: phone || "",
+    cellPhone: cellPhone || "",
+    url: website || "",
     workAddress: {
-      street: address || '',
-      city: city || '',
-      postalCode: postalCode || '',
-      countryRegion: '日本'
+      street: address || "",
+      city: city || "",
+      postalCode: postalCode || "",
+      countryRegion: "日本",
     },
-    photo: photoURL || '',
-    note: bio || ''
+    photo: photoURL || "",
+    note: bio || "",
   };
 
   // 詳細情報があるかチェック
-  const hasDetails = email || phone || cellPhone || website || company || department || address || city || postalCode;
+  const hasDetails =
+    email ||
+    phone ||
+    cellPhone ||
+    website ||
+    company ||
+    department ||
+    address ||
+    city ||
+    postalCode;
 
   // レスポンシブ対応のコンテナー幅
   const getContainerClass = () => {
@@ -77,7 +87,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   };
 
   // カード背景色の決定
-  const cardBackgroundColor = content.cardBackgroundColor || '#3b82f6'; // デフォルトはブルー
+  const cardBackgroundColor = content.cardBackgroundColor || "#3b82f6"; // デフォルトはブルー
   const cardBackgroundOpacity = content.cardBackgroundOpacity ?? 95; // デフォルトは95%
 
   return (
@@ -85,14 +95,21 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       <div
         className="rounded-lg shadow-lg overflow-hidden"
         style={{
-          backgroundColor: `${cardBackgroundColor}${Math.round(cardBackgroundOpacity * 2.55).toString(16).padStart(2, '0')}`
+          backgroundColor: `${cardBackgroundColor}${Math.round(
+            cardBackgroundOpacity * 2.55,
+          )
+            .toString(16)
+            .padStart(2, "0")}`,
         }}
       >
         {/* ヘッダー部分（パディングを縮小） */}
-        <div className="p-4 sm:p-4 text-white" style={{
-          backgroundColor: cardBackgroundColor,
-          filter: 'brightness(0.9)'
-        }}>
+        <div
+          className="p-4 sm:p-4 text-white"
+          style={{
+            backgroundColor: cardBackgroundColor,
+            filter: "brightness(0.9)",
+          }}
+        >
           <div className="flex items-center space-x-4">
             {photoURL ? (
               <img
@@ -107,12 +124,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
             )}
             <div>
               <h2 className="text-xl font-bold">{displayName}</h2>
-              {position && (
-                <p className="text-sm opacity-90">{position}</p>
-              )}
-              {company && (
-                <p className="text-sm opacity-90">{company}</p>
-              )}
+              {position && <p className="text-sm opacity-90">{position}</p>}
+              {company && <p className="text-sm opacity-90">{company}</p>}
             </div>
           </div>
         </div>
@@ -133,7 +146,9 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           {/* 自己紹介（3行制限と展開機能） */}
           {bio && (
             <div className="pb-3 border-b border-gray-200">
-              <p className={`text-gray-700 text-sm ${!isProfileExpanded ? 'line-clamp-3' : ''}`}>
+              <p
+                className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+              >
                 {bio}
               </p>
               {bio.length > 150 && (
@@ -141,7 +156,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
                   onClick={() => setIsProfileExpanded(!isProfileExpanded)}
                   className="text-blue-600 hover:text-blue-700 text-sm mt-1"
                 >
-                  {isProfileExpanded ? '閉じる' : '...続きを読む'}
+                  {isProfileExpanded ? "閉じる" : "...続きを読む"}
                 </button>
               )}
             </div>
@@ -154,7 +169,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
               onClick={() => setIsExpanded(!isExpanded)}
               className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
             >
-              <span>詳細情報を{isExpanded ? '非表示' : '表示'}</span>
+              <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -166,7 +181,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           {/* 折りたたみ可能な詳細情報 */}
           <div
             className={`space-y-3 overflow-hidden transition-all duration-300 ${
-              isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+              isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
             }`}
           >
             {email && (

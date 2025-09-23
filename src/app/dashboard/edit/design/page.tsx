@@ -14,7 +14,7 @@ function DesignEditorContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const profileId = searchParams.get('profileId');
+  const profileId = searchParams.get("profileId");
   const [isLoading, setIsLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>(null);
 
@@ -29,13 +29,15 @@ function DesignEditorContent() {
   const loadUserData = async () => {
     if (!user) return;
 
-    console.log('[DesignEditorPage] Loading user data for user:', user.uid);
+    console.log("[DesignEditorPage] Loading user data for user:", user.uid);
     try {
       // プロファイルサブコレクションから読み込み
-      const profileDoc = await getDoc(doc(db, "users", user.uid, "profile", "data"));
+      const profileDoc = await getDoc(
+        doc(db, "users", user.uid, "profile", "data"),
+      );
       if (profileDoc.exists()) {
         const profileData = profileDoc.data();
-        console.log('[DesignEditorPage] Profile data loaded:', profileData);
+        console.log("[DesignEditorPage] Profile data loaded:", profileData);
 
         // 新しいSimpleEditor形式のデータ構造で初期化
         setInitialData({
@@ -44,7 +46,7 @@ function DesignEditorContent() {
           updatedAt: profileData.updatedAt || new Date(),
         });
       } else {
-        console.log('[DesignEditorPage] No profile data found, starting fresh');
+        console.log("[DesignEditorPage] No profile data found, starting fresh");
         setInitialData({
           components: [],
           background: null,
@@ -75,7 +77,7 @@ function DesignEditorContent() {
     return null;
   }
 
-  console.log('[DesignEditorPage] Rendering SimplePageEditor with:', {
+  console.log("[DesignEditorPage] Rendering SimplePageEditor with:", {
     userId: user.uid,
     hasInitialData: !!initialData,
   });

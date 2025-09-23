@@ -6,15 +6,15 @@ import {
   doc,
   getDoc,
   setDoc,
-  Timestamp
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export interface ScanQuota {
-  used: number;      // 今月の使用数
-  limit: number;     // 上限（無料:50、Pro:無制限）
+  used: number; // 今月の使用数
+  limit: number; // 上限（無料:50、Pro:無制限）
   daysRemaining: number; // 月末まで
-  resetDate: Date;   // 次回リセット日
+  resetDate: Date; // 次回リセット日
 }
 
 // 月初めの日付を取得
@@ -43,10 +43,10 @@ export async function getMonthlyScansCount(userId: string): Promise<number> {
   const monthStart = getMonthStart();
   const monthStartTimestamp = Timestamp.fromDate(monthStart);
 
-  const businessCardsRef = collection(db, 'users', userId, 'businessCards');
+  const businessCardsRef = collection(db, "users", userId, "businessCards");
   const q = query(
     businessCardsRef,
-    where('scannedAt', '>=', monthStartTimestamp)
+    where("scannedAt", ">=", monthStartTimestamp),
   );
 
   const snapshot = await getDocs(q);
@@ -54,20 +54,20 @@ export async function getMonthlyScansCount(userId: string): Promise<number> {
 }
 
 // ユーザーのプラン情報を取得（将来的に実装）
-async function getUserPlan(userId: string): Promise<'free' | 'pro' | 'team'> {
+async function getUserPlan(userId: string): Promise<"free" | "pro" | "team"> {
   // TODO: ユーザーのサブスクリプション情報を取得
   // 現在は全員無料プランとして扱う
-  return 'free';
+  return "free";
 }
 
 // スキャン上限を取得
 async function getScanLimit(userId: string): Promise<number> {
   const plan = await getUserPlan(userId);
   switch (plan) {
-    case 'pro':
-    case 'team':
+    case "pro":
+    case "team":
       return 999999; // 実質無制限
-    case 'free':
+    case "free":
     default:
       return 50;
   }
@@ -85,7 +85,7 @@ export async function getScanQuota(userId: string): Promise<ScanQuota> {
     used,
     limit,
     daysRemaining,
-    resetDate
+    resetDate,
   };
 }
 
@@ -98,7 +98,7 @@ export async function canScan(userId: string): Promise<boolean> {
 // スキャン履歴を追加（上限チェック付き）
 export async function recordScan(
   userId: string,
-  contactInfo: any
+  contactInfo: any,
 ): Promise<{ success: boolean; error?: string; docId?: string }> {
   // 上限チェック
   const canPerformScan = await canScan(userId);
@@ -106,29 +106,29 @@ export async function recordScan(
     const quota = await getScanQuota(userId);
     return {
       success: false,
-      error: `今月のスキャン上限（${quota.limit}枚）に達しました。プロプランへのアップグレードをご検討ください。`
+      error: `今月のスキャン上限（${quota.limit}枚）に達しました。プロプランへのアップグレードをご検討ください。`,
     };
   }
 
   // Firestoreに保存
   try {
-    const { addDoc, serverTimestamp } = await import('firebase/firestore');
-    const businessCardsRef = collection(db, 'users', userId, 'businessCards');
+    const { addDoc, serverTimestamp } = await import("firebase/firestore");
+    const businessCardsRef = collection(db, "users", userId, "businessCards");
     const docRef = await addDoc(businessCardsRef, {
       contactInfo,
       scannedAt: serverTimestamp(),
-      userId
+      userId,
     });
 
     return {
       success: true,
-      docId: docRef.id
+      docId: docRef.id,
     };
   } catch (error) {
-    console.error('Error saving business card:', error);
+    console.error("Error saving business card:", error);
     return {
       success: false,
-      error: '保存中にエラーが発生しました'
+      error: "保存中にエラーが発生しました",
     };
   }
 }

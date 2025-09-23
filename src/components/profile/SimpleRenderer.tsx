@@ -1,21 +1,17 @@
 "use client";
 
-import React from 'react';
-import type { ProfileComponent } from '../simple-editor/utils/dataStructure';
-import { SocialLinkButton } from '../simple-editor/SocialLinkButton';
-import { ReadOnlyProfileInfo } from './ReadOnlyProfileInfo';
-import { getBackgroundStyle } from '../simple-editor/BackgroundCustomizer';
+import React from "react";
+import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
+import { SocialLinkButton } from "../simple-editor/SocialLinkButton";
+import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
+import { getBackgroundStyle } from "../simple-editor/BackgroundCustomizer";
 
 // 各コンポーネントタイプの表示コンポーネント
 function TextComponent({ component }: { component: ProfileComponent }) {
   const content = component.content as any;
   return (
-    <div
-      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-    >
-      <p className="text-gray-800">
-        {content?.text || 'テキストコンテンツ'}
-      </p>
+    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
+      <p className="text-gray-800">{content?.text || "テキストコンテンツ"}</p>
     </div>
   );
 }
@@ -23,13 +19,11 @@ function TextComponent({ component }: { component: ProfileComponent }) {
 function ImageComponent({ component }: { component: ProfileComponent }) {
   const content = component.content as any;
   return (
-    <div
-      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-    >
+    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
       {content?.src ? (
         <img
           src={content.src}
-          alt={content?.alt || '画像'}
+          alt={content?.alt || "画像"}
           className="w-full h-auto rounded"
         />
       ) : (
@@ -47,13 +41,8 @@ function LinkComponent({ component }: { component: ProfileComponent }) {
 
   // ソーシャルリンクの自動認識
   return (
-    <div
-      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-4"
-    >
-      <SocialLinkButton
-        url={url || '#'}
-        label={label}
-      />
+    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-4">
+      <SocialLinkButton url={url || "#"} label={label} />
     </div>
   );
 }
@@ -66,7 +55,7 @@ function ProfileComponent({ component }: { component: ProfileComponent }) {
 // メインのSimpleRendererコンポーネント
 export function SimpleRenderer({
   components = [],
-  background = null
+  background = null,
 }: {
   components: ProfileComponent[];
   background?: any;
@@ -85,32 +74,49 @@ export function SimpleRenderer({
       {/* コンテンツレイヤー（相対位置で背景の上に配置） */}
       <div className="relative z-10 min-h-screen py-8">
         <div className="max-w-md mx-auto px-4">
-        {safeComponents.length === 0 ? (
-          <div className="text-center text-gray-500 mt-20">
-            <p>プロフィールコンテンツがありません</p>
-          </div>
-        ) : (
-          safeComponents
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .map((component) => {
-              switch (component.type) {
-                case 'text':
-                  return <TextComponent key={component.id} component={component} />;
-                case 'image':
-                  return <ImageComponent key={component.id} component={component} />;
-                case 'link':
-                  return <LinkComponent key={component.id} component={component} />;
-                case 'profile':
-                  return <ProfileComponent key={component.id} component={component} />;
-                default:
-                  return (
-                    <div key={component.id} className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-red-100 p-4 mb-4 rounded">
-                      未対応のコンポーネントタイプ: {component.type}
-                    </div>
-                  );
-              }
-            })
-        )}
+          {safeComponents.length === 0 ? (
+            <div className="text-center text-gray-500 mt-20">
+              <p>プロフィールコンテンツがありません</p>
+            </div>
+          ) : (
+            safeComponents
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
+              .map((component) => {
+                switch (component.type) {
+                  case "text":
+                    return (
+                      <TextComponent key={component.id} component={component} />
+                    );
+                  case "image":
+                    return (
+                      <ImageComponent
+                        key={component.id}
+                        component={component}
+                      />
+                    );
+                  case "link":
+                    return (
+                      <LinkComponent key={component.id} component={component} />
+                    );
+                  case "profile":
+                    return (
+                      <ProfileComponent
+                        key={component.id}
+                        component={component}
+                      />
+                    );
+                  default:
+                    return (
+                      <div
+                        key={component.id}
+                        className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-red-100 p-4 mb-4 rounded"
+                      >
+                        未対応のコンポーネントタイプ: {component.type}
+                      </div>
+                    );
+                }
+              })
+          )}
         </div>
       </div>
     </div>

@@ -84,14 +84,14 @@ export function VCardButton({
       document.body.removeChild(a);
 
       toast({
-        title: t('success'),
-        description: t('vcardDownloaded'),
+        title: t("success"),
+        description: t("vcardDownloaded"),
       });
     } catch (error) {
       console.error("VCard download error:", error);
       toast({
-        title: t('error'),
-        description: t('vcardDownloadFailed'),
+        title: t("error"),
+        description: t("vcardDownloadFailed"),
         variant: "destructive",
       });
     } finally {
@@ -110,12 +110,12 @@ export function VCardButton({
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {t('loading')}
+          {t("loading")}
         </>
       ) : (
         <>
           <Download className="mr-2 h-4 w-4" />
-          {t('saveContact')}
+          {t("saveContact")}
         </>
       )}
     </Button>

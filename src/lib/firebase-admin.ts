@@ -22,7 +22,7 @@ if (!getApps().length) {
       initializeApp({
         credential: cert(serviceAccount),
       });
-    } else if (process.env.NODE_ENV === 'development') {
+    } else if (process.env.NODE_ENV === "development") {
       // Only try to load service account file in development
       try {
         const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
@@ -30,7 +30,9 @@ if (!getApps().length) {
           credential: cert(serviceAccount),
         });
       } catch (e) {
-        console.warn("Firebase Admin SDK service account file not found. Using default config.");
+        console.warn(
+          "Firebase Admin SDK service account file not found. Using default config.",
+        );
         initializeApp();
       }
     } else {

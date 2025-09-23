@@ -21,7 +21,8 @@ jest.mock("next/server", () => {
       this.headers = {
         _data: headersData,
         get: (key: string) => headersData.get(key.toLowerCase()) || null,
-        set: (key: string, value: string) => headersData.set(key.toLowerCase(), value),
+        set: (key: string, value: string) =>
+          headersData.set(key.toLowerCase(), value),
         has: (key: string) => headersData.has(key.toLowerCase()),
       };
 
@@ -31,7 +32,7 @@ jest.mock("next/server", () => {
           h.forEach((value, key) => this.headers.set(key, value));
         } else if (Array.isArray(h)) {
           h.forEach(([key, value]) => this.headers.set(key, value));
-        } else if (typeof h === 'object') {
+        } else if (typeof h === "object") {
           Object.entries(h).forEach(([key, value]) => {
             this.headers.set(key, value as string);
           });
@@ -40,7 +41,7 @@ jest.mock("next/server", () => {
     }
 
     json() {
-      if (typeof this.body === 'string') {
+      if (typeof this.body === "string") {
         return Promise.resolve(JSON.parse(this.body));
       }
       return Promise.resolve(this.body);
@@ -144,13 +145,13 @@ class MockNextRequest {
       const { value } = await reader.read();
       const text = new TextDecoder().decode(value);
       // 空文字列チェックを追加
-      if (!text || text.trim() === '') {
+      if (!text || text.trim() === "") {
         return {};
       }
       try {
         return JSON.parse(text);
       } catch (e) {
-        console.error('JSON parse error:', e);
+        console.error("JSON parse error:", e);
         return {};
       }
     }

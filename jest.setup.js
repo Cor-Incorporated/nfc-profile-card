@@ -66,7 +66,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Firebase のモック
-const mockApp = { name: '[DEFAULT]', options: {} };
+const mockApp = { name: "[DEFAULT]", options: {} };
 
 jest.mock("firebase/app", () => ({
   initializeApp: jest.fn(() => mockApp),

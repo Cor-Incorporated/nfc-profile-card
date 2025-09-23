@@ -12,89 +12,89 @@ import {
   Music,
   Mail,
   MessageCircle,
-  Video
-} from 'lucide-react';
+  Video,
+} from "lucide-react";
 
 // ソーシャルメディアの定義
 export const SOCIAL_SERVICES = {
   github: {
-    name: 'GitHub',
+    name: "GitHub",
     icon: Github,
-    color: '#181717',
-    patterns: ['github.com']
+    color: "#181717",
+    patterns: ["github.com"],
   },
   facebook: {
-    name: 'Facebook',
+    name: "Facebook",
     icon: Facebook,
-    color: '#1877F2',
-    patterns: ['facebook.com', 'fb.com']
+    color: "#1877F2",
+    patterns: ["facebook.com", "fb.com"],
   },
   twitter: {
-    name: 'X (Twitter)',
+    name: "X (Twitter)",
     icon: Twitter,
-    color: '#000000',
-    patterns: ['twitter.com', 'x.com']
+    color: "#000000",
+    patterns: ["twitter.com", "x.com"],
   },
   instagram: {
-    name: 'Instagram',
+    name: "Instagram",
     icon: Instagram,
-    color: '#E4405F',
-    patterns: ['instagram.com']
+    color: "#E4405F",
+    patterns: ["instagram.com"],
   },
   linkedin: {
-    name: 'LinkedIn',
+    name: "LinkedIn",
     icon: Linkedin,
-    color: '#0A66C2',
-    patterns: ['linkedin.com']
+    color: "#0A66C2",
+    patterns: ["linkedin.com"],
   },
   youtube: {
-    name: 'YouTube',
+    name: "YouTube",
     icon: Youtube,
-    color: '#FF0000',
-    patterns: ['youtube.com', 'youtu.be']
+    color: "#FF0000",
+    patterns: ["youtube.com", "youtu.be"],
   },
   tiktok: {
-    name: 'TikTok',
+    name: "TikTok",
     icon: Video,
-    color: '#000000',
-    patterns: ['tiktok.com']
+    color: "#000000",
+    patterns: ["tiktok.com"],
   },
   spotify: {
-    name: 'Spotify',
+    name: "Spotify",
     icon: Music,
-    color: '#1DB954',
-    patterns: ['spotify.com']
+    color: "#1DB954",
+    patterns: ["spotify.com"],
   },
   discord: {
-    name: 'Discord',
+    name: "Discord",
     icon: MessageCircle,
-    color: '#5865F2',
-    patterns: ['discord.gg', 'discord.com']
+    color: "#5865F2",
+    patterns: ["discord.gg", "discord.com"],
   },
   email: {
-    name: 'Email',
+    name: "Email",
     icon: Mail,
-    color: '#EA4335',
-    patterns: ['mailto:']
+    color: "#EA4335",
+    patterns: ["mailto:"],
   },
   default: {
-    name: 'Website',
+    name: "Website",
     icon: Globe,
-    color: '#6B7280',
-    patterns: []
-  }
+    color: "#6B7280",
+    patterns: [],
+  },
 };
 
 /**
  * URLからソーシャルサービスを検出
  */
 export function detectSocialService(url: string): keyof typeof SOCIAL_SERVICES {
-  if (!url) return 'default';
+  if (!url) return "default";
 
   const lowerUrl = url.toLowerCase();
 
   for (const [key, service] of Object.entries(SOCIAL_SERVICES)) {
-    if (key === 'default') continue;
+    if (key === "default") continue;
 
     for (const pattern of service.patterns) {
       if (lowerUrl.includes(pattern)) {
@@ -103,7 +103,7 @@ export function detectSocialService(url: string): keyof typeof SOCIAL_SERVICES {
     }
   }
 
-  return 'default';
+  return "default";
 }
 
 /**
