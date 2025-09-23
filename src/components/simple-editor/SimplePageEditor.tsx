@@ -30,7 +30,6 @@ import { ProfileComponent } from './utils/dataStructure';
 import { ComponentEditor } from './ComponentEditor';
 import { BackgroundCustomizer } from './BackgroundCustomizer';
 import { DevicePreview } from './DevicePreview';
-import { CollapsibleComponentList } from './CollapsibleComponentList';
 import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
@@ -348,18 +347,15 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             items={components.map(c => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="mb-6">
-              <CollapsibleComponentList
-                components={components}
-                renderComponent={(component) => (
-                  <SortableItem
-                    key={component.id}
-                    component={component}
-                    onDelete={deleteComponent}
-                    onEdit={editComponent}
-                  />
-                )}
-              />
+            <div className="space-y-3 mb-6">
+              {components.map((component) => (
+                <SortableItem
+                  key={component.id}
+                  component={component}
+                  onDelete={deleteComponent}
+                  onEdit={editComponent}
+                />
+              ))}
             </div>
           </SortableContext>
         </DndContext>
