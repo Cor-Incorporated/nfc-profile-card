@@ -175,16 +175,16 @@ export async function processBusinessCardImage(
     console.error("Error in OCR processing:", error);
 
     // More specific error messages
-    let errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+    let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
     if (error instanceof Error) {
       if (error.message.includes("API key")) {
-        errorMessage = "OCR service configuration error. Please contact support.";
+        errorMessage = ERROR_MESSAGES.SERVER_ERROR;
       } else if (error.message.includes("timeout")) {
         errorMessage = ERROR_MESSAGES.OCR_TIMEOUT;
       } else if (error.message.includes("quota")) {
-        errorMessage = "OCR service quota exceeded. Please try again later.";
+        errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
       } else {
-        errorMessage = error.message;
+        errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
       }
     }
 
