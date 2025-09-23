@@ -109,10 +109,20 @@ jest.mock("firebase/auth", () => ({
     currentUser: null,
   })),
   signInWithEmailAndPassword: jest.fn().mockResolvedValue({
-    user: { uid: "test-uid", email: "test@example.com" },
+    user: {
+      uid: "test-uid",
+      email: "test@example.com",
+      emailVerified: true,
+      providerData: [{ providerId: "password" }]
+    },
   }),
   createUserWithEmailAndPassword: jest.fn().mockResolvedValue({
-    user: { uid: "test-uid", email: "test@example.com" },
+    user: {
+      uid: "test-uid",
+      email: "test@example.com",
+      emailVerified: false,
+      providerData: [{ providerId: "password" }]
+    },
   }),
   signOut: jest.fn().mockResolvedValue(),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(),
@@ -125,12 +135,19 @@ jest.mock("firebase/auth", () => ({
     return jest.fn(); // Return unsubscribe function
   }),
   signInWithPopup: jest.fn().mockResolvedValue({
-    user: { uid: "test-uid", email: "test@example.com" },
+    user: {
+      uid: "test-uid",
+      email: "test@example.com",
+      emailVerified: true,
+      providerData: [{ providerId: "google.com" }]
+    },
   }),
   GoogleAuthProvider: jest.fn(() => ({})),
   GithubAuthProvider: jest.fn(() => ({})),
   updateProfile: jest.fn().mockResolvedValue(),
   deleteUser: jest.fn().mockResolvedValue(),
+  setPersistence: jest.fn().mockResolvedValue(),
+  browserLocalPersistence: {},
 }));
 
 jest.mock("firebase/firestore", () => ({

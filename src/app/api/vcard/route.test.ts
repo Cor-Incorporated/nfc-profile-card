@@ -192,37 +192,50 @@ class MockNextRequest {
 
 // vCardsJSのモック
 jest.mock("vcards-js", () => {
-  return jest.fn(() => ({
-    firstName: "",
-    lastName: "",
-    organization: "",
-    title: "",
-    email: "",
-    workPhone: "",
-    cellPhone: "",
-    url: "",
-    note: "",
-    version: "",
-    workAddress: {
-      street: "",
-      city: "",
-      stateProvince: "",
-      postalCode: "",
-      countryRegion: "",
-    },
-    socialUrls: {
-      facebook: "",
-      linkedIn: "",
-      twitter: "",
-      instagram: "",
-    },
-    photo: {
-      embedFromString: jest.fn(),
-    },
-    getFormattedString: jest.fn(
-      () => "BEGIN:VCARD\nVERSION:3.0\nN:Doe;John;;;\nFN:John Doe\nEND:VCARD",
-    ),
-  }));
+  return jest.fn(() => {
+    const mockInstance = {
+      firstName: "",
+      lastName: "",
+      organization: "",
+      title: "",
+      email: "",
+      workPhone: "",
+      cellPhone: "",
+      url: "",
+      note: "",
+      version: "",
+      workAddress: {
+        street: "",
+        city: "",
+        stateProvince: "",
+        postalCode: "",
+        countryRegion: "",
+      },
+      socialUrls: {
+        facebook: "",
+        linkedIn: "",
+        twitter: "",
+        instagram: "",
+      },
+      photo: {
+        embedFromString: jest.fn(),
+      },
+      getFormattedString: jest.fn(
+        () => "BEGIN:VCARD\nVERSION:3.0\nN:Doe;John;;;\nFN:John Doe\nEND:VCARD",
+      ),
+    };
+
+    // Make properties writable and reactive
+    return new Proxy(mockInstance, {
+      set(target: any, prop: string | symbol, value: any) {
+        target[prop] = value;
+        return true;
+      },
+      get(target: any, prop: string | symbol) {
+        return target[prop];
+      }
+    });
+  });
 });
 
 // fetchのモック
