@@ -1,5 +1,5 @@
 import { Inter } from "next/font/google";
-import "./[locale]/globals.css";
+import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
