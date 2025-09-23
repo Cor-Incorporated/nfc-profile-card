@@ -58,7 +58,7 @@ export const ProfileContentSchema = z.object({
   bio: z.string().max(1000).transform(sanitizeString).optional(),
   photoURL: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
   cardBackgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  cardBackgroundOpacity: z.number().min(0).max(1).optional(),
+  cardBackgroundOpacity: z.number().min(0).max(100).optional(),
 });
 
 // Component content schema (union of all content types)
@@ -126,7 +126,8 @@ export function validateComponentContent(type: string, content: unknown): boolea
       default:
         return false;
     }
-  } catch {
+  } catch (error) {
+    console.error(`[Validation] Error validating ${type} content:`, error);
     return false;
   }
 }
@@ -155,7 +156,8 @@ export function sanitizeComponentContent(type: string, content: unknown): unknow
       default:
         return content;
     }
-  } catch {
+  } catch (error) {
+    console.error(`[Sanitization] Error sanitizing ${type} content:`, error);
     return null;
   }
 }

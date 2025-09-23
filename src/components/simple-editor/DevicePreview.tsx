@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Smartphone, Monitor, X } from 'lucide-react';
+import { SimpleRenderer } from '@/components/profile/SimpleRenderer';
+import type { ProfileComponent } from './utils/dataStructure';
 
 export type DeviceType = 'mobile' | 'desktop';
 
@@ -30,10 +32,12 @@ const DEVICE_CONFIGS: Record<DeviceType, DeviceConfig> = {
 
 interface DevicePreviewProps {
   profileUrl: string;
+  components: ProfileComponent[];
+  background?: any;
   onClose: () => void;
 }
 
-export function DevicePreview({ profileUrl, onClose }: DevicePreviewProps) {
+export function DevicePreview({ profileUrl, components, background, onClose }: DevicePreviewProps) {
   const [selectedDevice, setSelectedDevice] = useState<DeviceType>('mobile');
   const config = DEVICE_CONFIGS[selectedDevice];
 
@@ -93,15 +97,18 @@ export function DevicePreview({ profileUrl, onClose }: DevicePreviewProps) {
                 </div>
               )}
 
-              {/* iframe でプロフィールページを表示 */}
-              <iframe
-                src={profileUrl}
-                className="w-full h-full border-0"
+              {/* SimpleRenderer で編集中のデータを表示 */}
+              <div
+                className="w-full h-full overflow-auto"
                 style={{
                   height: selectedDevice !== 'desktop' ? 'calc(100% - 24px)' : '100%'
                 }}
-                title="Profile Preview"
-              />
+              >
+                <SimpleRenderer
+                  components={components}
+                  background={background}
+                />
+              </div>
             </div>
 
             {/* デバイス情報 */}

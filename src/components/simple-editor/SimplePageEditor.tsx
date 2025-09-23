@@ -74,29 +74,51 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
           onClick={() => onEdit(component)}
         >
           <span className="font-medium">{component.type}</span>
-          {'text' in component.content && component.content.text && (
-            <p className="text-sm text-gray-600 mt-1">{component.content.text}</p>
-          )}
-          {'label' in component.content && component.content.label && (
-            <p className="text-sm text-gray-600 mt-1">{component.content.label}</p>
-          )}
-          {component.type === 'profile' && component.content && (
-            <div className="text-sm text-gray-600 mt-1">
-              {'name' in component.content && component.content.name ? component.content.name :
-               ('lastName' in component.content || 'firstName' in component.content) ?
-                `${('lastName' in component.content && component.content.lastName) || ''} ${('firstName' in component.content && component.content.firstName) || ''}`.trim() ||
-                t('profile') :
-               t('profile')}
-              {'company' in component.content && component.content.company && ` - ${component.content.company}`}
-            </div>
-          )}
-          {!('text' in component.content && component.content.text) &&
-           !('label' in component.content && component.content.label) &&
-           !('name' in component.content && component.content.name) &&
-           !('lastName' in component.content && component.content.lastName) &&
-           !('firstName' in component.content && component.content.firstName) && (
-            <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>
-          )}
+          {(() => {
+            const content = component.content as any;
+
+            switch (component.type) {
+              case 'text':
+                return content?.text ? (
+                  <p className="text-sm text-gray-600 mt-1">{content.text}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>
+                );
+
+              case 'image':
+                return content?.src ? (
+                  <p className="text-sm text-gray-600 mt-1">画像: {content.alt || '名称未設定'}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>
+                );
+
+              case 'link':
+                return content?.label || content?.url ? (
+                  <p className="text-sm text-gray-600 mt-1">{content.label || content.url}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>
+                );
+
+              case 'profile':
+                const displayName = content?.name ||
+                  `${content?.lastName || ''} ${content?.firstName || ''}`.trim() ||
+                  null;
+
+                if (displayName || content?.company) {
+                  return (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {displayName || t('profile')}
+                      {content?.company ? ` - ${content.company}` : ''}
+                    </p>
+                  );
+                } else {
+                  return <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>;
+                }
+
+              default:
+                return <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>;
+            }
+          })()}
         </div>
 
         {/* ボタン */}
@@ -217,7 +239,10 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
     // Validate and sanitize content before updating
     const isValid = validateComponentContent(updatedComponent.type, updatedComponent.content);
     if (!isValid) {
-      console.error('Invalid component content');
+      console.error('Invalid component content:', {
+        type: updatedComponent.type,
+        content: updatedComponent.content
+      });
       return;
     }
 
@@ -225,6 +250,11 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
       updatedComponent.type,
       updatedComponent.content
     );
+
+    if (sanitizedContent === null) {
+      console.error('Sanitization returned null - aborting update');
+      return;
+    }
 
     const safeComponent = {
       ...updatedComponent,
@@ -559,6 +589,8 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
         {showDevicePreview && (
           <DevicePreview
             profileUrl={`/p/${user?.username || user?.email?.split('@')[0] || 'preview'}`}
+            components={components}
+            background={background}
             onClose={() => setShowDevicePreview(false)}
           />
         )}
@@ -596,7 +628,7 @@ function getDefaultContent(type: string, t: (key: string) => string) {
         bio: '',
         photoURL: '',
         cardBackgroundColor: '#ffffff',
-        cardBackgroundOpacity: 0.95
+        cardBackgroundOpacity: 95
       };
     default:
       return {};
