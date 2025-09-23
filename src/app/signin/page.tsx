@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ import { FcGoogle } from "react-icons/fc";
 
 function SignInForm() {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     signInWithGoogle,
     signInWithEmail,
@@ -63,9 +64,11 @@ function SignInForm() {
   // 既にログイン済みの場合はダッシュボードへリダイレクト
   useEffect(() => {
     if (user && !loading) {
-      router.push("/dashboard");
+      // ロケールを保持したままリダイレクト
+      const locale = pathname.startsWith('/en') ? '/en' : '';
+      router.push(`${locale}/dashboard`);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -452,15 +455,19 @@ function SignInForm() {
             <div>
               続行することで、
               <Link
-                href="/terms"
+                href="https://tapforge.pages.dev/terms/"
                 className="underline underline-offset-4 hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 利用規約
               </Link>
               と
               <Link
-                href="/privacy"
+                href="https://tapforge.pages.dev/privacy/"
                 className="underline underline-offset-4 hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 プライバシーポリシー
               </Link>

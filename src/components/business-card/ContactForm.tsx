@@ -15,6 +15,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ContactFormProps {
   initialData: ContactInfo;
@@ -34,6 +35,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [formData, setFormData] = useState<ContactInfo>(initialData);
   const [vcardPreview, setVcardPreview] = useState('');
   const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     setFormData(initialData);
@@ -97,14 +99,14 @@ const ContactForm: React.FC<ContactFormProps> = ({
     <Card className="w-full shadow-lg">
       <div className="p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-bold mb-4 pb-3 border-b text-center">
-          📝 情報の確認・編集
+          📝 {t('confirmAndEdit')}
         </h2>
 
       <div className="space-y-6">
         {/* 名前 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="lastName">姓</Label>
+            <Label htmlFor="lastName">{t('lastName')}</Label>
             <Input
               id="lastName"
               value={formData.lastName}
@@ -113,7 +115,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="firstName">名</Label>
+            <Label htmlFor="firstName">{t('firstName')}</Label>
             <Input
               id="firstName"
               value={formData.firstName}
@@ -127,7 +129,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="phoneticLastName">
-              姓 <span className="text-xs text-gray-500">(ふりがな)</span>
+              {t('lastName')} <span className="text-xs text-gray-500">({t('phoneticReading')})</span>
             </Label>
             <Input
               id="phoneticLastName"
@@ -138,7 +140,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="phoneticFirstName">
-              名 <span className="text-xs text-gray-500">(ふりがな)</span>
+              {t('firstName')} <span className="text-xs text-gray-500">({t('phoneticReading')})</span>
             </Label>
             <Input
               id="phoneticFirstName"
@@ -151,7 +153,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
 
         {/* 会社情報 */}
         <div className="space-y-2">
-          <Label htmlFor="company">会社名</Label>
+          <Label htmlFor="company">{t('company')}</Label>
           <Input
             id="company"
             value={formData.company}
@@ -162,7 +164,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="department">部署</Label>
+            <Label htmlFor="department">{t('department')}</Label>
             <Input
               id="department"
               value={formData.department}
@@ -171,7 +173,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="title">役職</Label>
+            <Label htmlFor="title">{t('position')}</Label>
             <Input
               id="title"
               value={formData.title}
@@ -183,7 +185,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
 
         {/* 連絡先 */}
         <div className="space-y-2">
-          <Label htmlFor="email">メールアドレス</Label>
+          <Label htmlFor="email">{t('email')}</Label>
           <Input
             id="email"
             type="email"
@@ -194,7 +196,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="website">ウェブサイト</Label>
+          <Label htmlFor="website">{t('website')}</Label>
           <Input
             id="website"
             type="url"
@@ -206,14 +208,14 @@ const ContactForm: React.FC<ContactFormProps> = ({
 
         {/* 住所 */}
         <div className="space-y-3">
-          <Label>住所</Label>
+          <Label>{t('address')}</Label>
           {(formData.addresses || []).map((addr, index) => (
             <div key={index} className="p-4 border rounded-lg bg-gray-50 space-y-3">
               <div className="flex items-center gap-2">
                 <Input
                   value={addr.label}
                   onChange={handleAddressChange(index, 'label')}
-                  placeholder="ラベル (例: 本社)"
+                  placeholder={t('labelExample')}
                   className="flex-1"
                 />
                 <Button
@@ -228,12 +230,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
               <Input
                 value={addr.postalCode}
                 onChange={handleAddressChange(index, 'postalCode')}
-                placeholder="郵便番号 (例: 100-0001)"
+                placeholder={t('postalCodeExample')}
               />
               <Input
                 value={addr.address}
                 onChange={handleAddressChange(index, 'address')}
-                placeholder="住所"
+                placeholder={t('address')}
               />
             </div>
           ))}
@@ -243,13 +245,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
             className="w-full h-10 touch-manipulation"
           >
             <Plus className="h-4 w-4 mr-2" />
-            住所を追加
+            {t('addAddress')}
           </Button>
         </div>
 
         {/* 電話番号 */}
         <div className="space-y-3">
-          <Label>電話番号</Label>
+          <Label>{t('phone')}</Label>
           {(formData.phoneNumbers || []).map((phone, index) => (
             <div key={index} className="flex items-center gap-2">
               <Select
@@ -260,17 +262,17 @@ const ContactForm: React.FC<ContactFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="WORK">会社</SelectItem>
-                  <SelectItem value="MOBILE">携帯</SelectItem>
-                  <SelectItem value="FAX">FAX</SelectItem>
-                  <SelectItem value="OTHER">その他</SelectItem>
+                  <SelectItem value="WORK">{t('work')}</SelectItem>
+                  <SelectItem value="MOBILE">{t('mobile')}</SelectItem>
+                  <SelectItem value="FAX">{t('fax')}</SelectItem>
+                  <SelectItem value="OTHER">{t('other')}</SelectItem>
                 </SelectContent>
               </Select>
               <Input
                 type="tel"
                 value={phone.number || ''}
                 onChange={(e) => handlePhoneChange(index, 'number')(e.target.value)}
-                placeholder="電話番号"
+                placeholder={t('phone')}
                 className="flex-1"
               />
               <Button
@@ -289,7 +291,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             className="w-full h-10 touch-manipulation"
           >
             <Plus className="h-4 w-4 mr-2" />
-            電話番号を追加
+            {t('addPhoneNumber')}
           </Button>
         </div>
 
@@ -300,7 +302,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
             variant="ghost"
             className="w-full justify-between"
           >
-            <span className="font-semibold">vCard プレビュー</span>
+            <span className="font-semibold">{t('vcardPreview')}</span>
             {isPreviewCollapsed ? (
               <ChevronDown className="h-5 w-5" />
             ) : (
@@ -320,14 +322,14 @@ const ContactForm: React.FC<ContactFormProps> = ({
             onClick={() => onSave(formData)}
             className="flex-1 h-12 text-base touch-manipulation"
           >
-            💾 vCardを保存
+            💾 {t('saveVCard')}
           </Button>
           <Button
             onClick={onCancel}
             variant="outline"
             className="flex-1 h-12 text-base touch-manipulation"
           >
-            キャンセル
+            {t('cancel')}
           </Button>
         </div>
       </div>

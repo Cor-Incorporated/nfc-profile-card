@@ -11,6 +11,7 @@ import { ProfileComponent } from './utils/dataStructure';
 import { ImageUploader } from './ImageUploader';
 import { getSocialServiceInfo } from '@/utils/socialLinks';
 import { useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ComponentEditorProps {
   component: ProfileComponent;
@@ -20,18 +21,19 @@ interface ComponentEditorProps {
 }
 
 export function ComponentEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
+  const { t } = useLanguage();
   const renderEditor = () => {
     switch(component.type) {
       case 'text':
-        return <TextEditor component={component} onSave={onSave} onClose={onClose} userId={userId} />;
+        return <TextEditor component={component} onSave={onSave} onClose={onClose} />;
       case 'image':
         return <ImageEditor component={component} onSave={onSave} onClose={onClose} userId={userId} />;
       case 'link':
-        return <LinkEditor component={component} onSave={onSave} onClose={onClose} userId={userId} />;
+        return <LinkEditor component={component} onSave={onSave} onClose={onClose} />;
       case 'profile':
         return <ProfileEditor component={component} onSave={onSave} onClose={onClose} userId={userId} />;
       default:
-        return <div>未対応のコンポーネントタイプ</div>;
+        return <div>{t('unsupportedComponent')}</div>;
     }
   };
 
@@ -40,10 +42,10 @@ export function ComponentEditor({ component, onSave, onClose, userId }: Componen
       <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] sm:max-h-96 overflow-y-auto">
         <div className="flex justify-between items-center p-3 sm:p-4 border-b">
           <h3 className="text-base sm:text-lg font-semibold">
-            {component.type === 'text' && 'テキスト編集'}
-            {component.type === 'image' && '画像編集'}
-            {component.type === 'link' && 'リンク編集'}
-            {component.type === 'profile' && 'プロフィール編集'}
+            {component.type === 'text' && t('editText')}
+            {component.type === 'image' && t('editImage')}
+            {component.type === 'link' && t('editLink')}
+            {component.type === 'profile' && t('editProfileComponent')}
           </h3>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -58,9 +60,10 @@ export function ComponentEditor({ component, onSave, onClose, userId }: Componen
 }
 
 // テキストエディタ
-function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
+function TextEditor({ component, onSave, onClose }: Omit<ComponentEditorProps, 'userId'>) {
   const content = component.content as any;
   const [text, setText] = useState(content?.text || '');
+  const { t } = useLanguage();
 
   const handleSave = () => {
     onSave({
@@ -73,22 +76,22 @@ function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="text-content">テキスト内容</Label>
+        <Label htmlFor="text-content">{t('textContent')}</Label>
         <Textarea
           id="text-content"
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="w-full mt-1"
           rows={4}
-          placeholder="テキストを入力してください"
+          placeholder={t('textPlaceholderInput')}
         />
       </div>
       <div className="flex gap-2">
         <Button onClick={handleSave} className="flex-1">
-          保存
+          {t('save')}
         </Button>
         <Button variant="outline" onClick={onClose} className="flex-1">
-          キャンセル
+          {t('cancel')}
         </Button>
       </div>
     </div>
@@ -101,6 +104,7 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
   const [imageUrl, setImageUrl] = useState(content?.src || '');
   const [alt, setAlt] = useState(content?.alt || '');
   const [useUpload, setUseUpload] = useState(true);
+  const { t } = useLanguage();
 
   const handleSave = () => {
     onSave({
@@ -112,7 +116,7 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">画像を編集</h3>
+      <h3 className="text-lg font-semibold">{t('editImage')}</h3>
 
       {/* タブ切り替え */}
       <div className="flex space-x-2">
@@ -121,14 +125,14 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
           variant={useUpload ? "default" : "outline"}
           onClick={() => setUseUpload(true)}
         >
-          アップロード
+          {t('upload')}
         </Button>
         <Button
           size="sm"
           variant={!useUpload ? "default" : "outline"}
           onClick={() => setUseUpload(false)}
         >
-          URL入力
+          {t('urlInput')}
         </Button>
       </div>
 
@@ -141,7 +145,7 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
       ) : (
         <div>
           <Label htmlFor="image-url" className="block text-sm font-medium mb-2">
-            画像URL
+            {t('imageUrl')}
           </Label>
           <Input
             id="image-url"
@@ -156,7 +160,7 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
 
       <div>
         <Label htmlFor="image-alt" className="block text-sm font-medium mb-2">
-          代替テキスト（alt）
+          {t('imageAlt')}
         </Label>
         <Input
           id="image-alt"
@@ -164,16 +168,16 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
           value={alt}
           onChange={(e) => setAlt(e.target.value)}
           className="w-full"
-          placeholder="画像の説明"
+          placeholder={t('imageAltPlaceholder')}
         />
       </div>
 
       <div className="flex space-x-2">
         <Button onClick={handleSave} className="flex-1">
-          保存
+          {t('save')}
         </Button>
         <Button onClick={onClose} variant="outline" className="flex-1">
-          キャンセル
+          {t('cancel')}
         </Button>
       </div>
     </div>
@@ -181,11 +185,12 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
 }
 
 // リンクエディタ
-function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
+function LinkEditor({ component, onSave, onClose }: Omit<ComponentEditorProps, 'userId'>) {
   const content = component.content as any;
   const [url, setUrl] = useState(content?.url || '');
   const [label, setLabel] = useState(content?.label || '');
   const [useAutoLabel, setUseAutoLabel] = useState(true);
+  const { t } = useLanguage();
 
   // URLが変更されたら自動的にラベルを設定
   useEffect(() => {
@@ -209,7 +214,7 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">リンクを編集</h3>
+      <h3 className="text-lg font-semibold">{t('editLink')}</h3>
 
       <div>
         <Label htmlFor="link-url" className="block text-sm font-medium mb-2">
@@ -227,7 +232,7 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
 
       <div>
         <Label htmlFor="link-label" className="block text-sm font-medium mb-2">
-          表示テキスト
+          {t('linkLabel')}
         </Label>
         <div className="flex space-x-2">
           <Input
@@ -239,7 +244,7 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
               setUseAutoLabel(false);
             }}
             className="flex-1"
-            placeholder="リンクのラベル"
+            placeholder={t('linkLabelPlaceholder')}
           />
           <Button
             type="button"
@@ -251,7 +256,7 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
               setLabel(info.name);
             }}
           >
-            自動設定
+            {t('autoSet')}
           </Button>
         </div>
       </div>
@@ -259,7 +264,7 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
       {/* プレビュー */}
       <div>
         <Label className="block text-sm font-medium mb-2">
-          プレビュー
+          {t('linkPreview')}
         </Label>
         <div
           className="p-3 border rounded flex items-center space-x-3"
@@ -275,10 +280,10 @@ function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps
 
       <div className="flex space-x-2">
         <Button onClick={handleSave} className="flex-1">
-          保存
+          {t('save')}
         </Button>
         <Button onClick={onClose} variant="outline" className="flex-1">
-          キャンセル
+          {t('cancel')}
         </Button>
       </div>
     </div>
@@ -324,6 +329,7 @@ interface ProfileContent {
 function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
   // Type guard to ensure we have profile content
   const content = component.content as any; // Temporary solution for complex type
+  const { t } = useLanguage();
 
   const [profileData, setProfileData] = useState<ProfileContent>({
     firstName: content?.firstName || '',
@@ -366,14 +372,14 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
 
   // カラープリセット
   const COLOR_PRESETS = [
-    { color: '#3b82f6', name: 'ブルー' },
-    { color: '#10b981', name: 'グリーン' },
-    { color: '#f59e0b', name: 'オレンジ' },
-    { color: '#ef4444', name: 'レッド' },
-    { color: '#8b5cf6', name: 'パープル' },
-    { color: '#ec4899', name: 'ピンク' },
-    { color: '#6b7280', name: 'グレー' },
-    { color: '#000000', name: 'ブラック' },
+    { color: '#3b82f6', name: t('blue') },
+    { color: '#10b981', name: t('green') },
+    { color: '#f59e0b', name: t('orange') },
+    { color: '#ef4444', name: t('red') },
+    { color: '#8b5cf6', name: t('purple') },
+    { color: '#ec4899', name: t('pink') },
+    { color: '#6b7280', name: t('gray') },
+    { color: '#000000', name: t('black') },
   ];
 
   return (
@@ -382,19 +388,19 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic" className="text-xs">
-            基本
+            {t('basic')}
           </TabsTrigger>
           <TabsTrigger value="contact" className="text-xs">
-            連絡
+            {t('contact')}
           </TabsTrigger>
           <TabsTrigger value="company" className="text-xs">
-            会社
+            {t('companyInfo')}
           </TabsTrigger>
           <TabsTrigger value="address" className="text-xs">
-            住所
+            {t('addressTab')}
           </TabsTrigger>
           <TabsTrigger value="design" className="text-xs">
-            デザイン
+            {t('design')}
           </TabsTrigger>
         </TabsList>
 
@@ -402,7 +408,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
         <TabsContent value="basic" className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="lastName" className="text-xs">姓</Label>
+              <Label htmlFor="lastName" className="text-xs">{t('lastNameField')}</Label>
               <Input
                 id="lastName"
                 value={profileData.lastName}
@@ -412,7 +418,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
               />
             </div>
             <div>
-              <Label htmlFor="firstName" className="text-xs">名</Label>
+              <Label htmlFor="firstName" className="text-xs">{t('firstNameField')}</Label>
               <Input
                 id="firstName"
                 value={profileData.firstName}
@@ -425,42 +431,42 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="phoneticLastName" className="text-xs">ふりがな（姓）</Label>
+              <Label htmlFor="phoneticLastName" className="text-xs">{t('phoneticLastNameDetailed')}</Label>
               <Input
                 id="phoneticLastName"
                 value={profileData.phoneticLastName}
                 onChange={(e) => setProfileData({...profileData, phoneticLastName: e.target.value})}
-                placeholder="やまだ"
+                placeholder="yamada"
                 className="mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="phoneticFirstName" className="text-xs">ふりがな（名）</Label>
+              <Label htmlFor="phoneticFirstName" className="text-xs">{t('phoneticFirstNameDetailed')}</Label>
               <Input
                 id="phoneticFirstName"
                 value={profileData.phoneticFirstName}
                 onChange={(e) => setProfileData({...profileData, phoneticFirstName: e.target.value})}
-                placeholder="たろう"
+                placeholder="taro"
                 className="mt-1"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="bio" className="text-xs">自己紹介</Label>
+            <Label htmlFor="bio" className="text-xs">{t('bio')}</Label>
             <Textarea
               id="bio"
               value={profileData.bio}
               onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
               rows={3}
-              placeholder="簡単な自己紹介"
+              placeholder={t('briefIntroduction')}
               className="mt-1"
             />
           </div>
 
           {/* 写真アップロード */}
           <div>
-            <Label className="text-xs">プロフィール写真</Label>
+            <Label className="text-xs">{t('profilePhotoField')}</Label>
             <ImageUploader
               userId={userId || ''}
               onImageUploaded={(url) => setProfileData({...profileData, photoURL: url})}
@@ -473,7 +479,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
         {/* 連絡先タブ */}
         <TabsContent value="contact" className="space-y-3">
           <div>
-            <Label htmlFor="email" className="text-xs">メールアドレス</Label>
+            <Label htmlFor="email" className="text-xs">{t('email')}</Label>
             <Input
               id="email"
               type="email"
@@ -485,7 +491,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
           </div>
 
           <div>
-            <Label htmlFor="phone" className="text-xs">電話番号（会社）</Label>
+            <Label htmlFor="phone" className="text-xs">{t('workPhone')}</Label>
             <Input
               id="phone"
               type="tel"
@@ -497,7 +503,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
           </div>
 
           <div>
-            <Label htmlFor="cellPhone" className="text-xs">携帯電話</Label>
+            <Label htmlFor="cellPhone" className="text-xs">{t('cellPhone')}</Label>
             <Input
               id="cellPhone"
               type="tel"
@@ -509,7 +515,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
           </div>
 
           <div>
-            <Label htmlFor="website" className="text-xs">ウェブサイト</Label>
+            <Label htmlFor="website" className="text-xs">{t('website')}</Label>
             <Input
               id="website"
               type="url"
@@ -524,34 +530,34 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
         {/* 会社情報タブ */}
         <TabsContent value="company" className="space-y-3">
           <div>
-            <Label htmlFor="company" className="text-xs">会社名</Label>
+            <Label htmlFor="company" className="text-xs">{t('company')}</Label>
             <Input
               id="company"
               value={profileData.company}
               onChange={(e) => setProfileData({...profileData, company: e.target.value})}
-              placeholder="株式会社○○"
+              placeholder={t('companyPlaceholder')}
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="department" className="text-xs">部署</Label>
+            <Label htmlFor="department" className="text-xs">{t('departmentField')}</Label>
             <Input
               id="department"
               value={profileData.department}
               onChange={(e) => setProfileData({...profileData, department: e.target.value})}
-              placeholder="営業部"
+              placeholder="Sales"
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="position" className="text-xs">役職</Label>
+            <Label htmlFor="position" className="text-xs">{t('position')}</Label>
             <Input
               id="position"
               value={profileData.position}
               onChange={(e) => setProfileData({...profileData, position: e.target.value})}
-              placeholder="部長"
+              placeholder={t('positionPlaceholder')}
               className="mt-1"
             />
           </div>
@@ -560,7 +566,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
         {/* 住所タブ */}
         <TabsContent value="address" className="space-y-3">
           <div>
-            <Label htmlFor="postalCode" className="text-xs">郵便番号</Label>
+            <Label htmlFor="postalCode" className="text-xs">{t('postalCodeField')}</Label>
             <Input
               id="postalCode"
               value={profileData.postalCode}
@@ -571,23 +577,23 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
           </div>
 
           <div>
-            <Label htmlFor="city" className="text-xs">都道府県・市区町村</Label>
+            <Label htmlFor="city" className="text-xs">{t('cityField')}</Label>
             <Input
               id="city"
               value={profileData.city}
               onChange={(e) => setProfileData({...profileData, city: e.target.value})}
-              placeholder="東京都千代田区"
+              placeholder={t('cityField')}
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="address" className="text-xs">住所</Label>
+            <Label htmlFor="address" className="text-xs">{t('addressTab')}</Label>
             <Input
               id="address"
               value={profileData.address}
               onChange={(e) => setProfileData({...profileData, address: e.target.value})}
-              placeholder="千代田1-1-1"
+              placeholder={t('addressPlaceholder')}
               className="mt-1"
             />
           </div>
@@ -596,7 +602,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
         {/* デザインタブ */}
         <TabsContent value="design" className="space-y-3">
           <div>
-            <Label className="text-xs">プロフィールカードの背景色</Label>
+            <Label className="text-xs">{t('profileCardBackground')}</Label>
             <div className="grid grid-cols-4 gap-2 mt-2">
               {COLOR_PRESETS.map(preset => (
                 <button
@@ -631,7 +637,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
 
           <div>
             <Label htmlFor="card-opacity" className="text-xs">
-              カードの透明度: {profileData.cardBackgroundOpacity || 95}%
+              {t('cardTransparency')}: {profileData.cardBackgroundOpacity || 95}%
             </Label>
             <input
               id="card-opacity"
@@ -646,7 +652,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
               className="w-full mt-1"
             />
             <div className="text-xs text-gray-500 mt-1">
-              0%（完全に透明）〜 100%（不透明）
+              {t('transparencyDescription')}
             </div>
           </div>
         </TabsContent>
@@ -655,10 +661,10 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
       {/* 保存・キャンセルボタン */}
       <div className="flex gap-2 pt-2">
         <Button onClick={handleSave} className="flex-1">
-          保存
+          {t('save')}
         </Button>
         <Button variant="outline" onClick={onClose} className="flex-1">
-          キャンセル
+          {t('cancel')}
         </Button>
       </div>
     </div>

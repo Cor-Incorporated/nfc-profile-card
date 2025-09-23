@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
@@ -16,59 +16,56 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-            TapForge
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            物理的なNFCカードとデジタルプロフィールを統合した
-            <br />
-            次世代のネットワーキングツール
-          </p>
-
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/signin?tab=signup"
-              className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              無料で始める
-            </Link>
-            <Link
-              href="/signin?tab=signin"
-              className="px-8 py-3 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
-            >
-              ログイン
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col items-center justify-center p-4">
+      {/* Logo and Product Name */}
+      <div className="mb-12 text-center">
+        <div className="mb-4">
+          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl">
+            <span className="text-white text-5xl">✨</span>
           </div>
         </div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          TapForge
+        </h1>
+      </div>
 
-        <div className="mt-16 grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="text-4xl mb-4">🎯</div>
-            <h3 className="text-xl font-semibold mb-2">ワンタップ共有</h3>
-            <p className="text-gray-600">
-              NFCカードをスマホにタップするだけで、瞬時にプロフィールを共有
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="text-4xl mb-4">🔗</div>
-            <h3 className="text-xl font-semibold mb-2">リンク集約</h3>
-            <p className="text-gray-600">
-              最大10個のSNS・ポートフォリオリンクを一元管理
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="text-4xl mb-4">📸</div>
-            <h3 className="text-xl font-semibold mb-2">名刺OCR</h3>
-            <p className="text-gray-600">
-              カメラで撮影するだけで連絡先を自動保存
-            </p>
-          </div>
+      {/* Visual Features (Icons only) */}
+      <div className="grid grid-cols-3 gap-4 mb-12 max-w-xs w-full">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg flex flex-col items-center">
+          <span className="text-3xl mb-2">👆</span>
+          <span className="text-2xl">📱</span>
         </div>
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg flex flex-col items-center">
+          <span className="text-3xl mb-2">🔗</span>
+          <span className="text-2xl">✨</span>
+        </div>
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg flex flex-col items-center">
+          <span className="text-3xl mb-2">📸</span>
+          <span className="text-2xl">💼</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <Link
+          href="/signin?tab=signup"
+          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+        >
+          Get Started
+        </Link>
+        <Link
+          href="/signin?tab=signin"
+          className="w-full py-4 bg-white/80 backdrop-blur text-gray-700 rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+        >
+          Sign In
+        </Link>
+      </div>
+
+      {/* Visual Indicator */}
+      <div className="mt-12 flex gap-2">
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+        <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse delay-100"></div>
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse delay-200"></div>
       </div>
     </div>
   );

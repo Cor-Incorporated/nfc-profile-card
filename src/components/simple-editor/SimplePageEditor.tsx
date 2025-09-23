@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, GripVertical, Save, Check, AlertCircle, ArrowLeft, Eye, Settings } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -35,6 +36,7 @@ import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
 function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
+  const { t } = useLanguage();
   const {
     attributes,
     listeners,
@@ -83,8 +85,8 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
               {'name' in component.content && component.content.name ? component.content.name :
                ('lastName' in component.content || 'firstName' in component.content) ?
                 `${('lastName' in component.content && component.content.lastName) || ''} ${('firstName' in component.content && component.content.firstName) || ''}`.trim() ||
-                'プロフィール' :
-               'プロフィール'}
+                t('profile') :
+               t('profile')}
               {'company' in component.content && component.content.company && ` - ${component.content.company}`}
             </div>
           )}
@@ -93,7 +95,7 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
            !('name' in component.content && component.content.name) &&
            !('lastName' in component.content && component.content.lastName) &&
            !('firstName' in component.content && component.content.firstName) && (
-            <p className="text-sm text-gray-500 mt-1">クリックして編集</p>
+            <p className="text-sm text-gray-500 mt-1">{t('clickToEdit')}</p>
           )}
         </div>
 
@@ -104,14 +106,14 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
             variant="outline"
             onClick={() => onEdit(component)}
           >
-            編集
+            {t('edit')}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onDelete(component.id)}
           >
-            削除
+            {t('delete')}
           </Button>
         </div>
       </div>
@@ -121,6 +123,7 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
 
 export function SimplePageEditor({ userId, initialData, user }: SimplePageEditorProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [components, setComponents] = useState<ProfileComponent[]>(
     initialData?.components || []
   );
@@ -178,7 +181,7 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
   };
 
   const addComponent = (type: ProfileComponent['type']) => {
-    const defaultContent = getDefaultContent(type);
+    const defaultContent = getDefaultContent(type, t);
     // Validate default content
     const isValid = validateComponentContent(type, defaultContent);
     if (!isValid) {
@@ -389,7 +392,7 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
           </Button>
 
           {/* 中央：ページタイトル */}
-          <h1 className="font-bold">プロフィール編集</h1>
+          <h1 className="font-bold">{t('profileEditor')}</h1>
 
           {/* 右：プレビューと背景設定ボタン */}
           <div className="flex gap-2">
@@ -399,7 +402,7 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
               onClick={() => setShowBackgroundSettings(true)}
             >
               <Settings className="mr-1 h-4 w-4" />
-              背景
+              {t('background')}
             </Button>
             <Button
               variant="outline"
@@ -407,7 +410,7 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
               onClick={() => setShowDevicePreview(true)}
             >
               <Eye className="mr-1 h-4 w-4" />
-              プレビュー
+              {t('preview')}
             </Button>
           </div>
         </div>
@@ -445,25 +448,25 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
           {showAddMenu ? (
             <div className="bg-white rounded-lg shadow-lg p-4 space-y-2">
               <Button onClick={() => addComponent('text')} className="w-full">
-                テキストを追加
+                {t('addText')}
               </Button>
               <Button onClick={() => addComponent('image')} className="w-full">
-                画像を追加
+                {t('addImage')}
               </Button>
               <Button onClick={() => addComponent('link')} className="w-full">
-                リンクを追加
+                {t('addLink')}
               </Button>
               <Button onClick={() => addComponent('profile')} className="w-full">
-                プロフィールを追加
+                {t('addProfile')}
               </Button>
               <Button variant="ghost" onClick={() => setShowAddMenu(false)} className="w-full">
-                キャンセル
+                {t('cancel')}
               </Button>
             </div>
           ) : (
             <Button onClick={() => setShowAddMenu(true)} size="lg" className="w-full">
               <Plus className="mr-2 h-5 w-5" />
-              コンポーネントを追加
+              {t('addComponent')}
             </Button>
           )}
         </div>
@@ -475,19 +478,19 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
             {saveStatus === 'saving' && (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                保存中...
+                {t('saving')}
               </div>
             )}
             {saveStatus === 'saved' && lastSaved && (
               <div className="flex items-center text-green-600">
                 <Check className="h-4 w-4 mr-2" />
-                {lastSaved.toLocaleTimeString()}に保存済み
+                {lastSaved.toLocaleTimeString()} {t('savedAt')}
               </div>
             )}
             {saveStatus === 'error' && (
               <div className="flex items-center text-red-600">
                 <AlertCircle className="h-4 w-4 mr-2" />
-                保存に失敗しました
+                {t('saveFailed')}
               </div>
             )}
           </div>
@@ -500,7 +503,7 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
             variant="outline"
           >
             <Save className="mr-2 h-4 w-4" />
-            手動保存
+            {t('manualSave')}
           </Button>
 
           {/* デバッグ用：データリセットボタン（開発環境のみ） */}
@@ -565,14 +568,14 @@ export function SimplePageEditor({ userId, initialData, user }: SimplePageEditor
   );
 }
 
-function getDefaultContent(type: string) {
+function getDefaultContent(type: string, t: (key: string) => string) {
   switch(type) {
     case 'text':
-      return { text: '新しいテキスト' };
+      return { text: t('newText') };
     case 'image':
       return { src: '', alt: '' };
     case 'link':
-      return { url: '', label: 'リンク' };
+      return { url: '', label: t('newLink') };
     case 'profile':
       return {
         firstName: '',
@@ -591,7 +594,9 @@ function getDefaultContent(type: string) {
         postalCode: '',
         website: '',
         bio: '',
-        photoURL: ''
+        photoURL: '',
+        cardBackgroundColor: '#ffffff',
+        cardBackgroundOpacity: 0.95
       };
     default:
       return {};

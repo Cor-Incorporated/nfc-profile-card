@@ -1,20 +1,23 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
-import { LogOut, ExternalLink, Eye } from "lucide-react";
+import { LogOut, ExternalLink, Eye, Globe } from "lucide-react";
 import { getAnalyticsSummary } from "@/lib/analytics";
 
 export default function DashboardPage() {
   const { user, loading, signOut } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [showLangSelector, setShowLangSelector] = useState(false);
   const [analytics, setAnalytics] = useState<{
     totalViews: number;
     lastViewedAt: Date | null;
@@ -39,7 +42,6 @@ export default function DashboardPage() {
         setUserProfile(userSnap.data());
       }
 
-
       // Fetch analytics data
       const analyticsData = await getAnalyticsSummary(user.uid);
       setAnalytics(analyticsData);
@@ -56,6 +58,11 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  const handleLanguageChange = async (lang: 'ja' | 'en') => {
+    setLanguage(lang);
+    setShowLangSelector(false);
   };
 
   if (loading) {
@@ -75,18 +82,74 @@ export default function DashboardPage() {
       <div className="max-w-md mx-auto px-4 py-6">
         {/* モバイル向けヘッダー */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">ダッシュボード</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {user?.displayName || user?.email?.split("@")[0] || "ユーザー"}さん
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('welcome')}, {user?.displayName || user?.email?.split("@")[0]}
+              </p>
+            </div>
+
+            {/* Language Selector Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLangSelector(!showLangSelector)}
+                className="p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                <Globe className="w-5 h-5 text-gray-600" />
+              </button>
+
+              {showLangSelector && (
+                <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <button
+                    onClick={() => handleLanguageChange('ja')}
+                    className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                      language === 'ja' ? 'bg-blue-50 text-blue-600' : ''
+                    }`}
+                  >
+                    日本語
+                  </button>
+                  <button
+                    onClick={() => handleLanguageChange('en')}
+                    className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                      language === 'en' ? 'bg-blue-50 text-blue-600' : ''
+                    }`}
+                  >
+                    English
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Profile setup notice */}
         {!profileLoading && !userProfile?.username && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              📝 プロフィール設定が必要です
+              📝 {t('profileSetup')}
             </p>
+          </div>
+        )}
+
+        {/* Analytics Summary */}
+        {analytics && (
+          <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">{t('analytics')}</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{analytics.totalViews}</p>
+                <p className="text-xs text-gray-500">{t('totalViews')}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{analytics.todayViews}</p>
+                <p className="text-xs text-gray-500">{t('todayViews')}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{analytics.weekViews}</p>
+                <p className="text-xs text-gray-500">{t('weekViews')}</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -104,7 +167,7 @@ export default function DashboardPage() {
                   <div className="p-2 bg-gray-100 rounded-lg">
                     <Eye className="w-5 h-5 text-gray-600" />
                   </div>
-                  <span className="font-medium text-gray-900">公開プロファイル</span>
+                  <span className="font-medium text-gray-900">{t('publicProfile')}</span>
                 </div>
                 <ExternalLink className="w-4 h-4 text-gray-400" />
               </div>
@@ -132,7 +195,7 @@ export default function DashboardPage() {
                   />
                 </svg>
               </div>
-              <span className="font-medium">プロフィールを編集</span>
+              <span className="font-medium">{t('editProfile')}</span>
             </div>
           </Link>
 
@@ -166,41 +229,18 @@ export default function DashboardPage() {
                   />
                 </svg>
               </div>
-              <span className="font-medium text-gray-900">名刺をスキャン</span>
+              <span className="font-medium text-gray-900">{t('scanCard')}</span>
             </div>
           </Link>
 
-
-
-          {/* アナリティクス簡易表示 */}
-          {analytics && (
-            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">アナリティクス</h3>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-lg font-bold text-gray-900">{analytics.totalViews}</div>
-                  <div className="text-xs text-gray-500">総閲覧</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-gray-900">{analytics.todayViews}</div>
-                  <div className="text-xs text-gray-500">今日</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-gray-900">{analytics.weekViews}</div>
-                  <div className="text-xs text-gray-500">今週</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ログアウトボタン */}
+          {/* ログアウト */}
           <button
             onClick={handleSignOut}
-            className="w-full p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="w-full p-4 bg-white rounded-lg shadow-sm border border-red-200 hover:bg-red-50 transition-colors"
           >
             <div className="flex items-center justify-center gap-3">
               <LogOut className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-red-600">ログアウト</span>
+              <span className="font-medium text-red-600">{t('logout')}</span>
             </div>
           </button>
         </div>
