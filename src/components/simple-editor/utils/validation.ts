@@ -1,6 +1,6 @@
 // src/components/simple-editor/utils/validation.ts
-import { z } from 'zod';
-import DOMPurify from 'isomorphic-dompurify';
+import { z } from "zod";
+import DOMPurify from "isomorphic-dompurify";
 
 // Configure DOMPurify to remove all HTML tags and keep only text
 const sanitizeString = (str: string): string => {
@@ -8,16 +8,17 @@ const sanitizeString = (str: string): string => {
   return DOMPurify.sanitize(str, {
     ALLOWED_TAGS: [],
     ALLOWED_ATTR: [],
-    KEEP_CONTENT: true
+    KEEP_CONTENT: true,
   });
 };
 
 // Sanitize HTML content (allows safe HTML)
 const sanitizeHTML = (html: string): string => {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'span', 'div'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+    ALLOWED_TAGS: ["b", "i", "em", "strong", "a", "br", "p", "span", "div"],
+    ALLOWED_ATTR: ["href", "target", "rel", "class"],
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   });
 };
 
@@ -28,13 +29,24 @@ export const TextContentSchema = z.object({
 
 // Image content schema
 export const ImageContentSchema = z.object({
-  src: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
+  src: z
+    .string()
+    .refine(
+      (val) => val === "" || z.string().url().safeParse(val).success,
+      "Invalid URL",
+    )
+    .optional(),
   alt: z.string().max(200).transform(sanitizeString).optional(),
 });
 
 // Link content schema
 export const LinkContentSchema = z.object({
-  url: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL'),
+  url: z
+    .string()
+    .refine(
+      (val) => val === "" || z.string().url().safeParse(val).success,
+      "Invalid URL",
+    ),
   label: z.string().max(200).transform(sanitizeString).optional(),
 });
 
@@ -48,16 +60,37 @@ export const ProfileContentSchema = z.object({
   company: z.string().max(200).transform(sanitizeString).optional(),
   position: z.string().max(200).transform(sanitizeString).optional(),
   department: z.string().max(200).transform(sanitizeString).optional(),
-  email: z.string().refine((val) => val === '' || z.string().email().safeParse(val).success, 'Invalid email').optional(),
+  email: z
+    .string()
+    .refine(
+      (val) => val === "" || z.string().email().safeParse(val).success,
+      "Invalid email",
+    )
+    .optional(),
   phone: z.string().max(50).transform(sanitizeString).optional(),
   cellPhone: z.string().max(50).transform(sanitizeString).optional(),
-  website: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
+  website: z
+    .string()
+    .refine(
+      (val) => val === "" || z.string().url().safeParse(val).success,
+      "Invalid URL",
+    )
+    .optional(),
   address: z.string().max(500).transform(sanitizeString).optional(),
   city: z.string().max(200).transform(sanitizeString).optional(),
   postalCode: z.string().max(20).transform(sanitizeString).optional(),
   bio: z.string().max(1000).transform(sanitizeString).optional(),
-  photoURL: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
-  cardBackgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  photoURL: z
+    .string()
+    .refine(
+      (val) => val === "" || z.string().url().safeParse(val).success,
+      "Invalid URL",
+    )
+    .optional(),
+  cardBackgroundColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   cardBackgroundOpacity: z.number().min(0).max(100).optional(),
 });
 
@@ -72,7 +105,7 @@ export const ComponentContentSchema = z.union([
 // Component schema
 export const ProfileComponentSchema = z.object({
   id: z.string(),
-  type: z.enum(['text', 'image', 'link', 'profile']),
+  type: z.enum(["text", "image", "link", "profile"]),
   order: z.number().min(0),
   content: ComponentContentSchema,
   style: z.record(z.union([z.string(), z.number()])).optional(),
@@ -80,8 +113,11 @@ export const ProfileComponentSchema = z.object({
 
 // Background settings schema
 export const BackgroundSettingsSchema = z.object({
-  type: z.enum(['color', 'gradient', 'image', 'pattern']),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  type: z.enum(["color", "gradient", "image", "pattern"]),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   gradient: z
     .object({
       from: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
@@ -108,19 +144,22 @@ export const ProfileDataSchema = z.object({
 });
 
 // Validation functions
-export function validateComponentContent(type: string, content: unknown): boolean {
+export function validateComponentContent(
+  type: string,
+  content: unknown,
+): boolean {
   try {
     switch (type) {
-      case 'text':
+      case "text":
         TextContentSchema.parse(content);
         return true;
-      case 'image':
+      case "image":
         ImageContentSchema.parse(content);
         return true;
-      case 'link':
+      case "link":
         LinkContentSchema.parse(content);
         return true;
-      case 'profile':
+      case "profile":
         ProfileContentSchema.parse(content);
         return true;
       default:
@@ -142,16 +181,19 @@ export function validateProfileData(data: unknown): boolean {
 }
 
 // Safe content transform functions
-export function sanitizeComponentContent(type: string, content: unknown): unknown {
+export function sanitizeComponentContent(
+  type: string,
+  content: unknown,
+): unknown {
   try {
     switch (type) {
-      case 'text':
+      case "text":
         return TextContentSchema.parse(content);
-      case 'image':
+      case "image":
         return ImageContentSchema.parse(content);
-      case 'link':
+      case "link":
         return LinkContentSchema.parse(content);
-      case 'profile':
+      case "profile":
         return ProfileContentSchema.parse(content);
       default:
         return content;

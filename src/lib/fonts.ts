@@ -7,14 +7,14 @@ import {
   // Sawarabi_Gothic,
   // Kosugi_Maru,
   // Zen_Maru_Gothic
-} from 'next/font/google';
+} from "next/font/google";
 
 // 主要フォント（よく使うもの）
 export const notoSansJP = Noto_Sans_JP({
-  weight: ['400', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-noto-sans-jp',
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-noto-sans-jp",
   preload: false, // パフォーマンス改善のためpreloadを無効化
 });
 
@@ -75,7 +75,11 @@ export const notoSansJP = Noto_Sans_JP({
 // フォントリスト（エディターで使用）
 // パフォーマンス最適化のため、一部のフォントを一時的に無効化
 export const JAPANESE_FONTS = [
-  { value: 'noto-sans-jp', label: 'Noto Sans JP（ゴシック）', className: 'font-noto-sans-jp' },
+  {
+    value: "noto-sans-jp",
+    label: "Noto Sans JP（ゴシック）",
+    className: "font-noto-sans-jp",
+  },
   // { value: 'noto-serif-jp', label: 'Noto Serif JP（明朝）', className: 'font-noto-serif-jp' },
   // { value: 'mplus-1p', label: 'M PLUS 1p（モダン）', className: 'font-mplus-1p' },
   // { value: 'mplus-rounded', label: 'M PLUS Rounded（丸ゴシック）', className: 'font-mplus-rounded' },

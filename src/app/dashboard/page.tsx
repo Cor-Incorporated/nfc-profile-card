@@ -60,7 +60,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLanguageChange = async (lang: 'ja' | 'en') => {
+  const handleLanguageChange = async (lang: "ja" | "en") => {
     setLanguage(lang);
     setShowLangSelector(false);
   };
@@ -84,9 +84,10 @@ export default function DashboardPage() {
         <div className="mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t('welcome')}, {user?.displayName || user?.email?.split("@")[0]}
+                {t("welcome")},{" "}
+                {user?.displayName || user?.email?.split("@")[0]}
               </p>
             </div>
 
@@ -102,17 +103,17 @@ export default function DashboardPage() {
               {showLangSelector && (
                 <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                   <button
-                    onClick={() => handleLanguageChange('ja')}
+                    onClick={() => handleLanguageChange("ja")}
                     className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
-                      language === 'ja' ? 'bg-blue-50 text-blue-600' : ''
+                      language === "ja" ? "bg-blue-50 text-blue-600" : ""
                     }`}
                   >
                     日本語
                   </button>
                   <button
-                    onClick={() => handleLanguageChange('en')}
+                    onClick={() => handleLanguageChange("en")}
                     className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
-                      language === 'en' ? 'bg-blue-50 text-blue-600' : ''
+                      language === "en" ? "bg-blue-50 text-blue-600" : ""
                     }`}
                   >
                     English
@@ -126,28 +127,34 @@ export default function DashboardPage() {
         {/* Profile setup notice */}
         {!profileLoading && !userProfile?.username && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              📝 {t('profileSetup')}
-            </p>
+            <p className="text-sm text-yellow-800">📝 {t("profileSetup")}</p>
           </div>
         )}
 
         {/* Analytics Summary */}
         {analytics && (
           <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500 mb-3">{t('analytics')}</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-3">
+              {t("analytics")}
+            </h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-2xl font-bold text-gray-900">{analytics.totalViews}</p>
-                <p className="text-xs text-gray-500">{t('totalViews')}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analytics.totalViews}
+                </p>
+                <p className="text-xs text-gray-500">{t("totalViews")}</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{analytics.todayViews}</p>
-                <p className="text-xs text-gray-500">{t('todayViews')}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analytics.todayViews}
+                </p>
+                <p className="text-xs text-gray-500">{t("todayViews")}</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{analytics.weekViews}</p>
-                <p className="text-xs text-gray-500">{t('weekViews')}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analytics.weekViews}
+                </p>
+                <p className="text-xs text-gray-500">{t("weekViews")}</p>
               </div>
             </div>
           </div>
@@ -167,7 +174,9 @@ export default function DashboardPage() {
                   <div className="p-2 bg-gray-100 rounded-lg">
                     <Eye className="w-5 h-5 text-gray-600" />
                   </div>
-                  <span className="font-medium text-gray-900">{t('publicProfile')}</span>
+                  <span className="font-medium text-gray-900">
+                    {t("publicProfile")}
+                  </span>
                 </div>
                 <ExternalLink className="w-4 h-4 text-gray-400" />
               </div>
@@ -195,7 +204,7 @@ export default function DashboardPage() {
                   />
                 </svg>
               </div>
-              <span className="font-medium">{t('editProfile')}</span>
+              <span className="font-medium">{t("editProfile")}</span>
             </div>
           </Link>
 
@@ -229,7 +238,7 @@ export default function DashboardPage() {
                   />
                 </svg>
               </div>
-              <span className="font-medium text-gray-900">{t('scanCard')}</span>
+              <span className="font-medium text-gray-900">{t("scanCard")}</span>
             </div>
           </Link>
 
@@ -240,7 +249,7 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-center gap-3">
               <LogOut className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-red-600">{t('logout')}</span>
+              <span className="font-medium text-red-600">{t("logout")}</span>
             </div>
           </button>
         </div>

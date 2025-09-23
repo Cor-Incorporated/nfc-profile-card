@@ -11,20 +11,28 @@ interface ImageSelectorProps {
   error: string | null;
 }
 
-const ImageSelector: React.FC<ImageSelectorProps> = ({ onImageSelected, error }) => {
+const ImageSelector: React.FC<ImageSelectorProps> = ({
+  onImageSelected,
+  error,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && file.type.startsWith("image/")) {
       onImageSelected(file);
     } else {
-      alert(t('selectImageFile'));
+      alert(t("selectImageFile"));
     }
   };
 
-  const handleButtonClick = () => {
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGalleryClick = () => {
     fileInputRef.current?.click();
   };
 
@@ -33,12 +41,12 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({ onImageSelected, error })
       <div className="p-6 sm:p-8 space-y-6">
         <div className="flex flex-col gap-4">
           <Button
-            onClick={handleButtonClick}
+            onClick={handleCameraClick}
             size="lg"
             className="w-full h-28 sm:h-32 flex flex-col gap-2 text-base sm:text-lg touch-manipulation"
           >
             <Camera className="h-10 w-10" />
-            <span>📷 {t('takePhoto')}</span>
+            <span>📷 {t("takePhoto")}</span>
           </Button>
 
           <div className="relative">
@@ -46,18 +54,18 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({ onImageSelected, error })
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-gray-500">{t('or')}</span>
+              <span className="bg-white px-3 text-gray-500">{t("or")}</span>
             </div>
           </div>
 
           <Button
-            onClick={handleButtonClick}
+            onClick={handleGalleryClick}
             variant="outline"
             size="lg"
             className="w-full h-28 sm:h-32 flex flex-col gap-2 text-base sm:text-lg touch-manipulation"
           >
             <Upload className="h-10 w-10" />
-            <span>📁 {t('selectImage')}</span>
+            <span>📁 {t("selectImage")}</span>
           </Button>
         </div>
 
@@ -67,8 +75,9 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({ onImageSelected, error })
           </div>
         )}
 
+        {/* カメラ用のinput */}
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
@@ -76,12 +85,21 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({ onImageSelected, error })
           className="hidden"
         />
 
+        {/* ギャラリー用のinput */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="text-center text-xs sm:text-sm text-blue-800 space-y-1">
-            <p className="font-semibold">📌 {t('photoTips')}</p>
-            <p>• {t('photoTipBrightArea')}</p>
-            <p>• {t('photoTipCaptureEntire')}</p>
-            <p>• {t('photoTipFocus')}</p>
+            <p className="font-semibold">📌 {t("photoTips")}</p>
+            <p>• {t("photoTipBrightArea")}</p>
+            <p>• {t("photoTipCaptureEntire")}</p>
+            <p>• {t("photoTipFocus")}</p>
           </div>
         </div>
       </div>

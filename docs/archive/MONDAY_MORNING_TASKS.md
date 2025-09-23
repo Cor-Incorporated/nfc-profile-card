@@ -19,6 +19,7 @@ grep "GEMINI_API_KEY" .env.local
 ### 👤 バックエンド担当（田中さん想定）
 
 **9:00-10:00**: 環境準備とAPI Route作成
+
 ```bash
 # 1. パッケージインストール
 npm install @google/genai
@@ -29,6 +30,7 @@ touch src/app/api/business-card/scan/route.ts
 ```
 
 **10:00-12:00**: API実装
+
 ```typescript
 // route.ts の実装（URGENT_API_KEY_UPDATE.mdを参照）
 // 既存のGEMINI_API_KEYを使用！
@@ -37,6 +39,7 @@ touch src/app/api/business-card/scan/route.ts
 ### 👤 フロントエンド担当（佐藤さん想定）
 
 **9:00-10:00**: コンポーネント移植準備
+
 ```bash
 # 1. ディレクトリ作成
 mkdir -p src/components/business-card
@@ -47,6 +50,7 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ```
 
 **10:00-12:00**: UIコンポーネント実装
+
 - ImageSelector.tsx の移植
 - ContactForm.tsx の移植
 - API呼び出し部分をfetch経由に修正
@@ -54,6 +58,7 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ### 👤 フロントエンド担当2（鈴木さん想定）
 
 **9:00-12:00**: ダッシュボード統合
+
 - ダッシュボードに名刺スキャンボタン追加
 - スキャンページのルーティング設定
 - スタイリング調整（既存UIに合わせる）
@@ -77,6 +82,7 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ## ⚠️ 注意事項 - 必読！
 
 ### ❌ やらないこと
+
 ```javascript
 // 1. 新しい.env.localを作らない
 // 2. NEXT_PUBLIC_GEMINI_API_KEYを使わない（セキュリティ違反）
@@ -84,6 +90,7 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ```
 
 ### ✅ やること
+
 ```javascript
 // 1. 既存の環境変数を使用
 // 2. API Route経由でGemini APIを呼ぶ
@@ -93,11 +100,13 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ## 📱 コミュニケーション
 
 ### Slackチャンネル
+
 - 進捗報告: #dev-nfc-profile
 - 質問・相談: @PdM をメンション
 - 緊急時: 電話OK
 
 ### 定例
+
 - 10:00 - 朝会（15分）
 - 13:00 - 進捗確認（5分）
 - 17:00 - 夕会（10分）
@@ -105,16 +114,19 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 ## 🎯 本日のゴール
 
 **必須（Must）**:
+
 - [ ] API Route作成・動作確認
 - [ ] 画像アップロード機能実装
 - [ ] Gemini API呼び出し成功
 
 **できれば（Should）**:
+
 - [ ] OCR結果の表示
 - [ ] 編集フォーム実装開始
 - [ ] エラーハンドリング
 
 **余裕があれば（Could）**:
+
 - [ ] Firestore保存
 - [ ] UIポリッシュ
 
@@ -132,6 +144,7 @@ cp 名刺スキャナー-&-vcard保存/components/* src/components/business-card
 既にAPIキーは準備済みなので、スムーズに開発を開始できます。
 
 **ポイント**:
+
 - 既存のリソースを最大限活用
 - セキュリティを最優先
 - 段階的に実装（完璧を求めない）

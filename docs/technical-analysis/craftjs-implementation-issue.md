@@ -24,22 +24,29 @@
 CraftJS内でElementとして使用するには、以下が必要：
 
 1. **`.craft`設定の実装**
+
 ```typescript
 ComponentName.craft = {
   displayName: "表示名",
-  props: { /* デフォルトプロパティ */ },
+  props: {
+    /* デフォルトプロパティ */
+  },
   related: {
-    settings: SettingsComponent
-  }
-}
+    settings: SettingsComponent,
+  },
+};
 ```
 
 2. **useNodeフックの使用**
+
 ```typescript
-const { connectors: { connect, drag } } = useNode()
+const {
+  connectors: { connect, drag },
+} = useNode();
 ```
 
 3. **適切な参照の設定**
+
 ```typescript
 ref={(ref) => connect(drag(ref))}
 ```
@@ -47,6 +54,7 @@ ref={(ref) => connect(drag(ref))}
 ## AddComponentPlaceholderの正しい役割
 
 AddComponentPlaceholderは：
+
 - ✅ コンポーネントを追加するためのツール
 - ✅ `connectors.create()`を使用してコンポーネントを生成
 - ❌ それ自体がCraftJS要素になるべきではない
@@ -64,6 +72,7 @@ AddComponentPlaceholderは：
 ## 正しい実装アプローチ
 
 ### オプション1: Frame外配置（推奨）
+
 ```typescript
 // PageEditor.tsx
 <div className="editor-container">
@@ -85,6 +94,7 @@ AddComponentPlaceholderは：
 ```
 
 ### オプション2: 初期プレースホルダーとして実装
+
 Frame内に最初から配置したい場合は、専用のプレースホルダーコンポーネントを作成：
 
 ```typescript
@@ -114,16 +124,19 @@ InitialPlaceholder.craft = {
 ## 修正計画
 
 ### Phase 1: 即座の修正
+
 1. AddComponentPlaceholderをFrame外に戻す
 2. resolverからAddComponentPlaceholderを削除
 3. validateAndCleanDataからAddComponentPlaceholder削除ロジックを削除
 
 ### Phase 2: 安定化
+
 1. 動作確認
 2. データ保存・読み込みの確認
 3. ドラッグ&ドロップの動作確認
 
 ### Phase 3: 改善
+
 1. より良いUXのための配置検討
 2. モバイル対応の最適化
 

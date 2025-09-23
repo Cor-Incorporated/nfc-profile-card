@@ -9,7 +9,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
-  runTransaction
+  runTransaction,
 } from "firebase/firestore";
 import { format, subDays, isAfter } from "date-fns";
 
@@ -38,7 +38,7 @@ export async function trackPageView(username: string) {
 
     if (!snapshot.empty) {
       const userId = snapshot.docs[0].id;
-      const today = new Date().toISOString().split('T')[0]; // "2025-09-19"
+      const today = new Date().toISOString().split("T")[0]; // "2025-09-19"
 
       const userDoc = await getDoc(doc(db, "users", userId));
       const currentData = userDoc.data();
@@ -47,8 +47,12 @@ export async function trackPageView(username: string) {
       const currentRecentViews = currentData?.analytics?.recentViews || [];
       const newView = {
         timestamp: new Date(),
-        referrer: typeof document !== 'undefined' ? document.referrer || "direct" : "direct",
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : "unknown"
+        referrer:
+          typeof document !== "undefined"
+            ? document.referrer || "direct"
+            : "direct",
+        userAgent:
+          typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
       };
 
       // 最新10件のみ保持
@@ -59,7 +63,7 @@ export async function trackPageView(username: string) {
         "analytics.totalViews": increment(1),
         "analytics.lastViewedAt": serverTimestamp(),
         [`analytics.dailyViews.${today}`]: increment(1),
-        "analytics.recentViews": updatedRecentViews
+        "analytics.recentViews": updatedRecentViews,
       });
     }
   } catch (error) {
@@ -72,7 +76,9 @@ export async function trackPageView(username: string) {
  * @param userId ユーザーID
  * @returns アナリティクスデータまたはnull
  */
-export async function getAnalytics(userId: string): Promise<AnalyticsData | null> {
+export async function getAnalytics(
+  userId: string,
+): Promise<AnalyticsData | null> {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
     if (userDoc.exists()) {
@@ -88,7 +94,7 @@ export async function getAnalytics(userId: string): Promise<AnalyticsData | null
         totalViews: data.analytics?.totalViews || 0,
         lastViewedAt: data.analytics?.lastViewedAt?.toDate?.() || null,
         recentViews: limitedRecentViews,
-        dailyViews: data.analytics?.dailyViews || {}
+        dailyViews: data.analytics?.dailyViews || {},
       };
     }
     return null;
@@ -112,7 +118,7 @@ export async function getAnalyticsSummary(userId: string) {
         totalViews: 0,
         lastViewedAt: null,
         todayViews: 0,
-        weekViews: 0
+        weekViews: 0,
       };
     }
 
@@ -120,14 +126,14 @@ export async function getAnalyticsSummary(userId: string) {
     const analytics = data.analytics || {};
 
     // 日付の計算
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const dates = [];
 
     // 過去7日分の日付を生成
     for (let i = 0; i < 7; i++) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+      dates.push(date.toISOString().split("T")[0]);
     }
 
     // 日別カウンタから集計
@@ -140,7 +146,7 @@ export async function getAnalyticsSummary(userId: string) {
       totalViews: analytics.totalViews || 0,
       lastViewedAt: analytics.lastViewedAt?.toDate?.() || null,
       todayViews,
-      weekViews
+      weekViews,
     };
   } catch (error) {
     console.error("Analytics summary error:", error);
@@ -148,7 +154,7 @@ export async function getAnalyticsSummary(userId: string) {
       totalViews: 0,
       lastViewedAt: null,
       todayViews: 0,
-      weekViews: 0
+      weekViews: 0,
     };
   }
 }
@@ -158,18 +164,18 @@ export async function getAnalyticsSummary(userId: string) {
  * @param userId ユーザーID
  */
 export async function resetAnalytics(userId: string) {
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NODE_ENV !== "development") {
     console.warn("Analytics reset is only available in development mode");
     return;
   }
 
   try {
     await updateDoc(doc(db, "users", userId), {
-      "analytics": {
+      analytics: {
         totalViews: 0,
         lastViewedAt: null,
-        recentViews: []
-      }
+        recentViews: [],
+      },
     });
     console.log("Analytics reset for user:", userId);
   } catch (error) {

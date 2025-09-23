@@ -1,36 +1,47 @@
 // /src/components/simple-editor/ImageUploader.tsx
 // Firebase Storage を使用した画像アップロード機能
 
-import { useState, useRef } from 'react';
-import { storage, auth } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { Button } from '@/components/ui/button';
-import { Upload, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useRef } from "react";
+import { storage, auth } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
+import { Upload, Image as ImageIcon, Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ImageUploaderProps {
   userId: string;
   onImageUploaded: (url: string) => void;
   currentImageUrl?: string;
-  isCircular?: boolean;  // 円形表示オプション
+  isCircular?: boolean; // 円形表示オプション
 }
 
-export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCircular = false }: ImageUploaderProps) {
+export function ImageUploader({
+  userId,
+  onImageUploaded,
+  currentImageUrl,
+  isCircular = false,
+}: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
+  const [preview, setPreview] = useState<string | null>(
+    currentImageUrl || null,
+  );
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // 認証チェック
     if (!user || user.uid !== userId) {
-      const errorMsg = user ? 'Authentication error: User ID mismatch' : 'Login required';
+      const errorMsg = user
+        ? "Authentication error: User ID mismatch"
+        : "Login required";
       setError(errorMsg);
       alert(errorMsg);
       return;
@@ -38,15 +49,15 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
 
     // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
-      const errorMsg = t('imageSizeLimit');
+      const errorMsg = t("imageSizeLimit");
       setError(errorMsg);
       alert(errorMsg);
       return;
     }
 
     // ファイルタイプチェック
-    if (!file.type.startsWith('image/')) {
-      const errorMsg = t('selectImageFile');
+    if (!file.type.startsWith("image/")) {
+      const errorMsg = t("selectImageFile");
       setError(errorMsg);
       alert(errorMsg);
       return;
@@ -72,19 +83,18 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
       const downloadUrl = await getDownloadURL(snapshot.ref);
 
       onImageUploaded(downloadUrl);
-      console.log('✅ Image uploaded successfully:', downloadUrl);
-
+      console.log("✅ Image uploaded successfully:", downloadUrl);
     } catch (error: any) {
-      console.error('❌ Upload failed:', error);
+      console.error("❌ Upload failed:", error);
 
-      let errorMessage = t('uploadFailed');
+      let errorMessage = t("uploadFailed");
 
-      if (error.code === 'storage/unauthorized') {
-        errorMessage = t('noPermission');
-      } else if (error.code === 'storage/quota-exceeded') {
-        errorMessage = 'Storage quota exceeded.';
-      } else if (error.code === 'storage/invalid-format') {
-        errorMessage = 'Unsupported file format.';
+      if (error.code === "storage/unauthorized") {
+        errorMessage = t("noPermission");
+      } else if (error.code === "storage/quota-exceeded") {
+        errorMessage = "Storage quota exceeded.";
+      } else if (error.code === "storage/invalid-format") {
+        errorMessage = "Unsupported file format.";
       } else if (error.message) {
         errorMessage += `\nDetails: ${error.message}`;
       }
@@ -107,9 +117,11 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
       )}
 
       {/* プレビューエリア - モバイルファースト */}
-      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 ${
-        isCircular ? 'flex justify-center' : ''
-      }`}>
+      <div
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 ${
+          isCircular ? "flex justify-center" : ""
+        }`}
+      >
         {preview ? (
           isCircular ? (
             <div className="relative w-32 h-32">
@@ -137,7 +149,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
               <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
             )}
             <p className="mt-2 text-xs sm:text-sm text-gray-500">
-              {isCircular ? t('profilePhotoField') : t('noImage')}
+              {isCircular ? t("profilePhotoField") : t("noImage")}
             </p>
           </div>
         )}
@@ -161,12 +173,12 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
         {isUploading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t('uploading')}
+            {t("uploading")}
           </>
         ) : (
           <>
             <Upload className="mr-2 h-4 w-4" />
-            {t('selectImage')}
+            {t("selectImage")}
           </>
         )}
       </Button>

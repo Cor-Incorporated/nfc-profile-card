@@ -33,18 +33,22 @@ export interface ProfileContent {
   cardBackgroundOpacity?: number;
 }
 
-export type ComponentContent = TextContent | ImageContent | LinkContent | ProfileContent;
+export type ComponentContent =
+  | TextContent
+  | ImageContent
+  | LinkContent
+  | ProfileContent;
 
 export interface ProfileComponent {
   id: string;
-  type: 'text' | 'image' | 'link' | 'profile';
+  type: "text" | "image" | "link" | "profile";
   order: number;
   content: ComponentContent;
   style?: Record<string, string | number>;
 }
 
 export interface BackgroundSettings {
-  type: 'color' | 'gradient' | 'image' | 'pattern';
+  type: "color" | "gradient" | "image" | "pattern";
   color?: string;
   gradient?: {
     from: string;

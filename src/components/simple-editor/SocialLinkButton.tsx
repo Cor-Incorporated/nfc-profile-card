@@ -1,9 +1,9 @@
 // /src/components/simple-editor/SocialLinkButton.tsx
 // ソーシャルリンクボタンコンポーネント
 
-import React from 'react';
-import { getSocialServiceInfo } from '@/utils/socialLinks';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { getSocialServiceInfo } from "@/utils/socialLinks";
+import { Button } from "@/components/ui/button";
 
 interface SocialLinkButtonProps {
   url: string;
@@ -11,7 +11,11 @@ interface SocialLinkButtonProps {
   className?: string;
 }
 
-export function SocialLinkButton({ url, label, className = '' }: SocialLinkButtonProps) {
+export function SocialLinkButton({
+  url,
+  label,
+  className = "",
+}: SocialLinkButtonProps) {
   const serviceInfo = getSocialServiceInfo(url);
   const Icon = serviceInfo.icon;
 
@@ -29,8 +33,8 @@ export function SocialLinkButton({ url, label, className = '' }: SocialLinkButto
         className="w-full justify-start space-x-3"
         style={{
           backgroundColor: serviceInfo.color,
-          color: '#FFFFFF',
-          borderColor: serviceInfo.color
+          color: "#FFFFFF",
+          borderColor: serviceInfo.color,
         }}
       >
         <Icon className="h-5 w-5" />

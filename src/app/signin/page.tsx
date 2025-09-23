@@ -65,7 +65,7 @@ function SignInForm() {
   useEffect(() => {
     if (user && !loading) {
       // ロケールを保持したままリダイレクト
-      const locale = pathname.startsWith('/en') ? '/en' : '';
+      const locale = pathname.startsWith("/en") ? "/en" : "";
       router.push(`${locale}/dashboard`);
     }
   }, [user, loading, router, pathname]);

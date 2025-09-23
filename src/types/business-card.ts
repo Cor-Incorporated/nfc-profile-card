@@ -1,11 +1,11 @@
 export enum AppStatus {
-  IDLE = 'IDLE',
-  PROCESSING = 'PROCESSING',
-  EDITING = 'EDITING',
+  IDLE = "IDLE",
+  PROCESSING = "PROCESSING",
+  EDITING = "EDITING",
 }
 
 export interface PhoneNumber {
-  type: 'WORK' | 'MOBILE' | 'FAX' | 'OTHER';
+  type: "WORK" | "MOBILE" | "FAX" | "OTHER";
   number: string;
 }
 

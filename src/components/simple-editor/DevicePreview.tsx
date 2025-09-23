@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Smartphone, Monitor, X } from 'lucide-react';
-import { SimpleRenderer } from '@/components/profile/SimpleRenderer';
-import type { ProfileComponent } from './utils/dataStructure';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Smartphone, Monitor, X } from "lucide-react";
+import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
+import type { ProfileComponent } from "./utils/dataStructure";
 
-export type DeviceType = 'mobile' | 'desktop';
+export type DeviceType = "mobile" | "desktop";
 
 interface DeviceConfig {
   width: number;
@@ -20,14 +20,14 @@ const DEVICE_CONFIGS: Record<DeviceType, DeviceConfig> = {
     width: 375,
     height: 667,
     scale: 0.8,
-    label: 'スマホ'
+    label: "スマホ",
   },
   desktop: {
     width: 1440,
     height: 900,
     scale: 0.5,
-    label: 'PC'
-  }
+    label: "PC",
+  },
 };
 
 interface DevicePreviewProps {
@@ -37,8 +37,13 @@ interface DevicePreviewProps {
   onClose: () => void;
 }
 
-export function DevicePreview({ profileUrl, components, background, onClose }: DevicePreviewProps) {
-  const [selectedDevice, setSelectedDevice] = useState<DeviceType>('mobile');
+export function DevicePreview({
+  profileUrl,
+  components,
+  background,
+  onClose,
+}: DevicePreviewProps) {
+  const [selectedDevice, setSelectedDevice] = useState<DeviceType>("mobile");
   const config = DEVICE_CONFIGS[selectedDevice];
 
   return (
@@ -51,17 +56,17 @@ export function DevicePreview({ profileUrl, components, background, onClose }: D
           {/* デバイス切り替えボタン */}
           <div className="flex gap-2">
             <Button
-              variant={selectedDevice === 'mobile' ? 'default' : 'outline'}
+              variant={selectedDevice === "mobile" ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedDevice('mobile')}
+              onClick={() => setSelectedDevice("mobile")}
             >
               <Smartphone className="h-4 w-4 mr-1" />
               スマホ
             </Button>
             <Button
-              variant={selectedDevice === 'desktop' ? 'default' : 'outline'}
+              variant={selectedDevice === "desktop" ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedDevice('desktop')}
+              onClick={() => setSelectedDevice("desktop")}
             >
               <Monitor className="h-4 w-4 mr-1" />
               PC
@@ -74,7 +79,10 @@ export function DevicePreview({ profileUrl, components, background, onClose }: D
         </div>
 
         {/* プレビューエリア */}
-        <div className="p-8 bg-gray-100 flex items-center justify-center overflow-auto" style={{ height: 'calc(100% - 80px)' }}>
+        <div
+          className="p-8 bg-gray-100 flex items-center justify-center overflow-auto"
+          style={{ height: "calc(100% - 80px)" }}
+        >
           <div className="relative">
             {/* デバイスフレーム */}
             <div
@@ -83,11 +91,11 @@ export function DevicePreview({ profileUrl, components, background, onClose }: D
                 width: `${config.width}px`,
                 height: `${config.height}px`,
                 transform: `scale(${config.scale})`,
-                transformOrigin: 'top center'
+                transformOrigin: "top center",
               }}
             >
               {/* デバイスヘッダー（スマホ・タブレット用） */}
-              {selectedDevice !== 'desktop' && (
+              {selectedDevice !== "desktop" && (
                 <div className="bg-gray-900 h-6 flex items-center justify-center">
                   <div className="flex gap-1">
                     <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
@@ -101,7 +109,8 @@ export function DevicePreview({ profileUrl, components, background, onClose }: D
               <div
                 className="w-full h-full overflow-auto"
                 style={{
-                  height: selectedDevice !== 'desktop' ? 'calc(100% - 24px)' : '100%'
+                  height:
+                    selectedDevice !== "desktop" ? "calc(100% - 24px)" : "100%",
                 }}
               >
                 <SimpleRenderer
@@ -128,7 +137,10 @@ interface InlineDevicePreviewProps {
   deviceType: DeviceType;
 }
 
-export function InlineDevicePreview({ children, deviceType }: InlineDevicePreviewProps) {
+export function InlineDevicePreview({
+  children,
+  deviceType,
+}: InlineDevicePreviewProps) {
   const config = DEVICE_CONFIGS[deviceType];
 
   return (
@@ -139,11 +151,11 @@ export function InlineDevicePreview({ children, deviceType }: InlineDevicePrevie
           width: `${config.width * 0.5}px`,
           height: `${config.height * 0.5}px`,
           transform: `scale(${Math.min(1, 300 / config.width)})`,
-          transformOrigin: 'center'
+          transformOrigin: "center",
         }}
       >
         {/* デバイスヘッダー */}
-        {deviceType !== 'desktop' && (
+        {deviceType !== "desktop" && (
           <div className="bg-gray-900 h-4 flex items-center justify-center">
             <div className="flex gap-0.5">
               <div className="w-0.5 h-0.5 bg-gray-600 rounded-full"></div>
@@ -157,7 +169,7 @@ export function InlineDevicePreview({ children, deviceType }: InlineDevicePrevie
         <div
           className="overflow-auto"
           style={{
-            height: deviceType !== 'desktop' ? 'calc(100% - 16px)' : '100%'
+            height: deviceType !== "desktop" ? "calc(100% - 16px)" : "100%",
           }}
         >
           {children}

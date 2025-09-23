@@ -53,8 +53,9 @@ export function QRCodeModal({
       } catch (error) {
         console.error("Failed to generate QR code:", error);
         toast({
-          title: t('error'),
-          description: t('qrCodeGenerationFailed') || "Failed to generate QR code",
+          title: t("error"),
+          description:
+            t("qrCodeGenerationFailed") || "Failed to generate QR code",
           variant: "destructive",
         });
       } finally {
@@ -74,8 +75,8 @@ export function QRCodeModal({
       link.click();
 
       toast({
-        title: t('saved'),
-        description: t('qrCodeDownloaded') || "QR code downloaded",
+        title: t("saved"),
+        description: t("qrCodeDownloaded") || "QR code downloaded",
       });
     }
   };
@@ -84,13 +85,13 @@ export function QRCodeModal({
     try {
       await navigator.clipboard.writeText(url);
       toast({
-        title: t('linkCopied'),
-        description: t('urlCopiedToClipboard') || "URL copied to clipboard",
+        title: t("linkCopied"),
+        description: t("urlCopiedToClipboard") || "URL copied to clipboard",
       });
     } catch (error) {
       toast({
-        title: t('error'),
-        description: t('copyFailed') || "Failed to copy",
+        title: t("error"),
+        description: t("copyFailed") || "Failed to copy",
         variant: "destructive",
       });
     }
@@ -100,9 +101,10 @@ export function QRCodeModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('shareProfile')}</DialogTitle>
+          <DialogTitle>{t("shareProfile")}</DialogTitle>
           <DialogDescription>
-            {t('qrCodeDescription') || "Use this QR code on business cards and printed materials"}
+            {t("qrCodeDescription") ||
+              "Use this QR code on business cards and printed materials"}
           </DialogDescription>
         </DialogHeader>
 
@@ -110,7 +112,7 @@ export function QRCodeModal({
           <div className="bg-white p-4 rounded-lg shadow-lg min-h-[300px] min-w-[300px] flex items-center justify-center">
             {isGenerating ? (
               <div className="text-gray-400 animate-pulse">
-                {t('generatingQRCode') || "Generating QR code..."}
+                {t("generatingQRCode") || "Generating QR code..."}
               </div>
             ) : qrCodeUrl ? (
               <img
@@ -128,7 +130,7 @@ export function QRCodeModal({
               disabled={!qrCodeUrl || isGenerating}
             >
               <Download className="mr-2 h-4 w-4" />
-              {t('downloadQR')}
+              {t("downloadQR")}
             </Button>
 
             <Button
@@ -137,13 +139,11 @@ export function QRCodeModal({
               className="w-full"
             >
               <Copy className="mr-2 h-4 w-4" />
-              {t('copyLink')}
+              {t("copyLink")}
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground text-center">
-            {url}
-          </div>
+          <div className="text-xs text-muted-foreground text-center">{url}</div>
         </div>
       </DialogContent>
     </Dialog>

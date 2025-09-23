@@ -16,6 +16,7 @@ GEMINI_API_KEY=AIzaSyD2mRqSsY-DMurxjGu8AWt7EZgmy_SzKEs
 ## 🔧 修正された実装方針
 
 ### ❌ やらないこと
+
 - 名刺スキャナーディレクトリに別の`.env.local`を作成
 - API Keyの重複管理
 - 環境変数の分散
@@ -26,12 +27,12 @@ GEMINI_API_KEY=AIzaSyD2mRqSsY-DMurxjGu8AWt7EZgmy_SzKEs
 
 ```typescript
 // /src/app/api/business-card/scan/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
 // メインプロジェクトの.env.localから直接取得
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY! // 既に設定済み！
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!, // 既に設定済み！
 });
 
 export async function POST(request: NextRequest) {
@@ -56,23 +57,23 @@ npm install @google/genai
 // 名刺スキャナーのgeminiService.tsをコピーして修正
 
 import { GoogleGenAI } from "@google/genai";
-import { ContactInfo } from '@/types/contact';
+import { ContactInfo } from "@/types/contact";
 
 // ブラウザからは直接APIキーにアクセスできないので、
 // API Route経由で処理する
 export const extractContactInfoFromImage = async (
-  base64Image: string, 
-  mimeType: string
+  base64Image: string,
+  mimeType: string,
 ): Promise<ContactInfo> => {
   // API Routeを呼び出し
-  const response = await fetch('/api/business-card/scan', {
-    method: 'POST',
+  const response = await fetch("/api/business-card/scan", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ base64Image, mimeType })
+    body: JSON.stringify({ base64Image, mimeType }),
   });
-  
+
   const result = await response.json();
   return result.data;
 };
@@ -85,33 +86,35 @@ export const extractContactInfoFromImage = async (
 import { GoogleGenAI } from "@google/genai";
 
 // サーバーサイドでのみAPIキーを使用
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY! 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!,
 });
 
 export async function POST(request: NextRequest) {
   const { base64Image, mimeType } = await request.json();
-  
+
   // 名刺スキャナーのプロンプトをそのまま使用
   const prompt = `[名刺スキャナーのプロンプト]`;
-  
+
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [{
-      parts: [
-        { inlineData: { data: base64Image, mimeType } },
-        { text: prompt }
-      ]
-    }],
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        parts: [
+          { inlineData: { data: base64Image, mimeType } },
+          { text: prompt },
+        ],
+      },
+    ],
     config: {
       responseMimeType: "application/json",
-    }
+    },
   });
-  
+
   // 結果を返す
   return NextResponse.json({
     success: true,
-    data: JSON.parse(response.text.trim())
+    data: JSON.parse(response.text.trim()),
   });
 }
 ```
@@ -151,8 +154,8 @@ export async function POST(request: NextRequest) {
 
 ```typescript
 // ❌ 危険：クライアントサイドでAPIキーを使用
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY // 絶対NG！
+const ai = new GoogleGenAI({
+  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY, // 絶対NG！
 });
 ```
 
@@ -161,8 +164,8 @@ const ai = new GoogleGenAI({
 ```typescript
 // ✅ 安全：サーバーサイドのみでAPIキー使用
 // API Route内でのみ
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY // NEXT_PUBLIC_なし
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY, // NEXT_PUBLIC_なし
 });
 ```
 
@@ -171,12 +174,14 @@ const ai = new GoogleGenAI({
 ### 月曜日（9/23）の作業
 
 1. **環境確認**（10分）
+
    ```bash
    # APIキーが設定されているか確認
    grep "GEMINI_API_KEY" .env.local
    ```
 
 2. **パッケージインストール**（10分）
+
    ```bash
    npm install @google/genai
    ```
@@ -197,27 +202,30 @@ const ai = new GoogleGenAI({
 ## 🎯 利点
 
 この修正により：
+
 1. **API Key管理の一元化** - セキュリティリスク減少
-2. **環境変数の統一** - 設定ミスの防止  
+2. **環境変数の統一** - 設定ミスの防止
 3. **デプロイの簡略化** - 環境変数は1箇所のみ
 4. **コスト管理の改善** - APIキー使用量の統合管理
 
 ## 💡 Tips
 
 ### 開発時のデバッグ
+
 ```typescript
 // API Route内でログ出力
-console.log('GEMINI_API_KEY exists:', !!process.env.GEMINI_API_KEY);
-console.log('API Key prefix:', process.env.GEMINI_API_KEY?.substring(0, 10));
+console.log("GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
+console.log("API Key prefix:", process.env.GEMINI_API_KEY?.substring(0, 10));
 ```
 
 ### エラー処理
+
 ```typescript
 if (!process.env.GEMINI_API_KEY) {
-  console.error('GEMINI_API_KEY is not set in environment variables');
+  console.error("GEMINI_API_KEY is not set in environment variables");
   return NextResponse.json(
-    { error: 'Server configuration error' },
-    { status: 500 }
+    { error: "Server configuration error" },
+    { status: 500 },
   );
 }
 ```
