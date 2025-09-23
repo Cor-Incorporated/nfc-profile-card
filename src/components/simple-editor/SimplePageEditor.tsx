@@ -76,10 +76,19 @@ function SortableItem({ component, onDelete, onEdit }: any) {
           {component.content?.label && (
             <p className="text-sm text-gray-600 mt-1">{component.content.label}</p>
           )}
-          {component.content?.name && (
-            <p className="text-sm text-gray-600 mt-1">{component.content.name}</p>
+          {component.type === 'profile' && component.content && (
+            <div className="text-sm text-gray-600 mt-1">
+              {component.content.name ||
+               `${component.content.lastName || ''} ${component.content.firstName || ''}`.trim() ||
+               'プロフィール'}
+              {component.content.company && ` - ${component.content.company}`}
+            </div>
           )}
-          {!component.content?.text && !component.content?.label && !component.content?.name && (
+          {!component.content?.text &&
+           !component.content?.label &&
+           !component.content?.name &&
+           !component.content?.lastName &&
+           !component.content?.firstName && (
             <p className="text-sm text-gray-500 mt-1">クリックして編集</p>
           )}
         </div>
@@ -479,7 +488,23 @@ function getDefaultContent(type: string) {
     case 'link':
       return { url: '', label: 'リンク' };
     case 'profile':
-      return { name: '', bio: '' };
+      return {
+        firstName: '',
+        lastName: '',
+        name: '',
+        email: '',
+        phone: '',
+        cellPhone: '',
+        company: '',
+        position: '',
+        department: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        website: '',
+        bio: '',
+        photoURL: ''
+      };
     default:
       return {};
   }
