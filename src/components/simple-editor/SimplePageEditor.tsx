@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, GripVertical, Save, Check, AlertCircle, ArrowLeft, Eye } from 'lucide-react';
+import { Plus, GripVertical, Save, Check, AlertCircle, ArrowLeft, Eye, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -28,6 +28,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ProfileComponent } from './utils/dataStructure';
 import { ComponentEditor } from './ComponentEditor';
+import { BackgroundCustomizer } from './BackgroundCustomizer';
+import { DevicePreview } from './DevicePreview';
 import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
@@ -75,10 +77,19 @@ function SortableItem({ component, onDelete, onEdit }: any) {
           {component.content?.label && (
             <p className="text-sm text-gray-600 mt-1">{component.content.label}</p>
           )}
-          {component.content?.name && (
-            <p className="text-sm text-gray-600 mt-1">{component.content.name}</p>
+          {component.type === 'profile' && component.content && (
+            <div className="text-sm text-gray-600 mt-1">
+              {component.content.name ||
+               `${component.content.lastName || ''} ${component.content.firstName || ''}`.trim() ||
+               'プロフィール'}
+              {component.content.company && ` - ${component.content.company}`}
+            </div>
           )}
-          {!component.content?.text && !component.content?.label && !component.content?.name && (
+          {!component.content?.text &&
+           !component.content?.label &&
+           !component.content?.name &&
+           !component.content?.lastName &&
+           !component.content?.firstName && (
             <p className="text-sm text-gray-500 mt-1">クリックして編集</p>
           )}
         </div>
@@ -112,11 +123,15 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   );
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editingComponent, setEditingComponent] = useState<ProfileComponent | null>(null);
+  const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+  const [showDevicePreview, setShowDevicePreview] = useState(false);
+  const [background, setBackground] = useState(initialData?.background || null);
 
   // 保存状態の管理
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false); // 保存中フラグ
 
   // センサー設定（モバイル対応）
   const sensors = useSensors(
@@ -217,8 +232,15 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
     }
   };
 
-  // 保存関数
-  const saveProfile = async () => {
+  // 保存関数（useCallbackで最適化）
+  const saveProfile = React.useCallback(async () => {
+    // 既に保存中の場合はスキップ
+    if (isSavingRef.current) {
+      console.log('[SimplePageEditor] Already saving, skipping...');
+      return;
+    }
+
+    isSavingRef.current = true;
     setSaveStatus('saving');
 
     try {
@@ -227,6 +249,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
       // updateDocを使用した差分更新
       await updateDoc(docRef, {
         components,
+        background,
         updatedAt: new Date(),
       });
 
@@ -241,7 +264,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             doc(db, "users", userId, "profile", "data"),
             {
               components,
-              background: null,
+              background,
               updatedAt: serverTimestamp(),
             }
           );
@@ -256,11 +279,13 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
         console.error('[SimplePageEditor] Error saving profile:', error);
         setSaveStatus('error');
       }
+    } finally {
+      isSavingRef.current = false;
     }
-  };
+  }, [components, background, userId]);
 
   // デバウンス付き自動保存（3秒）
-  const debouncedSave = () => {
+  const debouncedSave = React.useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -268,16 +293,54 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
     saveTimeoutRef.current = setTimeout(() => {
       saveProfile();
     }, 3000); // 3秒後に保存
-  };
+  }, [saveProfile]);
 
-  // コンポーネントアンマウント時のクリーンアップ
+  // ページ離脱時の自動保存設定
   useEffect(() => {
-    return () => {
+    // ページ離脱時の保存処理
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 保留中の変更がある場合は保存
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveProfile(); // 即座に保存を実行
+      }
+
+      // 保存状態が「保存中」の場合は警告を表示
+      if (isSavingRef.current) {
+        e.preventDefault();
+        e.returnValue = '保存中です。ページを離れると変更が失われる可能性があります。';
+        return e.returnValue;
       }
     };
-  }, []);
+
+    // ページの可視性が変わった時（タブの切り替え等）
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // ページが非表示になった時、保留中の保存を即座に実行
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveProfile();
+        }
+      }
+    };
+
+    // イベントリスナーの登録
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // クリーンアップ関数
+    return () => {
+      // コンポーネントアンマウント時に保存
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveProfile(); // 即座に保存
+      }
+
+      // イベントリスナーの削除
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveProfile]); // saveProfileを依存配列に追加
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -296,18 +359,25 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
           {/* 中央：ページタイトル */}
           <h1 className="font-bold">プロフィール編集</h1>
 
-          {/* 右：プレビューボタン */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              // userから適切なusernameを取得
-              const username = user?.username || user?.email?.split('@')[0] || 'preview';
-              window.open(`/p/${username}`, '_blank');
-            }}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            プレビュー
-          </Button>
+          {/* 右：プレビューと背景設定ボタン */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBackgroundSettings(true)}
+            >
+              <Settings className="mr-1 h-4 w-4" />
+              背景
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDevicePreview(true)}
+            >
+              <Eye className="mr-1 h-4 w-4" />
+              プレビュー
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -423,6 +493,40 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             userId={userId}
           />
         )}
+
+        {/* 背景設定モーダル */}
+        {showBackgroundSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4">
+                <BackgroundCustomizer
+                  currentBackground={background}
+                  userId={userId}
+                  onBackgroundChange={(newBg) => {
+                    setBackground(newBg);
+                    // 背景変更後に自動保存
+                    setSaveStatus('saving');
+                    debouncedSave();
+                  }}
+                />
+                <Button
+                  onClick={() => setShowBackgroundSettings(false)}
+                  className="w-full mt-4"
+                >
+                  閉じる
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* デバイスプレビューモーダル */}
+        {showDevicePreview && (
+          <DevicePreview
+            profileUrl={`/p/${user?.username || user?.email?.split('@')[0] || 'preview'}`}
+            onClose={() => setShowDevicePreview(false)}
+          />
+        )}
         </div>
       </div>
     </div>
@@ -438,7 +542,25 @@ function getDefaultContent(type: string) {
     case 'link':
       return { url: '', label: 'リンク' };
     case 'profile':
-      return { name: '', bio: '' };
+      return {
+        firstName: '',
+        lastName: '',
+        phoneticFirstName: '',
+        phoneticLastName: '',
+        name: '',
+        email: '',
+        phone: '',
+        cellPhone: '',
+        company: '',
+        position: '',
+        department: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        website: '',
+        bio: '',
+        photoURL: ''
+      };
     default:
       return {};
   }

@@ -3,13 +3,14 @@
 import React from 'react';
 import type { ProfileComponent } from '../simple-editor/utils/dataStructure';
 import { SocialLinkButton } from '../simple-editor/SocialLinkButton';
+import { ReadOnlyProfileInfo } from './ReadOnlyProfileInfo';
+import { getBackgroundStyle } from '../simple-editor/BackgroundCustomizer';
 
 // 各コンポーネントタイプの表示コンポーネント
 function TextComponent({ component }: { component: ProfileComponent }) {
   return (
     <div
-      className="w-3/4 mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
       <p className="text-gray-800">
         {component.content?.text || 'テキストコンテンツ'}
@@ -21,8 +22,7 @@ function TextComponent({ component }: { component: ProfileComponent }) {
 function ImageComponent({ component }: { component: ProfileComponent }) {
   return (
     <div
-      className="w-3/4 mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
       {component.content?.src ? (
         <img
@@ -45,8 +45,7 @@ function LinkComponent({ component }: { component: ProfileComponent }) {
   // ソーシャルリンクの自動認識
   return (
     <div
-      className="w-3/4 mx-auto mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-4"
     >
       <SocialLinkButton
         url={url || '#'}
@@ -57,21 +56,8 @@ function LinkComponent({ component }: { component: ProfileComponent }) {
 }
 
 function ProfileComponent({ component }: { component: ProfileComponent }) {
-  return (
-    <div
-      className="w-3/4 mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-      style={{ width: '75%' }}
-    >
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">
-          {component.content?.name || 'プロフィール名'}
-        </h2>
-        <p className="text-gray-600">
-          {component.content?.bio || 'プロフィール説明'}
-        </p>
-      </div>
-    </div>
-  );
+  // ReadOnlyProfileInfoを使用して拡充されたプロフィールを表示
+  return <ReadOnlyProfileInfo component={component} />;
 }
 
 // メインのSimpleRendererコンポーネント
@@ -86,8 +72,16 @@ export function SimpleRenderer({
   const safeComponents = Array.isArray(components) ? components : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8" style={background ? { backgroundImage: `url(${background})` } : {}}>
-      <div className="max-w-md mx-auto px-4">
+    <div className="relative min-h-screen">
+      {/* 背景レイヤー（独立したdivとして実装） */}
+      <div
+        className="absolute inset-0 bg-gray-50"
+        style={getBackgroundStyle(background)}
+      />
+
+      {/* コンテンツレイヤー（相対位置で背景の上に配置） */}
+      <div className="relative z-10 min-h-screen py-8">
+        <div className="max-w-md mx-auto px-4">
         {safeComponents.length === 0 ? (
           <div className="text-center text-gray-500 mt-20">
             <p>プロフィールコンテンツがありません</p>
@@ -107,13 +101,14 @@ export function SimpleRenderer({
                   return <ProfileComponent key={component.id} component={component} />;
                 default:
                   return (
-                    <div key={component.id} className="w-3/4 mx-auto bg-red-100 p-4 mb-4 rounded">
+                    <div key={component.id} className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-red-100 p-4 mb-4 rounded">
                       未対応のコンポーネントタイプ: {component.type}
                     </div>
                   );
               }
             })
         )}
+        </div>
       </div>
     </div>
   );

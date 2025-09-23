@@ -6,6 +6,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 export interface VCardData {
   firstName?: string;
   lastName?: string;
+  phoneticFirstName?: string;
+  phoneticLastName?: string;
   organization?: string;
   title?: string;
   email?: string;
@@ -70,15 +72,59 @@ export async function POST(request: NextRequest) {
         vCard.socialUrls.instagram = data.socialUrls.instagram;
     }
 
-    if (data.photo && vCard.photo && vCard.photo.embedFromString) {
-      vCard.photo.embedFromString(data.photo, "image/jpeg");
+    // Handle photo - convert URL to base64 if needed
+    if (data.photo) {
+      try {
+        // Check if it's already base64 or a URL
+        if (data.photo.startsWith('data:')) {
+          // Already base64 encoded
+          const base64Data = data.photo.split(',')[1];
+          if (base64Data && vCard.photo && typeof vCard.photo.embedFromString === 'function') {
+            vCard.photo.embedFromString(base64Data, "image/jpeg");
+          }
+        } else if (data.photo.startsWith('http')) {
+          // It's a URL, need to fetch and convert
+          const response = await fetch(data.photo);
+          if (response.ok) {
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const base64 = buffer.toString('base64');
+            if (vCard.photo && typeof vCard.photo.embedFromString === 'function') {
+              vCard.photo.embedFromString(base64, blob.type || "image/jpeg");
+            }
+          }
+        }
+      } catch (photoError) {
+        console.error('Error processing photo for VCard:', photoError);
+        // Continue without photo if there's an error
+      }
     }
 
     if (data.note) vCard.note = data.note;
 
     vCard.version = "3.0";
 
-    const vcardString = vCard.getFormattedString();
+    let vcardString = vCard.getFormattedString();
+
+    // Add phonetic fields (furigana) as custom X-PHONETIC fields
+    if (data.phoneticFirstName || data.phoneticLastName) {
+      const phoneticFields = [];
+      if (data.phoneticLastName) {
+        phoneticFields.push(`X-PHONETIC-LAST-NAME:${data.phoneticLastName}`);
+      }
+      if (data.phoneticFirstName) {
+        phoneticFields.push(`X-PHONETIC-FIRST-NAME:${data.phoneticFirstName}`);
+      }
+
+      // Insert phonetic fields after the name fields
+      const lines = vcardString.split('\n');
+      const insertIndex = lines.findIndex(line => line.startsWith('FN:')) + 1;
+      if (insertIndex > 0) {
+        lines.splice(insertIndex, 0, ...phoneticFields);
+        vcardString = lines.join('\n');
+      }
+    }
 
     // ファイル名をASCII文字のみに変換
     const safeFileName = `${data.firstName || "contact"}_${data.lastName || "card"}`
@@ -164,6 +210,31 @@ export async function GET(request: NextRequest) {
     // 住所
     if (profile.address) {
       vcardLines.push(`ADR;TYPE=WORK:;;${profile.address};;;;`);
+    }
+
+    // 写真
+    if (profile.photoURL || profile.avatarUrl || profile.image) {
+      try {
+        const photoUrl = profile.photoURL || profile.avatarUrl || profile.image;
+        if (photoUrl && photoUrl.startsWith('http')) {
+          const response = await fetch(photoUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const base64 = buffer.toString('base64');
+            const mimeType = blob.type || 'image/jpeg';
+            const imageType = mimeType.split('/')[1]?.toUpperCase() || 'JPEG';
+            vcardLines.push(`PHOTO;ENCODING=b;TYPE=${imageType}:${base64}`);
+          }
+        } else if (photoUrl && photoUrl.startsWith('data:')) {
+          // Already base64
+          const base64Data = photoUrl.split(',')[1];
+          vcardLines.push(`PHOTO;ENCODING=b;TYPE=JPEG:${base64Data}`);
+        }
+      } catch (photoError) {
+        console.error('Error processing photo for VCard:', photoError);
+      }
     }
 
     // ノート

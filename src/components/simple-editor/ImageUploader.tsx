@@ -12,9 +12,10 @@ interface ImageUploaderProps {
   userId: string;
   onImageUploaded: (url: string) => void;
   currentImageUrl?: string;
+  isCircular?: boolean;  // 円形表示オプション
 }
 
-export function ImageUploader({ userId, onImageUploaded, currentImageUrl }: ImageUploaderProps) {
+export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCircular = false }: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
   const [error, setError] = useState<string | null>(null);
@@ -104,17 +105,38 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl }: Imag
       )}
 
       {/* プレビューエリア - モバイルファースト */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4">
+      <div className={`border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 ${
+        isCircular ? 'flex justify-center' : ''
+      }`}>
         {preview ? (
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-32 sm:h-40 object-cover rounded"
-          />
+          isCircular ? (
+            <div className="relative w-32 h-32">
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-32 h-32 object-cover rounded-full border-4 border-white shadow-lg"
+              />
+              <div className="absolute inset-0 rounded-full ring-2 ring-gray-200 ring-offset-2"></div>
+            </div>
+          ) : (
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-32 sm:h-40 object-cover rounded"
+            />
+          )
         ) : (
           <div className="flex flex-col items-center py-6 sm:py-8">
-            <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
-            <p className="mt-2 text-xs sm:text-sm text-gray-500">画像がありません</p>
+            {isCircular ? (
+              <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300">
+                <ImageIcon className="h-10 w-10 text-gray-400" />
+              </div>
+            ) : (
+              <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+            )}
+            <p className="mt-2 text-xs sm:text-sm text-gray-500">
+              {isCircular ? 'プロフィール写真' : '画像がありません'}
+            </p>
           </div>
         )}
       </div>
