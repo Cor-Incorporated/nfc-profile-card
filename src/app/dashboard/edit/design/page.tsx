@@ -82,7 +82,11 @@ function DesignEditorContent() {
     <SimplePageEditor
       userId={user.uid}
       initialData={initialData}
-      user={user}
+      user={{
+        username: (user as any).username,
+        email: user.email || undefined,
+        displayName: user.displayName || undefined,
+      }}
     />
   );
 }

@@ -59,7 +59,8 @@ export function ComponentEditor({ component, onSave, onClose, userId }: Componen
 
 // テキストエディタ
 function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [text, setText] = useState(component.content?.text || '');
+  const content = component.content as any;
+  const [text, setText] = useState(content?.text || '');
 
   const handleSave = () => {
     onSave({
@@ -96,8 +97,9 @@ function TextEditor({ component, onSave, onClose, userId }: ComponentEditorProps
 
 // 画像エディタ
 function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [imageUrl, setImageUrl] = useState(component.content?.src || '');
-  const [alt, setAlt] = useState(component.content?.alt || '');
+  const content = component.content as any;
+  const [imageUrl, setImageUrl] = useState(content?.src || '');
+  const [alt, setAlt] = useState(content?.alt || '');
   const [useUpload, setUseUpload] = useState(true);
 
   const handleSave = () => {
@@ -180,8 +182,9 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
 
 // リンクエディタ
 function LinkEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
-  const [url, setUrl] = useState(component.content?.url || '');
-  const [label, setLabel] = useState(component.content?.label || '');
+  const content = component.content as any;
+  const [url, setUrl] = useState(content?.url || '');
+  const [label, setLabel] = useState(content?.label || '');
   const [useAutoLabel, setUseAutoLabel] = useState(true);
 
   // URLが変更されたら自動的にラベルを設定
@@ -319,26 +322,29 @@ interface ProfileContent {
 }
 
 function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
+  // Type guard to ensure we have profile content
+  const content = component.content as any; // Temporary solution for complex type
+
   const [profileData, setProfileData] = useState<ProfileContent>({
-    firstName: component.content?.firstName || '',
-    lastName: component.content?.lastName || '',
-    phoneticFirstName: component.content?.phoneticFirstName || '',
-    phoneticLastName: component.content?.phoneticLastName || '',
-    name: component.content?.name || '',
-    email: component.content?.email || '',
-    phone: component.content?.phone || '',
-    cellPhone: component.content?.cellPhone || '',
-    company: component.content?.company || '',
-    position: component.content?.position || '',
-    department: component.content?.department || '',
-    address: component.content?.address || '',
-    city: component.content?.city || '',
-    postalCode: component.content?.postalCode || '',
-    website: component.content?.website || '',
-    bio: component.content?.bio || '',
-    photoURL: component.content?.photoURL || '',
-    cardBackgroundColor: component.content?.cardBackgroundColor || '#ffffff',
-    cardBackgroundOpacity: component.content?.cardBackgroundOpacity || 95,
+    firstName: content?.firstName || '',
+    lastName: content?.lastName || '',
+    phoneticFirstName: content?.phoneticFirstName || '',
+    phoneticLastName: content?.phoneticLastName || '',
+    name: content?.name || '',
+    email: content?.email || '',
+    phone: content?.phone || '',
+    cellPhone: content?.cellPhone || '',
+    company: content?.company || '',
+    position: content?.position || '',
+    department: content?.department || '',
+    address: content?.address || '',
+    city: content?.city || '',
+    postalCode: content?.postalCode || '',
+    website: content?.website || '',
+    bio: content?.bio || '',
+    photoURL: content?.photoURL || '',
+    cardBackgroundColor: content?.cardBackgroundColor || '#ffffff',
+    cardBackgroundOpacity: content?.cardBackgroundOpacity || 95,
   });
 
   const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'company' | 'address' | 'design'>('basic');

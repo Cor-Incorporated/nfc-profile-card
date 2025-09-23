@@ -7,9 +7,16 @@ import {
   BusinessCardScanResponse,
   ApiErrorResponse
 } from "@/types/api";
+import { strictRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (5 requests per minute for OCR)
+    const rateLimitResponse = await strictRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     // Check for authorization header
     const authorization = request.headers.get("authorization");
     if (!authorization || !authorization.startsWith("Bearer ")) {

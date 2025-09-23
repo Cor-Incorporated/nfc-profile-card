@@ -26,14 +26,15 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ProfileComponent } from './utils/dataStructure';
+import { ProfileComponent, ProfileData, SortableItemProps, SimplePageEditorProps } from './utils/dataStructure';
+import { sanitizeComponentContent, validateComponentContent } from './utils/validation';
 import { ComponentEditor } from './ComponentEditor';
 import { BackgroundCustomizer } from './BackgroundCustomizer';
 import { DevicePreview } from './DevicePreview';
 import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
-function SortableItem({ component, onDelete, onEdit }: any) {
+function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -71,25 +72,27 @@ function SortableItem({ component, onDelete, onEdit }: any) {
           onClick={() => onEdit(component)}
         >
           <span className="font-medium">{component.type}</span>
-          {component.content?.text && (
+          {'text' in component.content && component.content.text && (
             <p className="text-sm text-gray-600 mt-1">{component.content.text}</p>
           )}
-          {component.content?.label && (
+          {'label' in component.content && component.content.label && (
             <p className="text-sm text-gray-600 mt-1">{component.content.label}</p>
           )}
           {component.type === 'profile' && component.content && (
             <div className="text-sm text-gray-600 mt-1">
-              {component.content.name ||
-               `${component.content.lastName || ''} ${component.content.firstName || ''}`.trim() ||
+              {'name' in component.content && component.content.name ? component.content.name :
+               ('lastName' in component.content || 'firstName' in component.content) ?
+                `${('lastName' in component.content && component.content.lastName) || ''} ${('firstName' in component.content && component.content.firstName) || ''}`.trim() ||
+                'プロフィール' :
                'プロフィール'}
-              {component.content.company && ` - ${component.content.company}`}
+              {'company' in component.content && component.content.company && ` - ${component.content.company}`}
             </div>
           )}
-          {!component.content?.text &&
-           !component.content?.label &&
-           !component.content?.name &&
-           !component.content?.lastName &&
-           !component.content?.firstName && (
+          {!('text' in component.content && component.content.text) &&
+           !('label' in component.content && component.content.label) &&
+           !('name' in component.content && component.content.name) &&
+           !('lastName' in component.content && component.content.lastName) &&
+           !('firstName' in component.content && component.content.firstName) && (
             <p className="text-sm text-gray-500 mt-1">クリックして編集</p>
           )}
         </div>
@@ -116,7 +119,7 @@ function SortableItem({ component, onDelete, onEdit }: any) {
   );
 }
 
-export function SimplePageEditor({ userId, initialData, user }: any) {
+export function SimplePageEditor({ userId, initialData, user }: SimplePageEditorProps) {
   const router = useRouter();
   const [components, setComponents] = useState<ProfileComponent[]>(
     initialData?.components || []
@@ -175,11 +178,19 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   };
 
   const addComponent = (type: ProfileComponent['type']) => {
+    const defaultContent = getDefaultContent(type);
+    // Validate default content
+    const isValid = validateComponentContent(type, defaultContent);
+    if (!isValid) {
+      console.error('Invalid default content for type:', type);
+      return;
+    }
+
     const newComponent: ProfileComponent = {
-      id: `${Date.now()}`,
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
       order: components.length,
-      content: getDefaultContent(type),
+      content: sanitizeComponentContent(type, defaultContent) as ProfileComponent['content'],
     };
     setComponents([...components, newComponent]);
     setShowAddMenu(false);
@@ -200,8 +211,25 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   };
 
   const updateComponent = (updatedComponent: ProfileComponent) => {
+    // Validate and sanitize content before updating
+    const isValid = validateComponentContent(updatedComponent.type, updatedComponent.content);
+    if (!isValid) {
+      console.error('Invalid component content');
+      return;
+    }
+
+    const sanitizedContent = sanitizeComponentContent(
+      updatedComponent.type,
+      updatedComponent.content
+    );
+
+    const safeComponent = {
+      ...updatedComponent,
+      content: sanitizedContent as ProfileComponent['content'],
+    };
+
     setComponents(components.map(c =>
-      c.id === updatedComponent.id ? updatedComponent : c
+      c.id === safeComponent.id ? safeComponent : c
     ));
     setEditingComponent(null);
     // 更新後に自動保存を実行
@@ -256,9 +284,9 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
       setSaveStatus('saved');
       setLastSaved(new Date());
       console.log('[SimplePageEditor] Profile saved successfully');
-    } catch (error: any) {
+    } catch (error) {
       // ドキュメントが存在しない場合はsetDocで作成
-      if (error.code === 'not-found') {
+      if (error instanceof Error && 'code' in error && (error as any).code === 'not-found') {
         try {
           await setDoc(
             doc(db, "users", userId, "profile", "data"),
@@ -330,10 +358,14 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
 
     // クリーンアップ関数
     return () => {
-      // コンポーネントアンマウント時に保存
+      // コンポーネントアンマウント時に保存タイマーをクリア
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        saveProfile(); // 即座に保存
+        // 最後の保存を実行（フラグをチェックして重複を防ぐ）
+        if (!isSavingRef.current) {
+          // 非同期処理をブロックしないように
+          saveProfile();
+        }
       }
 
       // イベントリスナーの削除
