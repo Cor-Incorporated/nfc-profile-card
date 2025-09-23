@@ -112,6 +112,7 @@ pids
 tmp/
 temp/
 .tmp/
+名刺スキャナー-&-vcard保存/
 
 # Optional npm cache directory
 .npm

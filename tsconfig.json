@@ -29,5 +29,9 @@
     ".next/types/**/*.ts",
     "src/types/jest-dom.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "business-card-scanner-reference/**/*",
+    "名刺スキャナー-&-vcard保存/**/*"
+  ]
 }

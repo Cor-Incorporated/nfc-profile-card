@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin
 if (!getApps().length) {
@@ -34,6 +35,7 @@ if (!getApps().length) {
 }
 
 export const adminDb = getFirestore();
+export const adminAuth = getAuth();
 
 // Helper function to create a user document
 export async function createUserDocument(userData: {
@@ -83,4 +85,22 @@ export async function deleteUserDocument(uid: string) {
     deleted: true,
     deletedAt: new Date(),
   });
+}
+
+// Helper function to verify Firebase ID token
+export async function verifyIdToken(idToken: string) {
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    return {
+      success: true,
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+    };
+  } catch (error) {
+    console.error("Error verifying ID token:", error);
+    return {
+      success: false,
+      error: "Invalid or expired token",
+    };
+  }
 }

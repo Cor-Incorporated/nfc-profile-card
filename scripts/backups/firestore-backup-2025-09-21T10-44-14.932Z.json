@@ -1,0 +1,405 @@
+{
+  "timestamp": "2025-09-21T10:44:13.829Z",
+  "collections": {
+    "users": [
+      {
+        "id": "3czsGrKpUrcw1KfLHO8qZOwsZ3w1",
+        "data": {
+          "website": "",
+          "photoURL": "https://lh3.googleusercontent.com/a-/ALV-UjX4DXtKroqA1Nf_q2mIsAk06Ruh-nE9mdpfpyRylW9Fk_kmjQhbvgtV0XSveW02buGRLq-wZyLpgfVCk_egigR4D7ix6r-RsgMdb1uQpVdNv7v5g1DJ8vg2BGc_2Fdmtgr_IySuXZTu2ztJYMYSvMFRtOZsTFsvm-NsIrF-nEdvGXhYrH6ohs14MEy5VIckaq4XZtS1kuN4DsjXT4O85fxU7MGp7aXJoqykh_VJH9eVJQh9SpX_G79Z-HCrBruqMnIWjwcwL6KqZaispspDHQka8-GS6W4nfD4RA_DiHN8I_FhZ_A87vfBQB4gnTG5A9s_aP5LwgwW7bRUBhkP-SD5yWl4FeSsEt-YO2h9_b7fsjbAOlR9pKaC-Em5c4fYKJukR2-LfO443T_xtNkhk7DHNY_k-ViR952CoxHmKjbJjZq4OeKXL5Teun2ztJ8xrGe-1eTIG3PKYRuexWpqwZJ1eaHMrFNEzlPJsD-68OFDXIq_Kk2qCZCY2GM2mgJv-TjON8jC-Til2aHabNRysOrEE0jIvp6x7IQ80bxcvz7QDRw83Ayy8J6x5a1k_q7ohMktZGBkMNSg63Ukg3cUm76u_0n-cqa7xT_QmPYZ7Y1Fp5aRJDZ01fU2JB1DQ-cc1sq3o2EwcbtzoadMruEoWXW6ym6LQ2GmGlnpOBPx-nziWUMOGYAwKjYqgUOthKwHLS3a4xBRvws2GBwS14_hazEFbNxs-S2A4SPJXx2sQwC2Gn6cQ3WBNIX3iL9v7V-Z4W4bCaVfxm1PmKKFwlaGe2i0kFmUjcKibt5bpY5XGos8iWI6Kkc6hLi9JZZ1WRBP6VRfGQewxTOaMeTitiGnI7hC3mYuuHdDM9VEnkVZAz0QXxm2I8SIUrDomNExDYm6_I_kHbrwiM4w3itZiJib0mioGT0xOG0c_YzvGt6S55HlnQoZ4EfCIFhkVKdH_xj7ZONbJFKVJb-ENT39J5rlxSXYKaKqy9UE=s96-c",
+          "company": "",
+          "position": "",
+          "bio": "",
+          "address": "",
+          "email": "company@cor-jp.com",
+          "uid": "3czsGrKpUrcw1KfLHO8qZOwsZ3w1",
+          "links": [],
+          "phone": "",
+          "username": "company",
+          "cards": [],
+          "name": "寺田康佑",
+          "displayName": "寺田康佑",
+          "createdAt": {
+            "_seconds": 1758109855,
+            "_nanoseconds": 316000000
+          },
+          "subscription": {
+            "plan": "free",
+            "startedAt": {
+              "_seconds": 1758109855,
+              "_nanoseconds": 316000000
+            }
+          },
+          "emailVerified": true,
+          "analytics": {
+            "dailyViews": {
+              "2025-09-21": 10
+            },
+            "recentViews": [
+              {
+                "timestamp": {
+                  "_seconds": 1758437879,
+                  "_nanoseconds": 186000000
+                },
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3003/dashboard"
+              },
+              {
+                "referrer": "http://localhost:3003/dashboard",
+                "timestamp": {
+                  "_seconds": 1758437646,
+                  "_nanoseconds": 50000000
+                },
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+              },
+              {
+                "timestamp": {
+                  "_seconds": 1758437642,
+                  "_nanoseconds": 480000000
+                },
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3003/dashboard"
+              },
+              {
+                "timestamp": {
+                  "_seconds": 1758434755,
+                  "_nanoseconds": 695000000
+                },
+                "referrer": "http://localhost:3000/dashboard",
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+              },
+              {
+                "referrer": "http://localhost:3000/dashboard",
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "timestamp": {
+                  "_seconds": 1758434675,
+                  "_nanoseconds": 594000000
+                }
+              }
+            ],
+            "totalViews": 10,
+            "lastViewedAt": {
+              "_seconds": 1758437879,
+              "_nanoseconds": 386000000
+            }
+          },
+          "updatedAt": {
+            "_seconds": 1758450208,
+            "_nanoseconds": 800000000
+          },
+          "profile": {
+            "background": {
+              "type": "image",
+              "imageUrl": "https://firebasestorage.googleapis.com/v0/b/nfc-profile-card.firebasestorage.app/o/users%2F3czsGrKpUrcw1KfLHO8qZOwsZ3w1%2Fbackground%2F1758437809833_IMG_2541.jpeg?alt=media&token=cb0e6e7a-af8d-435f-94aa-19154af08d73",
+              "opacity": 0.53
+            },
+            "socialLinks": [
+              {
+                "service": "github",
+                "url": "https://github.com/terisuke",
+                "title": "",
+                "id": "1758449175871"
+              },
+              {
+                "title": "",
+                "url": "",
+                "id": "1758449797115",
+                "service": ""
+              }
+            ],
+            "editorContent": "{\"ROOT\":{\"type\":\"div\",\"isCanvas\":true,\"props\":{},\"displayName\":\"div\",\"custom\":{},\"parent\":null,\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}",
+            "updatedAt": {
+              "_seconds": 1758450519,
+              "_nanoseconds": 221000000
+            }
+          }
+        },
+        "subcollections": {
+          "profile": [
+            {
+              "id": "data",
+              "data": {
+                "background": {
+                  "opacity": 0.53,
+                  "imageUrl": "https://firebasestorage.googleapis.com/v0/b/nfc-profile-card.firebasestorage.app/o/users%2F3czsGrKpUrcw1KfLHO8qZOwsZ3w1%2Fbackground%2F1758437809833_IMG_2541.jpeg?alt=media&token=cb0e6e7a-af8d-435f-94aa-19154af08d73",
+                  "type": "image"
+                },
+                "socialLinks": [
+                  {
+                    "title": "",
+                    "service": "github",
+                    "id": "1758449175871",
+                    "url": "https://github.com/terisuke"
+                  },
+                  {
+                    "service": "",
+                    "url": "",
+                    "title": "",
+                    "id": "1758449797115"
+                  }
+                ],
+                "editorContent": "{\"ROOT\":{\"type\":\"div\",\"isCanvas\":true,\"props\":{},\"displayName\":\"div\",\"custom\":{},\"parent\":null,\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}",
+                "updatedAt": {
+                  "_seconds": 1758450519,
+                  "_nanoseconds": 155000000
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "AJAtEOG0DPXEKsqtlxKKyAdsUKy2",
+        "data": {
+          "subscription": {
+            "startedAt": {
+              "_seconds": 1757994034,
+              "_nanoseconds": 694000000
+            },
+            "plan": "free"
+          },
+          "email": "test@example.com",
+          "createdAt": {
+            "_seconds": 1757994034,
+            "_nanoseconds": 694000000
+          },
+          "company": "Test Company",
+          "phone": "+81-90-1234-5678",
+          "links": [
+            {
+              "id": "1",
+              "title": "GitHub",
+              "url": "https://github.com/testuser"
+            },
+            {
+              "title": "Twitter",
+              "url": "https://twitter.com/testuser",
+              "id": "2"
+            },
+            {
+              "id": "3",
+              "title": "LinkedIn",
+              "url": "https://linkedin.com/in/testuser"
+            }
+          ],
+          "position": "Test Position",
+          "username": "testuser",
+          "uid": "AJAtEOG0DPXEKsqtlxKKyAdsUKy2",
+          "address": "Tokyo, Japan",
+          "name": "Test User",
+          "website": "https://example.com",
+          "bio": "This is a test user profile for NFC Profile Card",
+          "cards": [],
+          "photoURL": null,
+          "displayName": null,
+          "updatedAt": {
+            "_seconds": 1758108907,
+            "_nanoseconds": 864000000
+          }
+        },
+        "subcollections": {}
+      },
+      {
+        "id": "jAV9o32lMwXKHK7ASBkEqQX9shL2",
+        "data": {
+          "username": "terisuke1115",
+          "phone": "",
+          "photoURL": "https://lh3.googleusercontent.com/a/ACg8ocJHhInrr2OKNfhnCSKXffcvv7sDAc9MG-Yd1derNYarr67o6VZM=s96-c",
+          "name": "寺田康佑",
+          "company": "",
+          "address": "",
+          "displayName": "寺田康佑",
+          "cards": [],
+          "bio": "",
+          "email": "terisuke1115@gmail.com",
+          "position": "",
+          "uid": "jAV9o32lMwXKHK7ASBkEqQX9shL2",
+          "website": "",
+          "createdAt": {
+            "_seconds": 1757991525,
+            "_nanoseconds": 770000000
+          },
+          "subscription": {
+            "plan": "free",
+            "startedAt": {
+              "_seconds": 1757991525,
+              "_nanoseconds": 770000000
+            }
+          },
+          "links": [
+            {
+              "url": "https://github.com/terisuke",
+              "id": "1757993713450",
+              "title": ""
+            },
+            {
+              "title": "",
+              "url": "",
+              "id": "1757993735944"
+            }
+          ],
+          "emailVerified": true,
+          "profileMigrated": true,
+          "migrationDate": {
+            "_seconds": 1758197982,
+            "_nanoseconds": 723000000
+          },
+          "analytics": {
+            "dailyViews": {
+              "2025-09-18": 5,
+              "2025-09-19": 1,
+              "2025-09-21": 8
+            },
+            "recentViews": [
+              {
+                "timestamp": {
+                  "_seconds": 1758442332,
+                  "_nanoseconds": 594000000
+                },
+                "referrer": "http://localhost:3000/dashboard",
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3000/dashboard",
+                "timestamp": {
+                  "_seconds": 1758440249,
+                  "_nanoseconds": 471000000
+                }
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3003/dashboard",
+                "timestamp": {
+                  "_seconds": 1758437964,
+                  "_nanoseconds": 432000000
+                }
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3003/dashboard",
+                "timestamp": {
+                  "_seconds": 1758436547,
+                  "_nanoseconds": 238000000
+                }
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "timestamp": {
+                  "_seconds": 1758275286,
+                  "_nanoseconds": 776000000
+                },
+                "referrer": "https://nfc-profile-card-eight.vercel.app/dashboard"
+              },
+              {
+                "timestamp": {
+                  "_seconds": 1758212800,
+                  "_nanoseconds": 360000000
+                },
+                "referrer": "direct",
+                "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+              },
+              {
+                "timestamp": {
+                  "_seconds": 1758212790,
+                  "_nanoseconds": 294000000
+                },
+                "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1",
+                "referrer": "direct"
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "https://nfc-profile-card-eight.vercel.app/dashboard",
+                "timestamp": {
+                  "_seconds": 1758212716,
+                  "_nanoseconds": 709000000
+                }
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3000/dashboard",
+                "timestamp": {
+                  "_seconds": 1758211285,
+                  "_nanoseconds": 329000000
+                }
+              },
+              {
+                "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+                "referrer": "http://localhost:3000/dashboard",
+                "timestamp": {
+                  "_seconds": 1758207850,
+                  "_nanoseconds": 574000000
+                }
+              }
+            ],
+            "totalViews": 46,
+            "lastViewedAt": {
+              "_seconds": 1758442332,
+              "_nanoseconds": 796000000
+            }
+          },
+          "updatedAt": {
+            "_seconds": 1758447940,
+            "_nanoseconds": 981000000
+          },
+          "profile": {
+            "background": {
+              "type": "image",
+              "opacity": 0.65,
+              "imageUrl": "https://firebasestorage.googleapis.com/v0/b/nfc-profile-card.firebasestorage.app/o/users%2FjAV9o32lMwXKHK7ASBkEqQX9shL2%2Fbackground%2F1758164335659_IMG_2525.jpeg?alt=media&token=64d4e9d1-1258-47aa-86c5-4e5f3a8847ab",
+              "positionY": 46,
+              "positionX": 22
+            },
+            "socialLinks": [],
+            "editorContent": "{\"ROOT\":{\"type\":\"div\",\"isCanvas\":true,\"props\":{\"className\":\"flex flex-col items-center gap-4 p-6 min-h-screen relative\",\"style\":{\"zIndex\":1}},\"displayName\":\"div\",\"custom\":{},\"hidden\":false,\"nodes\":[\"Fq572VNSgI\",\"SdJC0Y6zTY\",\"qbzy5e19FO\"],\"linkedNodes\":{}},\"Fq572VNSgI\":{\"type\":{\"resolvedName\":\"AddComponentPlaceholder\"},\"isCanvas\":false,\"props\":{\"socialLinks\":[{\"id\":\"1758165487137\",\"url\":\"https://github.com/terisuke\",\"title\":\"\",\"service\":\"github\"}],\"userId\":\"jAV9o32lMwXKHK7ASBkEqQX9shL2\"},\"displayName\":\"AddComponentPlaceholder\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"SdJC0Y6zTY\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"よしのぶ\",\"fontSize\":16,\"color\":\"#000000\",\"textAlign\":\"left\",\"backgroundColor\":\"transparent\",\"backgroundOpacity\":0,\"backgroundBlur\":0,\"fontFamily\":\"sans-serif\",\"padding\":10,\"fontWeight\":\"normal\"},\"displayName\":\"テキスト\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"qbzy5e19FO\":{\"type\":{\"resolvedName\":\"LinkButton\"},\"isCanvas\":false,\"props\":{\"text\":\"github\",\"url\":\"https://github.com/terisuke\",\"backgroundColor\":\"#333333\",\"textColor\":\"#FFFFFF\",\"borderRadius\":8,\"icon\":\"auto\",\"target\":\"_blank\",\"width\":\"100%\",\"padding\":\"12px 24px\",\"backgroundOpacity\":1,\"backgroundBlur\":0,\"fontFamily\":\"sans-serif\"},\"displayName\":\"リンクボタン\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}",
+            "updatedAt": {
+              "_seconds": 1758448222,
+              "_nanoseconds": 562000000
+            }
+          }
+        },
+        "subcollections": {
+          "profile": [
+            {
+              "id": "data",
+              "data": {
+                "background": {
+                  "positionX": 22,
+                  "imageUrl": "https://firebasestorage.googleapis.com/v0/b/nfc-profile-card.firebasestorage.app/o/users%2FjAV9o32lMwXKHK7ASBkEqQX9shL2%2Fbackground%2F1758164335659_IMG_2525.jpeg?alt=media&token=64d4e9d1-1258-47aa-86c5-4e5f3a8847ab",
+                  "positionY": 46,
+                  "type": "image",
+                  "opacity": 0.65
+                },
+                "socialLinks": [],
+                "editorContent": "{\"ROOT\":{\"type\":\"div\",\"isCanvas\":true,\"props\":{\"className\":\"flex flex-col items-center gap-4 p-6 min-h-screen relative\",\"style\":{\"zIndex\":1}},\"displayName\":\"div\",\"custom\":{},\"hidden\":false,\"nodes\":[\"Fq572VNSgI\",\"SdJC0Y6zTY\",\"qbzy5e19FO\"],\"linkedNodes\":{}},\"Fq572VNSgI\":{\"type\":{\"resolvedName\":\"AddComponentPlaceholder\"},\"isCanvas\":false,\"props\":{\"socialLinks\":[{\"id\":\"1758165487137\",\"url\":\"https://github.com/terisuke\",\"title\":\"\",\"service\":\"github\"}],\"userId\":\"jAV9o32lMwXKHK7ASBkEqQX9shL2\"},\"displayName\":\"AddComponentPlaceholder\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"SdJC0Y6zTY\":{\"type\":{\"resolvedName\":\"Text\"},\"isCanvas\":false,\"props\":{\"text\":\"よしのぶ\",\"fontSize\":16,\"color\":\"#000000\",\"textAlign\":\"left\",\"backgroundColor\":\"transparent\",\"backgroundOpacity\":0,\"backgroundBlur\":0,\"fontFamily\":\"sans-serif\",\"padding\":10,\"fontWeight\":\"normal\"},\"displayName\":\"テキスト\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}},\"qbzy5e19FO\":{\"type\":{\"resolvedName\":\"LinkButton\"},\"isCanvas\":false,\"props\":{\"text\":\"github\",\"url\":\"https://github.com/terisuke\",\"backgroundColor\":\"#333333\",\"textColor\":\"#FFFFFF\",\"borderRadius\":8,\"icon\":\"auto\",\"target\":\"_blank\",\"width\":\"100%\",\"padding\":\"12px 24px\",\"backgroundOpacity\":1,\"backgroundBlur\":0,\"fontFamily\":\"sans-serif\"},\"displayName\":\"リンクボタン\",\"custom\":{},\"parent\":\"ROOT\",\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}",
+                "updatedAt": {
+                  "_seconds": 1758448222,
+                  "_nanoseconds": 506000000
+                }
+              }
+            }
+          ],
+          "profiles": [
+            {
+              "id": "MWKfKREkkxyQVzhbeu0H",
+              "data": {
+                "description": "",
+                "isActive": true,
+                "name": "プロファイル1",
+                "priority": 0,
+                "createdAt": {
+                  "_seconds": 1758197146,
+                  "_nanoseconds": 375000000
+                },
+                "updatedAt": {
+                  "_seconds": 1758197146,
+                  "_nanoseconds": 375000000
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

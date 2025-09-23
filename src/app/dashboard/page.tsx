@@ -8,7 +8,6 @@ import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebas
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { LogOut, ExternalLink, Eye } from "lucide-react";
-import { getActiveProfileId } from "@/lib/migration/profileMigration";
 import { getAnalyticsSummary } from "@/lib/analytics";
 
 export default function DashboardPage() {
@@ -16,7 +15,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<{
     totalViews: number;
     lastViewedAt: Date | null;
@@ -41,9 +39,6 @@ export default function DashboardPage() {
         setUserProfile(userSnap.data());
       }
 
-      // Get active profile ID - TEMPORARILY DISABLED FOR P0 FIX
-      // const profileId = await getActiveProfileId(user.uid);
-      // setActiveProfileId(profileId);
 
       // Fetch analytics data
       const analyticsData = await getAnalyticsSummary(user.uid);
@@ -172,47 +167,13 @@ export default function DashboardPage() {
               <li>✓ デザインのカスタマイズ</li>
             </ul>
             <Link
-              href={activeProfileId ? `/dashboard/edit/design?profileId=${activeProfileId}` : "/dashboard/edit/design"}
+              href="/dashboard/edit/design"
               className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
             >
               編集画面へ
             </Link>
           </div>
 
-          {/* プロファイル管理（新機能） */}
-          <div className="bg-white rounded-lg shadow p-6 relative border-2 border-green-500">
-            <div className="absolute -top-3 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-              新機能
-            </div>
-            <div className="flex items-center mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold ml-4">
-                複数プロファイル管理
-              </h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              ビジネス用、クリエイター用など、シーンに応じた複数のプロファイルを作成・管理
-            </p>
-            <Link href="/dashboard/profiles">
-              <Button className="w-full bg-green-600 hover:bg-green-700">
-                プロファイル管理へ
-              </Button>
-            </Link>
-          </div>
 
 
           {/* アナリティクスカード */}
@@ -298,34 +259,12 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* 連絡先管理 */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center mb-4">
-              <div className="p-3 bg-indigo-100 rounded-lg">
-                <svg
-                  className="w-6 h-6 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold ml-4">連絡先</h2>
-            </div>
-            <p className="text-gray-600 mb-4">スキャンした名刺や連絡先を管理</p>
-            <button className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-              確認する
-            </button>
-          </div>
 
           {/* 名刺スキャン */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 relative border-2 border-pink-500">
+            <div className="absolute -top-3 left-4 bg-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+              新機能
+            </div>
             <div className="flex items-center mb-4">
               <div className="p-3 bg-pink-100 rounded-lg">
                 <svg
@@ -351,14 +290,14 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold ml-4">名刺スキャン</h2>
             </div>
             <p className="text-gray-600 mb-4">
-              カメラで名刺を撮影して連絡先を自動登録（近日実装予定）
+              カメラで名刺を撮影してVCardで端末に保存
             </p>
-            <button
-              className="w-full px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
-              disabled
+            <Link
+              href="/dashboard/business-cards/scan"
+              className="block w-full px-4 py-3 bg-pink-600 text-white text-center rounded-lg hover:bg-pink-700 transition-colors text-base font-medium touch-manipulation"
             >
-              近日実装予定
-            </button>
+              📸 スキャンする
+            </Link>
           </div>
         </div>
       </div>
