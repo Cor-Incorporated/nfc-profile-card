@@ -104,13 +104,13 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       >
         {/* ヘッダー部分（最小限のパディング） */}
         <div
-          className="px-2 py-1 sm:px-3 sm:py-1.5 text-white"
+          className="px-2 py-1 sm:px-3 sm:py-1.5 text-white text-center"
           style={{
             backgroundColor: cardBackgroundColor,
             filter: "brightness(0.9)",
           }}
         >
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
+          <div className="inline-flex items-center gap-2 sm:gap-3">
             {photoURL ? (
               <img
                 src={photoURL}
@@ -122,7 +122,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
                 <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             )}
-            <div>
+            <div className="text-left">
               <h2 className="text-sm sm:text-base font-bold leading-none">{displayName}</h2>
               {position && <p className="text-xs opacity-90 leading-none mt-0.5">{position}</p>}
               {company && <p className="text-xs opacity-90 leading-none mt-0.5">{company}</p>}
