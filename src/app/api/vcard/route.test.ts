@@ -570,7 +570,9 @@ describe("VCard API Routes", () => {
 
     it("プロファイルAPI呼び出しが失敗した場合500エラーを返す", async () => {
       // Mock Firestore getDocs to throw an error
-      (getDocs as jest.Mock).mockRejectedValueOnce(new Error("Firestore Error"));
+      (getDocs as jest.Mock).mockRejectedValueOnce(
+        new Error("Firestore Error"),
+      );
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=error",
