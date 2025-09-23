@@ -25,6 +25,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ProfileData {
   name: string;
@@ -41,6 +42,7 @@ interface ProfileData {
 export default function EditProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
@@ -93,8 +95,8 @@ export default function EditProfilePage() {
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
-        title: "エラー",
-        description: "プロフィールの読み込みに失敗しました",
+        title: t('error'),
+        description: t('profileLoadError'),
         variant: "destructive",
       });
     } finally {
@@ -114,8 +116,8 @@ export default function EditProfilePage() {
 
     if (!profile.username) {
       toast({
-        title: "エラー",
-        description: "ユーザー名は必須です",
+        title: t('error'),
+        description: t('usernameRequired'),
         variant: "destructive",
       });
       return;
@@ -134,16 +136,16 @@ export default function EditProfilePage() {
       );
 
       toast({
-        title: "成功",
-        description: "プロフィールを保存しました",
+        title: t('success'),
+        description: t('profileSaved'),
       });
 
       router.push("/dashboard");
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
-        title: "エラー",
-        description: "プロフィールの保存に失敗しました",
+        title: t('error'),
+        description: t('profileSaveError'),
         variant: "destructive",
       });
     } finally {
@@ -163,119 +165,119 @@ export default function EditProfilePage() {
     <div className="container mx-auto px-4 py-4 sm:p-6 max-w-4xl">
       <div className="mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-          プロフィール編集
+          {t('profileEdit')}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          あなたのプロフィール情報を編集できます
+          {t('editProfileDescription')}
         </p>
       </div>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>基本情報</CardTitle>
+            <CardTitle>{t('basicInfo')}</CardTitle>
             <CardDescription>
-              公開プロフィールに表示される基本的な情報を設定します
+              {t('publicProfileDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">名前 *</Label>
+                <Label htmlFor="name">{t('name')} *</Label>
                 <Input
                   id="name"
                   value={profile.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="山田 太郎"
+                  placeholder={t('namePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username">ユーザー名 *</Label>
+                <Label htmlFor="username">{t('username')} *</Label>
                 <Input
                   id="username"
                   value={profile.username}
                   onChange={(e) =>
                     handleInputChange("username", e.target.value)
                   }
-                  placeholder="yamada_taro"
+                  placeholder={t('usernamePlaceholder')}
                 />
                 <p className="text-xs text-muted-foreground">
-                  プロフィールURL: /p/{profile.username || "username"}
+                  {t('profileUrlPrefix')}: /p/{profile.username || "username"}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">会社名</Label>
+                <Label htmlFor="company">{t('company')}</Label>
                 <Input
                   id="company"
                   value={profile.company}
                   onChange={(e) => handleInputChange("company", e.target.value)}
-                  placeholder="株式会社Example"
+                  placeholder={t('companyPlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="position">役職</Label>
+                <Label htmlFor="position">{t('position')}</Label>
                 <Input
                   id="position"
                   value={profile.position}
                   onChange={(e) =>
                     handleInputChange("position", e.target.value)
                   }
-                  placeholder="営業部長"
+                  placeholder={t('positionPlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">メールアドレス</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={profile.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="example@email.com"
+                  placeholder={t('emailPlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">電話番号</Label>
+                <Label htmlFor="phone">{t('phone')}</Label>
                 <Input
                   id="phone"
                   value={profile.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="03-1234-5678"
+                  placeholder={t('phonePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="website">ウェブサイト</Label>
+                <Label htmlFor="website">{t('website')}</Label>
                 <Input
                   id="website"
                   value={profile.website}
                   onChange={(e) => handleInputChange("website", e.target.value)}
-                  placeholder="https://example.com"
+                  placeholder={t('websitePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">住所</Label>
+                <Label htmlFor="address">{t('address')}</Label>
                 <Input
                   id="address"
                   value={profile.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="東京都渋谷区..."
+                  placeholder={t('addressPlaceholder')}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">自己紹介</Label>
+              <Label htmlFor="bio">{t('bio')}</Label>
               <Textarea
                 id="bio"
                 value={profile.bio}
                 onChange={(e) => handleInputChange("bio", e.target.value)}
-                placeholder="あなたについて教えてください..."
+                placeholder={t('bioPlaceholder')}
                 rows={4}
               />
             </div>
@@ -284,9 +286,9 @@ export default function EditProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>デザインカスタマイズ</CardTitle>
+            <CardTitle>{t('designCustomization')}</CardTitle>
             <CardDescription>
-              プロフィールページのデザインをカスタマイズできます
+              {t('designCustomizationDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -296,7 +298,7 @@ export default function EditProfilePage() {
               className="w-full"
             >
               <Palette className="mr-2 h-4 w-4" />
-              デザインエディターを開く
+              {t('openDesignEditor')}
             </Button>
           </CardContent>
         </Card>
@@ -308,7 +310,7 @@ export default function EditProfilePage() {
             disabled={isSaving}
             className="w-full sm:w-auto"
           >
-            キャンセル
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleSave}
@@ -318,12 +320,12 @@ export default function EditProfilePage() {
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                保存中...
+                {t('saving')}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                保存
+                {t('save')}
               </>
             )}
           </Button>

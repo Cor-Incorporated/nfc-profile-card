@@ -2,6 +2,7 @@
 
 import { SimplePageEditor } from "@/components/simple-editor/SimplePageEditor";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
@@ -10,6 +11,7 @@ import { useEffect, useState, Suspense } from "react";
 
 function DesignEditorContent() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const profileId = searchParams.get('profileId');
@@ -50,7 +52,7 @@ function DesignEditorContent() {
         });
       }
     } catch (error) {
-      console.error("データ読み込みエラー:", error);
+      console.error("Data loading error:", error);
       setInitialData({
         components: [],
         background: null,

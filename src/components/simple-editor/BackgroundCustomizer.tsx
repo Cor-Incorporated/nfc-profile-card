@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUploader } from './ImageUploader';
 import { Palette, Sparkles, Image } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BackgroundCustomizerProps {
   currentBackground: any;
@@ -24,14 +25,16 @@ const COLOR_PRESETS = [
 ];
 
 // グラデーションプリセット
-const GRADIENT_PRESETS = [
-  { from: '#667eea', to: '#764ba2', name: '紫グラデーション' },
-  { from: '#f093fb', to: '#f5576c', name: 'ピンクグラデーション' },
-  { from: '#4facfe', to: '#00f2fe', name: '青グラデーション' },
-  { from: '#43e97b', to: '#38f9d7', name: '緑グラデーション' },
-  { from: '#fa709a', to: '#fee140', name: 'サンセット' },
-  { from: '#30cfd0', to: '#330867', name: '深海' },
-];
+function getGradientPresets(t: (key: string) => string) {
+  return [
+    { from: '#667eea', to: '#764ba2', name: t('purpleGradient') },
+    { from: '#f093fb', to: '#f5576c', name: t('pinkGradient') },
+    { from: '#4facfe', to: '#00f2fe', name: t('blueGradient') },
+    { from: '#43e97b', to: '#38f9d7', name: t('greenGradient') },
+    { from: '#fa709a', to: '#fee140', name: t('sunset') },
+    { from: '#30cfd0', to: '#330867', name: t('deepSea') },
+  ];
+}
 
 
 export function BackgroundCustomizer({
@@ -39,6 +42,7 @@ export function BackgroundCustomizer({
   userId,
   onBackgroundChange
 }: BackgroundCustomizerProps) {
+  const { t } = useLanguage();
   // patternタイプの場合はsolidに自動変換
   const initialBackground = currentBackground?.type === 'pattern'
     ? { type: 'solid', color: '#ffffff' }
@@ -53,28 +57,28 @@ export function BackgroundCustomizer({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">背景カスタマイズ</h3>
+      <h3 className="text-lg font-semibold">{t('backgroundCustomize')}</h3>
 
       <Tabs defaultValue={background.type || 'solid'} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="solid" className="text-xs">
             <Palette className="w-4 h-4 mr-1" />
-            単色
+            {t('solidColor')}
           </TabsTrigger>
           <TabsTrigger value="gradient" className="text-xs">
             <Sparkles className="w-4 h-4 mr-1" />
-            グラデ
+            {t('gradientShort')}
           </TabsTrigger>
           <TabsTrigger value="image" className="text-xs">
             <Image className="w-4 h-4 mr-1" />
-            画像
+            {t('backgroundImageTab')}
           </TabsTrigger>
         </TabsList>
 
         {/* 単色タブ */}
         <TabsContent value="solid" className="space-y-3">
           <div>
-            <Label className="text-sm">色を選択</Label>
+            <Label className="text-sm">{t('selectColor')}</Label>
             <div className="grid grid-cols-4 gap-2 mt-2">
               {COLOR_PRESETS.map(color => (
                 <button
@@ -93,7 +97,7 @@ export function BackgroundCustomizer({
 
           {/* カスタムカラー */}
           <div>
-            <Label htmlFor="custom-color" className="text-sm">カスタムカラー</Label>
+            <Label htmlFor="custom-color" className="text-sm">{t('customColor')}</Label>
             <div className="flex gap-2 mt-1">
               <input
                 id="custom-color"
@@ -116,9 +120,9 @@ export function BackgroundCustomizer({
         {/* グラデーションタブ */}
         <TabsContent value="gradient" className="space-y-3">
           <div>
-            <Label className="text-sm">プリセット</Label>
+            <Label className="text-sm">{t('preset')}</Label>
             <div className="grid grid-cols-2 gap-2 mt-2">
-              {GRADIENT_PRESETS.map(gradient => (
+              {getGradientPresets(t).map(gradient => (
                 <button
                   key={gradient.name}
                   onClick={() => handleChange({
@@ -147,10 +151,10 @@ export function BackgroundCustomizer({
 
           {/* カスタムグラデーション */}
           <div className="space-y-2">
-            <Label className="text-sm">カスタム設定</Label>
+            <Label className="text-sm">{t('customSettings')}</Label>
             <div className="flex gap-2">
               <div className="flex-1">
-                <Label htmlFor="from-color" className="text-xs">開始色</Label>
+                <Label htmlFor="from-color" className="text-xs">{t('startColor')}</Label>
                 <input
                   id="from-color"
                   type="color"
@@ -164,7 +168,7 @@ export function BackgroundCustomizer({
                 />
               </div>
               <div className="flex-1">
-                <Label htmlFor="to-color" className="text-xs">終了色</Label>
+                <Label htmlFor="to-color" className="text-xs">{t('endColor')}</Label>
                 <input
                   id="to-color"
                   type="color"
@@ -196,7 +200,7 @@ export function BackgroundCustomizer({
           {background.type === 'image' && background.url && (
             <div>
               <Label htmlFor="image-opacity" className="text-sm">
-                背景画像の不透明度: {Math.round((background.opacity || 0.7) * 100)}%
+                {t('backgroundOpacity')}: {Math.round((background.opacity || 0.7) * 100)}%
               </Label>
               <input
                 id="image-opacity"
@@ -218,7 +222,7 @@ export function BackgroundCustomizer({
 
       {/* プレビュー */}
       <div>
-        <Label className="text-sm">プレビュー（スマホ表示）</Label>
+        <Label className="text-sm">{t('previewMobile')}</Label>
         <div className="flex justify-center mt-2">
           {/* スマホフレーム */}
           <div className="relative" style={{ width: '180px' }}>

@@ -4,6 +4,7 @@
 import { useState, useRef } from 'react';
 import { storage, auth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Upload, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +22,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -28,7 +30,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
 
     // 認証チェック
     if (!user || user.uid !== userId) {
-      const errorMsg = `認証エラー: ${user ? 'ユーザーIDが一致しません' : 'ログインが必要です'}`;
+      const errorMsg = user ? 'Authentication error: User ID mismatch' : 'Login required';
       setError(errorMsg);
       alert(errorMsg);
       return;
@@ -36,7 +38,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
 
     // ファイルサイズチェック（5MB以下）
     if (file.size > 5 * 1024 * 1024) {
-      const errorMsg = '画像サイズは5MB以下にしてください';
+      const errorMsg = t('imageSizeLimit');
       setError(errorMsg);
       alert(errorMsg);
       return;
@@ -44,7 +46,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
 
     // ファイルタイプチェック
     if (!file.type.startsWith('image/')) {
-      const errorMsg = '画像ファイルを選択してください';
+      const errorMsg = t('selectImageFile');
       setError(errorMsg);
       alert(errorMsg);
       return;
@@ -75,16 +77,16 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
     } catch (error: any) {
       console.error('❌ Upload failed:', error);
 
-      let errorMessage = '画像のアップロードに失敗しました';
+      let errorMessage = t('uploadFailed');
 
       if (error.code === 'storage/unauthorized') {
-        errorMessage = 'アップロード権限がありません。ログインし直してください。';
+        errorMessage = t('noPermission');
       } else if (error.code === 'storage/quota-exceeded') {
-        errorMessage = 'ストレージ容量が不足しています。';
+        errorMessage = 'Storage quota exceeded.';
       } else if (error.code === 'storage/invalid-format') {
-        errorMessage = 'サポートされていないファイル形式です。';
+        errorMessage = 'Unsupported file format.';
       } else if (error.message) {
-        errorMessage += `\n詳細: ${error.message}`;
+        errorMessage += `\nDetails: ${error.message}`;
       }
 
       setError(errorMessage);
@@ -135,7 +137,7 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
               <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
             )}
             <p className="mt-2 text-xs sm:text-sm text-gray-500">
-              {isCircular ? 'プロフィール写真' : '画像がありません'}
+              {isCircular ? t('profilePhotoField') : t('noImage')}
             </p>
           </div>
         )}
@@ -159,19 +161,19 @@ export function ImageUploader({ userId, onImageUploaded, currentImageUrl, isCirc
         {isUploading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            アップロード中...
+            {t('uploading')}
           </>
         ) : (
           <>
             <Upload className="mr-2 h-4 w-4" />
-            画像を選択
+            {t('selectImage')}
           </>
         )}
       </Button>
 
       {/* URL入力（オプション） - モバイルファースト */}
       <div className="text-center text-xs text-gray-500">
-        または URL を直接入力することもできます
+        or enter URL directly
       </div>
     </div>
   );

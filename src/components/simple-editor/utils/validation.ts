@@ -28,13 +28,13 @@ export const TextContentSchema = z.object({
 
 // Image content schema
 export const ImageContentSchema = z.object({
-  src: z.string().url().optional(),
+  src: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
   alt: z.string().max(200).transform(sanitizeString).optional(),
 });
 
 // Link content schema
 export const LinkContentSchema = z.object({
-  url: z.string().url(),
+  url: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL'),
   label: z.string().max(200).transform(sanitizeString).optional(),
 });
 
@@ -47,12 +47,16 @@ export const ProfileContentSchema = z.object({
   name: z.string().max(200).transform(sanitizeString).optional(),
   company: z.string().max(200).transform(sanitizeString).optional(),
   position: z.string().max(200).transform(sanitizeString).optional(),
-  email: z.string().email().optional(),
+  department: z.string().max(200).transform(sanitizeString).optional(),
+  email: z.string().refine((val) => val === '' || z.string().email().safeParse(val).success, 'Invalid email').optional(),
   phone: z.string().max(50).transform(sanitizeString).optional(),
-  website: z.string().url().optional(),
+  cellPhone: z.string().max(50).transform(sanitizeString).optional(),
+  website: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
   address: z.string().max(500).transform(sanitizeString).optional(),
+  city: z.string().max(200).transform(sanitizeString).optional(),
+  postalCode: z.string().max(20).transform(sanitizeString).optional(),
   bio: z.string().max(1000).transform(sanitizeString).optional(),
-  photoURL: z.string().url().optional(),
+  photoURL: z.string().refine((val) => val === '' || z.string().url().safeParse(val).success, 'Invalid URL').optional(),
   cardBackgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   cardBackgroundOpacity: z.number().min(0).max(1).optional(),
 });

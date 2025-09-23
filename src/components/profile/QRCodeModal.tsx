@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Download, Copy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function QRCodeModal({
   username,
 }: QRCodeModalProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -51,8 +53,8 @@ export function QRCodeModal({
       } catch (error) {
         console.error("Failed to generate QR code:", error);
         toast({
-          title: "エラー",
-          description: "QRコードの生成に失敗しました",
+          title: t('error'),
+          description: t('qrCodeGenerationFailed') || "Failed to generate QR code",
           variant: "destructive",
         });
       } finally {
@@ -72,8 +74,8 @@ export function QRCodeModal({
       link.click();
 
       toast({
-        title: "成功",
-        description: "QRコードをダウンロードしました",
+        title: t('saved'),
+        description: t('qrCodeDownloaded') || "QR code downloaded",
       });
     }
   };
@@ -82,13 +84,13 @@ export function QRCodeModal({
     try {
       await navigator.clipboard.writeText(url);
       toast({
-        title: "コピーしました",
-        description: "URLをクリップボードにコピーしました",
+        title: t('linkCopied'),
+        description: t('urlCopiedToClipboard') || "URL copied to clipboard",
       });
     } catch (error) {
       toast({
-        title: "エラー",
-        description: "コピーに失敗しました",
+        title: t('error'),
+        description: t('copyFailed') || "Failed to copy",
         variant: "destructive",
       });
     }
@@ -98,9 +100,9 @@ export function QRCodeModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>QRコードを共有</DialogTitle>
+          <DialogTitle>{t('shareProfile')}</DialogTitle>
           <DialogDescription>
-            このQRコードを名刺や印刷物に使用できます
+            {t('qrCodeDescription') || "Use this QR code on business cards and printed materials"}
           </DialogDescription>
         </DialogHeader>
 
@@ -108,7 +110,7 @@ export function QRCodeModal({
           <div className="bg-white p-4 rounded-lg shadow-lg min-h-[300px] min-w-[300px] flex items-center justify-center">
             {isGenerating ? (
               <div className="text-gray-400 animate-pulse">
-                QRコード生成中...
+                {t('generatingQRCode') || "Generating QR code..."}
               </div>
             ) : qrCodeUrl ? (
               <img
@@ -126,7 +128,7 @@ export function QRCodeModal({
               disabled={!qrCodeUrl || isGenerating}
             >
               <Download className="mr-2 h-4 w-4" />
-              QRコードをダウンロード
+              {t('downloadQR')}
             </Button>
 
             <Button
@@ -135,7 +137,7 @@ export function QRCodeModal({
               className="w-full"
             >
               <Copy className="mr-2 h-4 w-4" />
-              URLをコピー
+              {t('copyLink')}
             </Button>
           </div>
 

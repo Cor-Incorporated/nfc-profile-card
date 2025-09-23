@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface VCardButtonProps {
   username?: string;
@@ -45,6 +46,7 @@ export function VCardButton({
   className = "",
 }: VCardButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useLanguage();
 
   const handleDownload = async () => {
     setIsLoading(true);
@@ -82,14 +84,14 @@ export function VCardButton({
       document.body.removeChild(a);
 
       toast({
-        title: "成功",
-        description: "VCardをダウンロードしました",
+        title: t('success'),
+        description: t('vcardDownloaded'),
       });
     } catch (error) {
       console.error("VCard download error:", error);
       toast({
-        title: "エラー",
-        description: "VCardのダウンロードに失敗しました",
+        title: t('error'),
+        description: t('vcardDownloadFailed'),
         variant: "destructive",
       });
     } finally {
@@ -108,12 +110,12 @@ export function VCardButton({
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          生成中...
+          {t('loading')}
         </>
       ) : (
         <>
           <Download className="mr-2 h-4 w-4" />
-          連絡先を保存
+          {t('saveContact')}
         </>
       )}
     </Button>
