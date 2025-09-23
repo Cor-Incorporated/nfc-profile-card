@@ -102,36 +102,36 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
             .padStart(2, "0")}`,
         }}
       >
-        {/* ヘッダー部分（パディングを縮小） */}
+        {/* ヘッダー部分（最適化されたパディング） */}
         <div
-          className="p-4 sm:p-4 text-white"
+          className="px-3 py-2 sm:px-4 sm:py-2.5 text-white"
           style={{
             backgroundColor: cardBackgroundColor,
             filter: "brightness(0.9)",
           }}
         >
-          <div className="flex flex-col sm:flex-row items-center sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-3 space-y-2 sm:space-y-0">
             {photoURL ? (
               <img
                 src={photoURL}
                 alt={displayName}
-                className="w-16 h-16 rounded-full border-2 border-white object-cover"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-white object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-white bg-opacity-30 flex items-center justify-center">
-                <User className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white bg-opacity-30 flex items-center justify-center flex-shrink-0">
+                <User className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
             )}
-            <div className="text-center sm:text-left">
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              {position && <p className="text-sm opacity-90">{position}</p>}
-              {company && <p className="text-sm opacity-90">{company}</p>}
+            <div className="text-center sm:text-left sm:py-1">
+              <h2 className="text-lg sm:text-xl font-bold">{displayName}</h2>
+              {position && <p className="text-xs sm:text-sm opacity-90">{position}</p>}
+              {company && <p className="text-xs sm:text-sm opacity-90">{company}</p>}
             </div>
           </div>
         </div>
 
-        {/* コンテンツ部分（パディングを縮小） */}
-        <div className="p-4 sm:p-4 space-y-3 bg-white bg-opacity-90">
+        {/* コンテンツ部分 */}
+        <div className="p-3 sm:p-4 space-y-3 bg-white bg-opacity-90">
           {/* VCardダウンロードボタン（常に表示） */}
           <div className="flex justify-center">
             <VCardButton
