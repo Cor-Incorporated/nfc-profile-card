@@ -103,11 +103,14 @@ export default function BusinessCardScanPage() {
             }),
           });
 
-          if (!response.ok) {
-            throw new Error("Failed to process business card");
-          }
-
           const result = await response.json();
+
+          if (!response.ok) {
+            console.error("OCR API Error:", result);
+            throw new Error(
+              result.error || result.details || "Failed to process business card",
+            );
+          }
 
           if (result.success) {
             setContactInfo(result.data);
@@ -131,12 +134,14 @@ export default function BusinessCardScanPage() {
             throw new Error(result.error || "Failed to extract information");
           }
         } catch (e) {
-          console.error(e);
-          setError(ERROR_MESSAGES.OCR_EXTRACTION_FAILED);
+          console.error("OCR Processing Error:", e);
+          const errorMessage =
+            e instanceof Error ? e.message : ERROR_MESSAGES.OCR_EXTRACTION_FAILED;
+          setError(errorMessage);
           setAppStatus(AppStatus.IDLE);
           toast({
             title: t("error"),
-            description: t("failedToAnalyzeCard"),
+            description: errorMessage,
             variant: "destructive",
           });
         }

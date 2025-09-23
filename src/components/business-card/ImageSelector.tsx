@@ -16,6 +16,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   error,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,7 +28,11 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
     }
   };
 
-  const handleButtonClick = () => {
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGalleryClick = () => {
     fileInputRef.current?.click();
   };
 
@@ -36,7 +41,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       <div className="p-6 sm:p-8 space-y-6">
         <div className="flex flex-col gap-4">
           <Button
-            onClick={handleButtonClick}
+            onClick={handleCameraClick}
             size="lg"
             className="w-full h-28 sm:h-32 flex flex-col gap-2 text-base sm:text-lg touch-manipulation"
           >
@@ -54,7 +59,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           </div>
 
           <Button
-            onClick={handleButtonClick}
+            onClick={handleGalleryClick}
             variant="outline"
             size="lg"
             className="w-full h-28 sm:h-32 flex flex-col gap-2 text-base sm:text-lg touch-manipulation"
@@ -70,11 +75,21 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           </div>
         )}
 
+        {/* カメラ用のinput */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {/* ギャラリー用のinput */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFileChange}
           className="hidden"
         />

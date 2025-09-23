@@ -119,6 +119,16 @@ export async function processBusinessCardImage(
     };
 
     const result = (await generateWithTimeout()) as any;
+
+    if (!result || !result.response) {
+      console.error("No response from Gemini API");
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        error: "No response from Gemini API",
+      };
+    }
+
     const response = result.response;
     const text = response.text();
 
@@ -147,8 +157,12 @@ export async function processBusinessCardImage(
       console.error("Failed to parse Gemini response as JSON:", parseError);
       console.error("Raw response:", text);
 
-      // Return empty contact info if parsing fails
-      contactInfo = emptyContactInfo;
+      // Return error with parsing failure details
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        error: "Failed to parse OCR response. The service may be experiencing issues.",
+      };
     }
 
     return {
@@ -160,11 +174,24 @@ export async function processBusinessCardImage(
     const processingTime = Date.now() - startTime;
     console.error("Error in OCR processing:", error);
 
+    // More specific error messages
+    let errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+    if (error instanceof Error) {
+      if (error.message.includes("API key")) {
+        errorMessage = "OCR service configuration error. Please contact support.";
+      } else if (error.message.includes("timeout")) {
+        errorMessage = ERROR_MESSAGES.OCR_TIMEOUT;
+      } else if (error.message.includes("quota")) {
+        errorMessage = "OCR service quota exceeded. Please try again later.";
+      } else {
+        errorMessage = error.message;
+      }
+    }
+
     return {
       success: false,
       processingTime,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
+      error: errorMessage,
     };
   }
 }
