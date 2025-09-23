@@ -1,9 +1,12 @@
+// 背景カスタマイズ機能 実装仕様
+// /src/components/simple-editor/BackgroundCustomizer.tsx (新規作成)
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUploader } from './ImageUploader';
-import { Palette, Sparkles, Image, Grid3x3 } from 'lucide-react';
+import { Palette, Gradient, Image, Grid3x3 } from 'lucide-react';
 
 interface BackgroundCustomizerProps {
   currentBackground: any;
@@ -41,10 +44,10 @@ const PATTERN_PRESETS = [
   { id: 'waves', name: '波', svg: 'waves-pattern' },
 ];
 
-export function BackgroundCustomizer({
-  currentBackground,
-  userId,
-  onBackgroundChange
+export function BackgroundCustomizer({ 
+  currentBackground, 
+  userId, 
+  onBackgroundChange 
 }: BackgroundCustomizerProps) {
   const [background, setBackground] = useState(currentBackground || {
     type: 'solid',
@@ -59,7 +62,7 @@ export function BackgroundCustomizer({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">背景カスタマイズ</h3>
-
+      
       <Tabs defaultValue={background.type || 'solid'} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="solid" className="text-xs">
@@ -67,7 +70,7 @@ export function BackgroundCustomizer({
             単色
           </TabsTrigger>
           <TabsTrigger value="gradient" className="text-xs">
-            <Sparkles className="w-4 h-4 mr-1" />
+            <Gradient className="w-4 h-4 mr-1" />
             グラデ
           </TabsTrigger>
           <TabsTrigger value="image" className="text-xs">
@@ -99,7 +102,7 @@ export function BackgroundCustomizer({
               ))}
             </div>
           </div>
-
+          
           {/* カスタムカラー */}
           <div>
             <Label htmlFor="custom-color" className="text-sm">カスタムカラー</Label>
@@ -130,14 +133,14 @@ export function BackgroundCustomizer({
               {GRADIENT_PRESETS.map(gradient => (
                 <button
                   key={gradient.name}
-                  onClick={() => handleChange({
-                    type: 'gradient',
-                    from: gradient.from,
-                    to: gradient.to
+                  onClick={() => handleChange({ 
+                    type: 'gradient', 
+                    from: gradient.from, 
+                    to: gradient.to 
                   })}
                   className={`h-12 rounded border-2 ${
-                    background.type === 'gradient' &&
-                    background.from === gradient.from &&
+                    background.type === 'gradient' && 
+                    background.from === gradient.from && 
                     background.to === gradient.to
                       ? 'border-blue-500'
                       : 'border-gray-300'
@@ -153,7 +156,7 @@ export function BackgroundCustomizer({
               ))}
             </div>
           </div>
-
+          
           {/* カスタムグラデーション */}
           <div className="space-y-2">
             <Label className="text-sm">カスタム設定</Label>
@@ -164,8 +167,8 @@ export function BackgroundCustomizer({
                   id="from-color"
                   type="color"
                   value={background.from || '#667eea'}
-                  onChange={(e) => handleChange({
-                    type: 'gradient',
+                  onChange={(e) => handleChange({ 
+                    type: 'gradient', 
                     from: e.target.value,
                     to: background.to || '#764ba2'
                   })}
@@ -178,7 +181,7 @@ export function BackgroundCustomizer({
                   id="to-color"
                   type="color"
                   value={background.to || '#764ba2'}
-                  onChange={(e) => handleChange({
+                  onChange={(e) => handleChange({ 
                     type: 'gradient',
                     from: background.from || '#667eea',
                     to: e.target.value
@@ -194,25 +197,25 @@ export function BackgroundCustomizer({
         <TabsContent value="image" className="space-y-3">
           <ImageUploader
             userId={userId}
-            onImageUploaded={(url) => handleChange({
-              type: 'image',
+            onImageUploaded={(url) => handleChange({ 
+              type: 'image', 
               url,
-              opacity: 0.7 // デフォルトは70%の不透明度
+              opacity: 0.5 // 半透明で表示
             })}
             currentImageUrl={background.url}
           />
-
+          
           {background.type === 'image' && background.url && (
             <div>
               <Label htmlFor="image-opacity" className="text-sm">
-                背景画像の不透明度: {Math.round((background.opacity || 0.7) * 100)}%
+                透明度: {Math.round((background.opacity || 0.5) * 100)}%
               </Label>
               <input
                 id="image-opacity"
                 type="range"
                 min="0"
                 max="100"
-                value={(background.opacity || 0.7) * 100}
+                value={(background.opacity || 0.5) * 100}
                 onChange={(e) => handleChange({
                   ...background,
                   opacity: parseInt(e.target.value) / 100
@@ -229,10 +232,10 @@ export function BackgroundCustomizer({
             {PATTERN_PRESETS.map(pattern => (
               <button
                 key={pattern.id}
-                onClick={() => handleChange({
-                  type: 'pattern',
+                onClick={() => handleChange({ 
+                  type: 'pattern', 
                   pattern: pattern.id,
-                  color: '#e5e7eb'
+                  color: '#e5e7eb' 
                 })}
                 className={`h-20 rounded border-2 flex flex-col items-center justify-center ${
                   background.type === 'pattern' && background.pattern === pattern.id
@@ -251,7 +254,7 @@ export function BackgroundCustomizer({
       {/* プレビュー */}
       <div>
         <Label className="text-sm">プレビュー</Label>
-        <div
+        <div 
           className="h-32 rounded-lg border-2 border-gray-300 mt-1"
           style={getBackgroundStyle(background)}
         />
@@ -260,29 +263,27 @@ export function BackgroundCustomizer({
   );
 }
 
-// 背景スタイル生成関数（export して他のコンポーネントでも使用可能）
-export function getBackgroundStyle(background: any) {
+// 背景スタイル生成関数
+function getBackgroundStyle(background: any) {
   if (!background) return {};
-
+  
   switch (background.type) {
     case 'solid':
       return { backgroundColor: background.color };
-
+      
     case 'gradient':
       return {
         background: `linear-gradient(135deg, ${background.from || '#667eea'}, ${background.to || '#764ba2'})`
       };
-
+      
     case 'image':
-      // 不透明度を背景画像に適用するためにlinear-gradientを使用
-      const opacity = background.opacity ?? 0.5;
       return {
-        backgroundImage: `linear-gradient(rgba(255, 255, 255, ${1 - opacity}), rgba(255, 255, 255, ${1 - opacity})), url(${background.url})`,
+        backgroundImage: `url(${background.url})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundBlendMode: 'normal'
+        opacity: background.opacity || 0.5
       };
-
+      
     case 'pattern':
       // パターンはSVGで実装（簡易版）
       return {
@@ -290,8 +291,53 @@ export function getBackgroundStyle(background: any) {
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='20' height='20' fill='%23e5e7eb'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23d1d5db'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'repeat'
       };
-
+      
     default:
       return {};
   }
 }
+
+// ========================================
+// SimplePageEditor.tsx への統合
+// ========================================
+
+// SimplePageEditor内に背景設定ボタンを追加
+import { Settings } from 'lucide-react';
+
+// 状態追加
+const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+const [background, setBackground] = useState(initialData?.background || null);
+
+// UIに追加（ヘッダー部分）
+<Button
+  onClick={() => setShowBackgroundSettings(true)}
+  variant="outline"
+  size="sm"
+>
+  <Settings className="mr-2 h-4 w-4" />
+  背景設定
+</Button>
+
+// モーダル追加
+{showBackgroundSettings && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="p-4">
+        <BackgroundCustomizer
+          currentBackground={background}
+          userId={userId}
+          onBackgroundChange={(newBg) => {
+            setBackground(newBg);
+            // 保存処理も実行
+          }}
+        />
+        <Button 
+          onClick={() => setShowBackgroundSettings(false)}
+          className="w-full mt-4"
+        >
+          閉じる
+        </Button>
+      </div>
+    </div>
+  </div>
+)}

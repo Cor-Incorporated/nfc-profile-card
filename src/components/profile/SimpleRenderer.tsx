@@ -75,8 +75,16 @@ export function SimpleRenderer({
   const safeComponents = Array.isArray(components) ? components : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8" style={getBackgroundStyle(background)}>
-      <div className="max-w-md mx-auto px-4">
+    <div className="relative min-h-screen">
+      {/* 背景レイヤー（独立したdivとして実装） */}
+      <div
+        className="absolute inset-0 bg-gray-50"
+        style={getBackgroundStyle(background)}
+      />
+
+      {/* コンテンツレイヤー（相対位置で背景の上に配置） */}
+      <div className="relative z-10 min-h-screen py-8">
+        <div className="max-w-md mx-auto px-4">
         {safeComponents.length === 0 ? (
           <div className="text-center text-gray-500 mt-20">
             <p>プロフィールコンテンツがありません</p>
@@ -103,6 +111,7 @@ export function SimpleRenderer({
               }
             })
         )}
+        </div>
       </div>
     </div>
   );
