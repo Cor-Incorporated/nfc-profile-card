@@ -250,11 +250,35 @@ export function BackgroundCustomizer({
 
       {/* プレビュー */}
       <div>
-        <Label className="text-sm">プレビュー</Label>
-        <div
-          className="h-32 rounded-lg border-2 border-gray-300 mt-1"
-          style={getBackgroundStyle(background)}
-        />
+        <Label className="text-sm">プレビュー（スマホ表示）</Label>
+        <div className="flex justify-center mt-2">
+          {/* スマホフレーム */}
+          <div className="relative" style={{ width: '180px' }}>
+            {/* スマホの枠 */}
+            <div className="absolute inset-0 bg-black rounded-3xl shadow-xl"></div>
+            {/* スクリーン部分 */}
+            <div
+              className="relative rounded-2xl overflow-hidden mx-2 my-2"
+              style={{
+                height: '320px',
+                ...getBackgroundStyle(background)
+              }}
+            >
+              {/* コンテンツのプレビュー */}
+              <div className="p-4 space-y-2">
+                <div className="bg-white bg-opacity-90 rounded-lg p-3 shadow-sm">
+                  <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-2"></div>
+                  <div className="h-3 bg-gray-300 rounded w-2/3 mx-auto mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+                <div className="bg-white bg-opacity-90 rounded-lg p-3 shadow-sm">
+                  <div className="h-2 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-4/5"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

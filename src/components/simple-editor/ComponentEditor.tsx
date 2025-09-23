@@ -411,6 +411,7 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
               userId={userId || ''}
               onImageUploaded={(url) => setProfileData({...profileData, photoURL: url})}
               currentImageUrl={profileData.photoURL}
+              isCircular={true}
             />
           </div>
         </TabsContent>

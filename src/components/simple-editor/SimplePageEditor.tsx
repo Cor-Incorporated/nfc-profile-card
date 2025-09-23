@@ -29,6 +29,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { ProfileComponent } from './utils/dataStructure';
 import { ComponentEditor } from './ComponentEditor';
 import { BackgroundCustomizer } from './BackgroundCustomizer';
+import { DevicePreview } from './DevicePreview';
+import { CollapsibleComponentList } from './CollapsibleComponentList';
 import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
@@ -123,6 +125,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editingComponent, setEditingComponent] = useState<ProfileComponent | null>(null);
   const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+  const [showDevicePreview, setShowDevicePreview] = useState(false);
   const [background, setBackground] = useState(initialData?.background || null);
 
   // 保存状態の管理
@@ -322,11 +325,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                // userから適切なusernameを取得
-                const username = user?.username || user?.email?.split('@')[0] || 'preview';
-                window.open(`/p/${username}`, '_blank');
-              }}
+              onClick={() => setShowDevicePreview(true)}
             >
               <Eye className="mr-1 h-4 w-4" />
               プレビュー
@@ -349,15 +348,18 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             items={components.map(c => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-3 mb-6">
-              {components.map((component) => (
-                <SortableItem
-                  key={component.id}
-                  component={component}
-                  onDelete={deleteComponent}
-                  onEdit={editComponent}
-                />
-              ))}
+            <div className="mb-6">
+              <CollapsibleComponentList
+                components={components}
+                renderComponent={(component) => (
+                  <SortableItem
+                    key={component.id}
+                    component={component}
+                    onDelete={deleteComponent}
+                    onEdit={editComponent}
+                  />
+                )}
+              />
             </div>
           </SortableContext>
         </DndContext>
@@ -472,6 +474,14 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* デバイスプレビューモーダル */}
+        {showDevicePreview && (
+          <DevicePreview
+            profileUrl={`/p/${user?.username || user?.email?.split('@')[0] || 'preview'}`}
+            onClose={() => setShowDevicePreview(false)}
+          />
         )}
         </div>
       </div>
