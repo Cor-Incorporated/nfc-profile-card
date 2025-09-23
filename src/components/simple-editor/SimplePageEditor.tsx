@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, GripVertical, Save, Check, AlertCircle, ArrowLeft, Eye } from 'lucide-react';
+import { Plus, GripVertical, Save, Check, AlertCircle, ArrowLeft, Eye, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -28,6 +28,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ProfileComponent } from './utils/dataStructure';
 import { ComponentEditor } from './ComponentEditor';
+import { BackgroundCustomizer } from './BackgroundCustomizer';
 import { cleanupProfileData } from '@/utils/cleanupProfileData';
 
 // ドラッグ可能なコンポーネントアイテム
@@ -112,6 +113,8 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   );
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [editingComponent, setEditingComponent] = useState<ProfileComponent | null>(null);
+  const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+  const [background, setBackground] = useState(initialData?.background || null);
 
   // 保存状態の管理
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
@@ -227,6 +230,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
       // updateDocを使用した差分更新
       await updateDoc(docRef, {
         components,
+        background,
         updatedAt: new Date(),
       });
 
@@ -241,7 +245,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             doc(db, "users", userId, "profile", "data"),
             {
               components,
-              background: null,
+              background,
               updatedAt: serverTimestamp(),
             }
           );
@@ -296,18 +300,29 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
           {/* 中央：ページタイトル */}
           <h1 className="font-bold">プロフィール編集</h1>
 
-          {/* 右：プレビューボタン */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              // userから適切なusernameを取得
-              const username = user?.username || user?.email?.split('@')[0] || 'preview';
-              window.open(`/p/${username}`, '_blank');
-            }}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            プレビュー
-          </Button>
+          {/* 右：プレビューと背景設定ボタン */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBackgroundSettings(true)}
+            >
+              <Settings className="mr-1 h-4 w-4" />
+              背景
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // userから適切なusernameを取得
+                const username = user?.username || user?.email?.split('@')[0] || 'preview';
+                window.open(`/p/${username}`, '_blank');
+              }}
+            >
+              <Eye className="mr-1 h-4 w-4" />
+              プレビュー
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -422,6 +437,32 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
             onClose={() => setEditingComponent(null)}
             userId={userId}
           />
+        )}
+
+        {/* 背景設定モーダル */}
+        {showBackgroundSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4">
+                <BackgroundCustomizer
+                  currentBackground={background}
+                  userId={userId}
+                  onBackgroundChange={(newBg) => {
+                    setBackground(newBg);
+                    // 背景変更後に自動保存
+                    setSaveStatus('saving');
+                    debouncedSave();
+                  }}
+                />
+                <Button
+                  onClick={() => setShowBackgroundSettings(false)}
+                  className="w-full mt-4"
+                >
+                  閉じる
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
         </div>
       </div>
