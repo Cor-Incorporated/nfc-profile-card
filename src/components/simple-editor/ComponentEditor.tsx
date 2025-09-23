@@ -287,6 +287,8 @@ interface ProfileContent {
   // 基本情報
   firstName?: string;
   lastName?: string;
+  phoneticFirstName?: string;  // ふりがな（名）
+  phoneticLastName?: string;   // ふりがな（姓）
   name?: string;  // 表示名（フルネーム）
 
   // 連絡先
@@ -310,12 +312,18 @@ interface ProfileContent {
   // その他
   bio?: string;
   photoURL?: string;
+
+  // カードデザイン
+  cardBackgroundColor?: string;
+  cardBackgroundOpacity?: number;
 }
 
 function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorProps) {
   const [profileData, setProfileData] = useState<ProfileContent>({
     firstName: component.content?.firstName || '',
     lastName: component.content?.lastName || '',
+    phoneticFirstName: component.content?.phoneticFirstName || '',
+    phoneticLastName: component.content?.phoneticLastName || '',
     name: component.content?.name || '',
     email: component.content?.email || '',
     phone: component.content?.phone || '',
@@ -329,9 +337,11 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
     website: component.content?.website || '',
     bio: component.content?.bio || '',
     photoURL: component.content?.photoURL || '',
+    cardBackgroundColor: component.content?.cardBackgroundColor || '#ffffff',
+    cardBackgroundOpacity: component.content?.cardBackgroundOpacity || 95,
   });
 
-  const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'company' | 'address'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'company' | 'address' | 'design'>('basic');
 
   const handleSave = () => {
     // フルネームの自動生成
@@ -348,22 +358,37 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
     onClose();
   };
 
+  // カラープリセット
+  const COLOR_PRESETS = [
+    { color: '#3b82f6', name: 'ブルー' },
+    { color: '#10b981', name: 'グリーン' },
+    { color: '#f59e0b', name: 'オレンジ' },
+    { color: '#ef4444', name: 'レッド' },
+    { color: '#8b5cf6', name: 'パープル' },
+    { color: '#ec4899', name: 'ピンク' },
+    { color: '#6b7280', name: 'グレー' },
+    { color: '#000000', name: 'ブラック' },
+  ];
+
   return (
     <div className="space-y-4">
       {/* タブナビゲーション */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic" className="text-xs">
-            基本情報
+            基本
           </TabsTrigger>
           <TabsTrigger value="contact" className="text-xs">
-            連絡先
+            連絡
           </TabsTrigger>
           <TabsTrigger value="company" className="text-xs">
-            会社情報
+            会社
           </TabsTrigger>
           <TabsTrigger value="address" className="text-xs">
             住所
+          </TabsTrigger>
+          <TabsTrigger value="design" className="text-xs">
+            デザイン
           </TabsTrigger>
         </TabsList>
 
@@ -387,6 +412,29 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
                 value={profileData.firstName}
                 onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
                 placeholder="太郎"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="phoneticLastName" className="text-xs">ふりがな（姓）</Label>
+              <Input
+                id="phoneticLastName"
+                value={profileData.phoneticLastName}
+                onChange={(e) => setProfileData({...profileData, phoneticLastName: e.target.value})}
+                placeholder="やまだ"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phoneticFirstName" className="text-xs">ふりがな（名）</Label>
+              <Input
+                id="phoneticFirstName"
+                value={profileData.phoneticFirstName}
+                onChange={(e) => setProfileData({...profileData, phoneticFirstName: e.target.value})}
+                placeholder="たろう"
                 className="mt-1"
               />
             </div>
@@ -536,6 +584,64 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
               placeholder="千代田1-1-1"
               className="mt-1"
             />
+          </div>
+        </TabsContent>
+
+        {/* デザインタブ */}
+        <TabsContent value="design" className="space-y-3">
+          <div>
+            <Label className="text-xs">プロフィールカードの背景色</Label>
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {COLOR_PRESETS.map(preset => (
+                <button
+                  key={preset.color}
+                  onClick={() => setProfileData({...profileData, cardBackgroundColor: preset.color})}
+                  className={`h-10 rounded border-2 ${
+                    profileData.cardBackgroundColor === preset.color
+                      ? 'border-blue-500'
+                      : 'border-gray-300'
+                  }`}
+                  style={{ backgroundColor: preset.color }}
+                  title={preset.name}
+                />
+              ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <input
+                type="color"
+                value={profileData.cardBackgroundColor || '#3b82f6'}
+                onChange={(e) => setProfileData({...profileData, cardBackgroundColor: e.target.value})}
+                className="h-10 w-20"
+              />
+              <input
+                type="text"
+                value={profileData.cardBackgroundColor || '#3b82f6'}
+                onChange={(e) => setProfileData({...profileData, cardBackgroundColor: e.target.value})}
+                className="flex-1 px-2 border rounded text-sm"
+                placeholder="#3b82f6"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="card-opacity" className="text-xs">
+              カードの透明度: {profileData.cardBackgroundOpacity || 95}%
+            </Label>
+            <input
+              id="card-opacity"
+              type="range"
+              min="0"
+              max="100"
+              value={profileData.cardBackgroundOpacity || 95}
+              onChange={(e) => setProfileData({
+                ...profileData,
+                cardBackgroundOpacity: parseInt(e.target.value)
+              })}
+              className="w-full mt-1"
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              0%（完全に透明）〜 100%（不透明）
+            </div>
           </div>
         </TabsContent>
       </Tabs>

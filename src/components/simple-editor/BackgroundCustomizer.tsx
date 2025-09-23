@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageUploader } from './ImageUploader';
-import { Palette, Sparkles, Image, Grid3x3 } from 'lucide-react';
+import { Palette, Sparkles, Image } from 'lucide-react';
 
 interface BackgroundCustomizerProps {
   currentBackground: any;
@@ -33,23 +33,18 @@ const GRADIENT_PRESETS = [
   { from: '#30cfd0', to: '#330867', name: '深海' },
 ];
 
-// パターンプリセット
-const PATTERN_PRESETS = [
-  { id: 'dots', name: 'ドット', svg: 'dots-pattern' },
-  { id: 'lines', name: 'ストライプ', svg: 'lines-pattern' },
-  { id: 'grid', name: 'グリッド', svg: 'grid-pattern' },
-  { id: 'waves', name: '波', svg: 'waves-pattern' },
-];
 
 export function BackgroundCustomizer({
   currentBackground,
   userId,
   onBackgroundChange
 }: BackgroundCustomizerProps) {
-  const [background, setBackground] = useState(currentBackground || {
-    type: 'solid',
-    color: '#ffffff'
-  });
+  // patternタイプの場合はsolidに自動変換
+  const initialBackground = currentBackground?.type === 'pattern'
+    ? { type: 'solid', color: '#ffffff' }
+    : (currentBackground || { type: 'solid', color: '#ffffff' });
+
+  const [background, setBackground] = useState(initialBackground);
 
   const handleChange = (newBackground: any) => {
     setBackground(newBackground);
@@ -73,10 +68,6 @@ export function BackgroundCustomizer({
           <TabsTrigger value="image" className="text-xs">
             <Image className="w-4 h-4 mr-1" />
             画像
-          </TabsTrigger>
-          <TabsTrigger value="pattern" className="text-xs">
-            <Grid3x3 className="w-4 h-4 mr-1" />
-            パターン
           </TabsTrigger>
         </TabsList>
 
@@ -223,29 +214,6 @@ export function BackgroundCustomizer({
           )}
         </TabsContent>
 
-        {/* パターンタブ */}
-        <TabsContent value="pattern" className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            {PATTERN_PRESETS.map(pattern => (
-              <button
-                key={pattern.id}
-                onClick={() => handleChange({
-                  type: 'pattern',
-                  pattern: pattern.id,
-                  color: '#e5e7eb'
-                })}
-                className={`h-20 rounded border-2 flex flex-col items-center justify-center ${
-                  background.type === 'pattern' && background.pattern === pattern.id
-                    ? 'border-blue-500'
-                    : 'border-gray-300'
-                }`}
-              >
-                <div className="w-12 h-12 bg-gray-200 rounded mb-1" />
-                <span className="text-xs">{pattern.name}</span>
-              </button>
-            ))}
-          </div>
-        </TabsContent>
       </Tabs>
 
       {/* プレビュー */}
@@ -305,14 +273,6 @@ export function getBackgroundStyle(background: any) {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundBlendMode: 'normal'
-      };
-
-    case 'pattern':
-      // パターンはSVGで実装（簡易版）
-      return {
-        backgroundColor: '#f3f4f6',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='20' height='20' fill='%23e5e7eb'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23d1d5db'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'repeat'
       };
 
     default:

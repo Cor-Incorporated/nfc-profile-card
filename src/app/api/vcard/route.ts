@@ -6,6 +6,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 export interface VCardData {
   firstName?: string;
   lastName?: string;
+  phoneticFirstName?: string;
+  phoneticLastName?: string;
   organization?: string;
   title?: string;
   email?: string;
@@ -103,7 +105,26 @@ export async function POST(request: NextRequest) {
 
     vCard.version = "3.0";
 
-    const vcardString = vCard.getFormattedString();
+    let vcardString = vCard.getFormattedString();
+
+    // Add phonetic fields (furigana) as custom X-PHONETIC fields
+    if (data.phoneticFirstName || data.phoneticLastName) {
+      const phoneticFields = [];
+      if (data.phoneticLastName) {
+        phoneticFields.push(`X-PHONETIC-LAST-NAME:${data.phoneticLastName}`);
+      }
+      if (data.phoneticFirstName) {
+        phoneticFields.push(`X-PHONETIC-FIRST-NAME:${data.phoneticFirstName}`);
+      }
+
+      // Insert phonetic fields after the name fields
+      const lines = vcardString.split('\n');
+      const insertIndex = lines.findIndex(line => line.startsWith('FN:')) + 1;
+      if (insertIndex > 0) {
+        lines.splice(insertIndex, 0, ...phoneticFields);
+        vcardString = lines.join('\n');
+      }
+    }
 
     // ファイル名をASCII文字のみに変換
     const safeFileName = `${data.firstName || "contact"}_${data.lastName || "card"}`

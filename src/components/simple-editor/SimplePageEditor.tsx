@@ -131,6 +131,7 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false); // 保存中フラグ
 
   // センサー設定（モバイル対応）
   const sensors = useSensors(
@@ -231,8 +232,15 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
     }
   };
 
-  // 保存関数
-  const saveProfile = async () => {
+  // 保存関数（useCallbackで最適化）
+  const saveProfile = React.useCallback(async () => {
+    // 既に保存中の場合はスキップ
+    if (isSavingRef.current) {
+      console.log('[SimplePageEditor] Already saving, skipping...');
+      return;
+    }
+
+    isSavingRef.current = true;
     setSaveStatus('saving');
 
     try {
@@ -271,11 +279,13 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
         console.error('[SimplePageEditor] Error saving profile:', error);
         setSaveStatus('error');
       }
+    } finally {
+      isSavingRef.current = false;
     }
-  };
+  }, [components, background, userId]);
 
   // デバウンス付き自動保存（3秒）
-  const debouncedSave = () => {
+  const debouncedSave = React.useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -283,16 +293,54 @@ export function SimplePageEditor({ userId, initialData, user }: any) {
     saveTimeoutRef.current = setTimeout(() => {
       saveProfile();
     }, 3000); // 3秒後に保存
-  };
+  }, [saveProfile]);
 
-  // コンポーネントアンマウント時のクリーンアップ
+  // ページ離脱時の自動保存設定
   useEffect(() => {
-    return () => {
+    // ページ離脱時の保存処理
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 保留中の変更がある場合は保存
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveProfile(); // 即座に保存を実行
+      }
+
+      // 保存状態が「保存中」の場合は警告を表示
+      if (isSavingRef.current) {
+        e.preventDefault();
+        e.returnValue = '保存中です。ページを離れると変更が失われる可能性があります。';
+        return e.returnValue;
       }
     };
-  }, []);
+
+    // ページの可視性が変わった時（タブの切り替え等）
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // ページが非表示になった時、保留中の保存を即座に実行
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveProfile();
+        }
+      }
+    };
+
+    // イベントリスナーの登録
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // クリーンアップ関数
+    return () => {
+      // コンポーネントアンマウント時に保存
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveProfile(); // 即座に保存
+      }
+
+      // イベントリスナーの削除
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveProfile]); // saveProfileを依存配列に追加
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -497,6 +545,8 @@ function getDefaultContent(type: string) {
       return {
         firstName: '',
         lastName: '',
+        phoneticFirstName: '',
+        phoneticLastName: '',
         name: '',
         email: '',
         phone: '',

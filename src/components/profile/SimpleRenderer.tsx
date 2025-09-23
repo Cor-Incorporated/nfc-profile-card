@@ -10,8 +10,7 @@ import { getBackgroundStyle } from '../simple-editor/BackgroundCustomizer';
 function TextComponent({ component }: { component: ProfileComponent }) {
   return (
     <div
-      className="w-3/4 mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
       <p className="text-gray-800">
         {component.content?.text || 'テキストコンテンツ'}
@@ -23,8 +22,7 @@ function TextComponent({ component }: { component: ProfileComponent }) {
 function ImageComponent({ component }: { component: ProfileComponent }) {
   return (
     <div
-      className="w-3/4 mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4"
     >
       {component.content?.src ? (
         <img
@@ -47,8 +45,7 @@ function LinkComponent({ component }: { component: ProfileComponent }) {
   // ソーシャルリンクの自動認識
   return (
     <div
-      className="w-3/4 mx-auto mb-4"
-      style={{ width: '75%' }}
+      className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-4"
     >
       <SocialLinkButton
         url={url || '#'}
@@ -104,7 +101,7 @@ export function SimpleRenderer({
                   return <ProfileComponent key={component.id} component={component} />;
                 default:
                   return (
-                    <div key={component.id} className="w-3/4 mx-auto bg-red-100 p-4 mb-4 rounded">
+                    <div key={component.id} className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-red-100 p-4 mb-4 rounded">
                       未対応のコンポーネントタイプ: {component.type}
                     </div>
                   );

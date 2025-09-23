@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Smartphone, Tablet, Monitor, X } from 'lucide-react';
+import { Smartphone, Monitor, X } from 'lucide-react';
 
-export type DeviceType = 'mobile' | 'tablet' | 'desktop';
+export type DeviceType = 'mobile' | 'desktop';
 
 interface DeviceConfig {
   width: number;
@@ -19,12 +19,6 @@ const DEVICE_CONFIGS: Record<DeviceType, DeviceConfig> = {
     height: 667,
     scale: 0.8,
     label: 'スマホ'
-  },
-  tablet: {
-    width: 768,
-    height: 1024,
-    scale: 0.6,
-    label: 'タブレット'
   },
   desktop: {
     width: 1440,
@@ -59,14 +53,6 @@ export function DevicePreview({ profileUrl, onClose }: DevicePreviewProps) {
             >
               <Smartphone className="h-4 w-4 mr-1" />
               スマホ
-            </Button>
-            <Button
-              variant={selectedDevice === 'tablet' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedDevice('tablet')}
-            >
-              <Tablet className="h-4 w-4 mr-1" />
-              タブレット
             </Button>
             <Button
               variant={selectedDevice === 'desktop' ? 'default' : 'outline'}
