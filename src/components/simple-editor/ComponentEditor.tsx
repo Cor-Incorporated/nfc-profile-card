@@ -66,9 +66,11 @@ function TextEditor({ component, onSave, onClose }: Omit<ComponentEditorProps, '
   const { t } = useLanguage();
 
   const handleSave = () => {
+    const cleanContent = { text: text.trim() };
+
     onSave({
       ...component,
-      content: { text }
+      content: cleanContent
     });
     onClose();
   };
@@ -107,9 +109,14 @@ function ImageEditor({ component, onSave, onClose, userId }: ComponentEditorProp
   const { t } = useLanguage();
 
   const handleSave = () => {
+    const cleanContent = {
+      src: imageUrl.trim(),
+      alt: alt.trim()
+    };
+
     onSave({
       ...component,
-      content: { src: imageUrl, alt }
+      content: cleanContent
     });
     onClose();
   };
@@ -201,9 +208,14 @@ function LinkEditor({ component, onSave, onClose }: Omit<ComponentEditorProps, '
   }, [url, useAutoLabel]);
 
   const handleSave = () => {
+    const cleanContent = {
+      url: url.trim(),
+      label: label.trim()
+    };
+
     onSave({
       ...component,
-      content: { url, label }
+      content: cleanContent
     });
     onClose();
   };
@@ -360,12 +372,19 @@ function ProfileEditor({ component, onSave, onClose, userId }: ComponentEditorPr
     const fullName = profileData.name ||
       `${profileData.lastName || ''} ${profileData.firstName || ''}`.trim();
 
-    onSave({
-      ...component,
-      content: {
+    // 空文字列フィールドを除外して、有効なデータのみを送信
+    const cleanContent = Object.fromEntries(
+      Object.entries({
         ...profileData,
         name: fullName
-      }
+      }).filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+    );
+
+    console.log('[ProfileEditor] Saving clean content:', cleanContent);
+
+    onSave({
+      ...component,
+      content: cleanContent
     });
     onClose();
   };
