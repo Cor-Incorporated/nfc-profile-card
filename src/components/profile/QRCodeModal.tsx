@@ -13,6 +13,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Copy, Download } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -115,9 +116,11 @@ export function QRCodeModal({
                 {t("generatingQRCode") || "Generating QR code..."}
               </div>
             ) : qrCodeUrl ? (
-              <img
+              <Image
                 src={qrCodeUrl}
                 alt="QR Code"
+                width={300}
+                height={300}
                 className="w-[300px] h-[300px]"
               />
             ) : null}

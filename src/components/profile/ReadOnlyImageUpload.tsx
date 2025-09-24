@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import Image from "next/image";
 
 interface ReadOnlyImageUploadProps {
   src?: string;
@@ -36,9 +37,11 @@ export const ReadOnlyImageUpload = ({
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt={sanitizedAlt}
+      width={parseInt(width.replace("px", "")) || 200}
+      height={parseInt(height.replace("px", "")) || 200}
       className="rounded-lg"
       style={{
         width: width,

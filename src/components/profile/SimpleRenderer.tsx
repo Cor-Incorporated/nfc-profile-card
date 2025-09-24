@@ -5,6 +5,7 @@ import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { SocialLinkButton } from "../simple-editor/SocialLinkButton";
 import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
 import { getBackgroundStyle } from "../simple-editor/BackgroundCustomizer";
+import Image from "next/image";
 
 // 各コンポーネントタイプの表示コンポーネント
 function TextComponent({ component }: { component: ProfileComponent }) {
@@ -21,9 +22,11 @@ function ImageComponent({ component }: { component: ProfileComponent }) {
   return (
     <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
       {content?.src ? (
-        <img
+        <Image
           src={content.src}
           alt={content?.alt || "画像"}
+          width={500}
+          height={300}
           className="w-full h-auto rounded"
         />
       ) : (
