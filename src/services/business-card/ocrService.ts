@@ -8,7 +8,11 @@ import { ContactInfo } from "@/types/business-card";
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 
 // Initialize Gemini AI with API key from environment
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Check if API key exists
+if (!process.env.GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY is not configured in environment variables");
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
@@ -70,7 +74,11 @@ const OCR_PROMPT = `
 }
 
 読み取れない項目は空文字列""または空配列[]にしてください。
-JSONのみ出力し、説明文やマークダウンは含めないでください。
+
+重要:
+- 出力は純粋なJSONのみ（マークダウンのコードブロックは含めない）
+- 説明文、コメント、その他のテキストは一切含めない
+- 必ず上記の形式のJSONオブジェクトを出力する
 `;
 
 export interface OcrResult {
@@ -93,6 +101,16 @@ export async function processBusinessCardImage(
   const startTime = Date.now();
 
   try {
+    // Check API key before processing
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is missing");
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        error: "OCR service is not properly configured. API key is missing.",
+      };
+    }
+
     // Get the generative model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -130,7 +148,17 @@ export async function processBusinessCardImage(
     }
 
     const response = result.response;
-    const text = response.text();
+    let text: string;
+    try {
+      text = response.text();
+    } catch (textError) {
+      console.error("Error getting text from Gemini response:", textError);
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        error: "Failed to extract text from OCR response",
+      };
+    }
 
     // Calculate processing time
     const processingTime = Date.now() - startTime;
@@ -177,14 +205,19 @@ export async function processBusinessCardImage(
     // More specific error messages
     let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
     if (error instanceof Error) {
-      if (error.message.includes("API key")) {
-        errorMessage = ERROR_MESSAGES.SERVER_ERROR;
+      console.error("Error details:", error.message);
+
+      if (error.message.includes("API key") || error.message.includes("API_KEY_INVALID")) {
+        errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
       } else if (error.message.includes("timeout")) {
         errorMessage = ERROR_MESSAGES.OCR_TIMEOUT;
-      } else if (error.message.includes("quota")) {
+      } else if (error.message.includes("quota") || error.message.includes("RESOURCE_EXHAUSTED")) {
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
+      } else if (error.message.includes("The string did not match the expected pattern")) {
+        errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
       } else {
-        errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+        // Include actual error message for debugging
+        errorMessage = `OCR処理エラー: ${error.message}`;
       }
     }
 
