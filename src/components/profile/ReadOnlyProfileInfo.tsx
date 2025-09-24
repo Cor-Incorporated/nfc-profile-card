@@ -107,15 +107,14 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
         )}
       </div>
 
-      {/* プロフィール情報（背景なし） */}
-      <div className="text-center mb-4">
-        <h2 className="text-base sm:text-lg font-bold text-gray-800">{displayName}</h2>
-        {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
-        {company && <p className="text-sm text-gray-600">{company}</p>}
-      </div>
-
-      {/* VCardボタンと詳細情報 */}
-      <div className="space-y-3">
+      {/* プロフィール情報カード */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        {/* 名前・役職・会社 */}
+        <div className="text-center mb-3">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800">{displayName}</h2>
+          {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
+          {company && <p className="text-sm text-gray-600">{company}</p>}
+        </div>
           {/* VCardダウンロードボタン（常に表示） */}
           <div className="flex justify-center">
             <VCardButton
