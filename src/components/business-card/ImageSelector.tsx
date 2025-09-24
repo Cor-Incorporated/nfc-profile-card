@@ -12,6 +12,61 @@ interface ImageSelectorProps {
   error: string | null;
 }
 
+// HEIC変換関数
+const convertHEICToJPEG = async (file: File): Promise<File> => {
+  // HEIC/HEIF形式の検出
+  const isHEIC = file.type === 'image/heic' || 
+                 file.type === 'image/heif' || 
+                 file.name.toLowerCase().endsWith('.heic') || 
+                 file.name.toLowerCase().endsWith('.heif');
+
+  // PCブラウザの自動変換を検出
+  const isBrowserConvertedHEIC = (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) && 
+                                 file.type === 'image/jpeg';
+
+  const shouldConvertHEIC = isHEIC || isBrowserConvertedHEIC;
+
+  console.log("🔍 HEIC detection:", {
+    isHEIC,
+    isBrowserConvertedHEIC,
+    shouldConvertHEIC,
+    fileType: file.type,
+    fileName: file.name
+  });
+
+  if (!shouldConvertHEIC) {
+    console.log("📱 Not a HEIC file, skipping conversion");
+    return file;
+  }
+
+  console.log("📱 HEIC format detected. Starting conversion to JPEG...");
+  
+  try {
+    const heic2any = (await import("heic2any")).default;
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.7,
+    });
+    
+    const convertedFile = new File([convertedBlob as Blob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
+    console.log("✅ HEIC converted to JPEG successfully.");
+    console.log("📏 Converted file size:", `${(convertedFile.size / (1024 * 1024)).toFixed(1)}MB`);
+    
+    return convertedFile;
+  } catch (conversionError) {
+    console.error("HEIC conversion failed:", conversionError);
+    
+    if (isBrowserConvertedHEIC) {
+      console.log("📱 Browser already converted HEIC to JPEG, using as-is");
+      return file;
+    } else {
+      alert("HEIC画像の変換に失敗しました。別の画像をお試しください。");
+      throw conversionError;
+    }
+  }
+};
+
 // 画像リサイズ関数
 const resizeImageFile = async (file: File, maxSizeBytes: number): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -20,31 +75,29 @@ const resizeImageFile = async (file: File, maxSizeBytes: number): Promise<File> 
     const img = new Image();
     
     img.onload = () => {
-      // 元のサイズを取得
       const originalWidth = img.width;
       const originalHeight = img.height;
+      const maxDimension = 1600; // 最大解像度を1600pxに制限
       
-      // リサイズ比率を計算（最大サイズに収まるように）
-      let ratio = 1;
-      const maxDimension = 2048; // 最大解像度を2048pxに制限
+      // リサイズ比率を計算
+      const ratio = Math.min(
+        1,
+        maxDimension / originalWidth,
+        maxDimension / originalHeight
+      );
       
-      if (originalWidth > maxDimension || originalHeight > maxDimension) {
-        ratio = Math.min(maxDimension / originalWidth, maxDimension / originalHeight);
-      }
+      console.log(`📏 Original size: ${originalWidth}x${originalHeight}, ratio: ${ratio.toFixed(2)}`);
       
       const newWidth = Math.floor(originalWidth * ratio);
       const newHeight = Math.floor(originalHeight * ratio);
       
-      // Canvasサイズを設定
+      // Canvasサイズを設定して画像を描画
       canvas.width = newWidth;
       canvas.height = newHeight;
-      
-      // 画像を描画
       ctx?.drawImage(img, 0, 0, newWidth, newHeight);
       
-      // 品質を調整してファイルサイズを制御
-      let quality = 0.9;
-      const tryCompress = (q: number) => {
+      // 品質を段階的に下げてファイルサイズを制御
+      const tryCompress = (quality: number) => {
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -52,28 +105,25 @@ const resizeImageFile = async (file: File, maxSizeBytes: number): Promise<File> 
               return;
             }
             
-            if (blob.size <= maxSizeBytes || q <= 0.3) {
-              // ファイルサイズが制限内になるか、品質が最低まで下がったら完了
+            console.log(`📏 Trying quality ${quality.toFixed(1)}, size: ${(blob.size / (1024 * 1024)).toFixed(1)}MB`);
+            
+            if (blob.size <= maxSizeBytes || quality <= 0.2) {
               const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              console.log(`✅ Final size: ${(blob.size / (1024 * 1024)).toFixed(1)}MB with quality ${quality.toFixed(1)}`);
               resolve(resizedFile);
             } else {
-              // 品質を下げて再試行
-              tryCompress(q - 0.1);
+              tryCompress(quality - 0.15);
             }
           },
           'image/jpeg',
-          q
+          quality
         );
       };
       
-      tryCompress(quality);
+      tryCompress(0.8); // 初期品質
     };
     
-    img.onerror = () => {
-      reject(new Error('Failed to load image'));
-    };
-    
-    // 画像を読み込み
+    img.onerror = () => reject(new Error('Failed to load image'));
     img.src = URL.createObjectURL(file);
   });
 };
@@ -90,43 +140,42 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
     let file = event.target.files?.[0];
     if (!file) return;
 
-    // HEIC/HEIF形式の場合はJPEGに変換
-    if (file.type === 'image/heic' || file.type === 'image/heif') {
-      console.log("📱 HEIC format detected. Starting conversion to JPEG...");
-      try {
-        // Dynamic import to avoid SSR issues
-        const heic2any = (await import("heic2any")).default;
-        const convertedBlob = await heic2any({
-          blob: file,
-          toType: "image/jpeg",
-          quality: 0.9, // 品質の調整 (0 to 1)
-        });
-        // 変換後のBlobをFileオブジェクトに変換
-        file = new File([convertedBlob as Blob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
-        console.log("✅ HEIC converted to JPEG successfully.");
-      } catch (conversionError) {
-        console.error("HEIC conversion failed:", conversionError);
-        alert("HEIC画像の変換に失敗しました。別の画像をお試しください。");
-        return;
-      }
-    }
+    console.log("📁 File selected:", {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+      extension: file.name.split('.').pop()?.toLowerCase()
+    });
+
+    // HEIC変換処理
+    file = await convertHEICToJPEG(file);
 
     if (file.type.startsWith("image/")) {
       const maxFileSize = 4 * 1024 * 1024; // 4MB for all formats after conversion
+      const resizeThreshold = 2 * 1024 * 1024; // 2MB以上でリサイズを実行（より積極的に）
       
-      // ファイルサイズが大きい場合はリサイズを試行
-      if (file.size > maxFileSize) {
-        console.log("📏 File too large, attempting to resize...");
+      console.log("📏 File size check:", `${(file.size / (1024 * 1024)).toFixed(1)}MB (limit: 4MB, resize threshold: 2MB)`);
+      
+      // ファイルサイズが大きい場合はリサイズを試行（より積極的に）
+      if (file.size > resizeThreshold) {
+        console.log("📏 File size exceeds threshold, attempting to resize...");
+        console.log("📏 Current size:", `${(file.size / (1024 * 1024)).toFixed(1)}MB`);
         try {
           file = await resizeImageFile(file, maxFileSize);
           console.log("✅ Image resized successfully");
+          console.log("📏 Resized file size:", `${(file.size / (1024 * 1024)).toFixed(1)}MB`);
         } catch (resizeError) {
           console.error("❌ Image resize failed:", resizeError);
           const maxSizeMB = maxFileSize / (1024 * 1024);
           alert(`ファイルサイズが大きすぎます。${maxSizeMB}MB以下の画像を選択してください。\n\n現在のファイルサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
           return;
         }
+      } else {
+        console.log("📏 File size is within limit:", `${(file.size / (1024 * 1024)).toFixed(1)}MB`);
       }
+      
+      // 最終的なファイルサイズを確認
+      console.log("📏 Final file size before upload:", `${(file.size / (1024 * 1024)).toFixed(1)}MB`);
       
       const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
       if (!supportedTypes.includes(file.type.toLowerCase())) {
