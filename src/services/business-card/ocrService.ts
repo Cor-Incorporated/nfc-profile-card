@@ -79,6 +79,8 @@ const OCR_PROMPT = `
 - 出力は純粋なJSONのみ（マークダウンのコードブロックは含めない）
 - 説明文、コメント、その他のテキストは一切含めない
 - 必ず上記の形式のJSONオブジェクトを出力する
+- JSONの前後に余分な文字列を付けないでください
+- 必ず有効なJSON形式で応答してください
 `;
 
 export interface OcrResult {
@@ -105,6 +107,17 @@ export async function processBusinessCardImage(
   console.log("Timestamp:", new Date().toISOString());
   console.log("MIME Type:", mimeType);
   console.log("Image size (base64):", image.length, "characters");
+
+  // Check image size to prevent Request Entity errors
+  const maxImageSize = 4 * 1024 * 1024; // 4MB limit for base64
+  if (image.length > maxImageSize) {
+    console.error("❌ Image too large:", image.length, "characters (max:", maxImageSize, ")");
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error: "画像サイズが大きすぎます。4MB以下の画像をご利用ください。",
+    };
+  }
 
   // Check for supported image formats (including HEIC)
   const supportedMimeTypes = [
@@ -152,10 +165,10 @@ export async function processBusinessCardImage(
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
     console.log("Base64 image size (cleaned):", base64Image.length, "characters");
 
-    // Generate content with Gemini (with timeout)
+    // Generate content with Gemini (with timeout and retry logic)
     const generateWithTimeout = async () => {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(ERROR_MESSAGES.OCR_TIMEOUT)), 10000),
+        setTimeout(() => reject(new Error(ERROR_MESSAGES.OCR_TIMEOUT)), 15000), // Increased timeout
       );
 
       const ocrPromise = model.generateContent([
@@ -213,7 +226,10 @@ export async function processBusinessCardImage(
     const processingTime = Date.now() - startTime;
     console.log(`⏱️ OCR processing completed in ${processingTime}ms`);
     console.log("=== Gemini Raw Response ===");
-    console.log(text);
+    console.log("Response length:", text.length);
+    console.log("First 200 chars:", text.substring(0, 200));
+    console.log("Last 200 chars:", text.substring(Math.max(0, text.length - 200)));
+    console.log("Full response:", text);
     console.log("=== End Gemini Response ===");
 
     // Try to parse the JSON response
@@ -239,10 +255,22 @@ export async function processBusinessCardImage(
         };
       }
 
+      // Check for common error patterns
+      if (text.includes("Request En") || text.includes("Request Entity")) {
+        console.error("❌ Request Entity error detected");
+        console.error("Response:", text);
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: "リクエストエンティティエラーが発生しました。画像サイズが大きすぎる可能性があります。",
+        };
+      }
+
       // Remove any markdown code blocks if present
       const jsonText = text
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
+        .replace(/^```.*$/gm, "") // Remove any remaining code block markers
         .trim();
 
       // Check if the cleaned text starts with { or [
@@ -250,6 +278,7 @@ export async function processBusinessCardImage(
         console.error("❌ Response doesn't look like JSON");
         console.error("First 200 chars after cleaning:", jsonText.substring(0, 200));
         console.error("Full cleaned text length:", jsonText.length);
+        console.error("Original text first 200 chars:", text.substring(0, 200));
         return {
           success: false,
           processingTime: Date.now() - startTime,
@@ -257,7 +286,25 @@ export async function processBusinessCardImage(
         };
       }
 
-      const parsedJson = JSON.parse(jsonText);
+      // Try to find JSON object in the response
+      let jsonStart = jsonText.indexOf('{');
+      let jsonEnd = jsonText.lastIndexOf('}');
+      
+      if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
+        console.error("❌ No valid JSON object found in response");
+        console.error("Cleaned text:", jsonText);
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: "有効なJSONオブジェクトが見つかりませんでした。",
+        };
+      }
+
+      // Extract the JSON part
+      const jsonPart = jsonText.substring(jsonStart, jsonEnd + 1);
+      console.log("Extracted JSON part:", jsonPart);
+
+      const parsedJson = JSON.parse(jsonPart);
 
       contactInfo = {
         ...emptyContactInfo,
@@ -319,6 +366,9 @@ export async function processBusinessCardImage(
           errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
           console.error("📝 Response format error detected");
         }
+      } else if (error.message.includes("Unexpected token") || error.message.includes("not valid JSON")) {
+        errorMessage = "OCR APIの応答形式に問題があります。画像を再撮影してお試しください。";
+        console.error("🔧 JSON parsing error detected");
       } else {
         // Include actual error message for debugging
         errorMessage = `OCR処理エラー: ${error.message}`;
