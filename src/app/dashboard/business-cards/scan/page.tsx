@@ -1,26 +1,26 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { AppStatus, ContactInfo } from "@/types/business-card";
+import ContactForm from "@/components/business-card/ContactForm";
 import ImageSelector from "@/components/business-card/ImageSelector";
 import LoadingSpinner from "@/components/business-card/LoadingSpinner";
-import ContactForm from "@/components/business-card/ContactForm";
-import { downloadVCard } from "@/services/business-card/vcardService";
 import { toast } from "@/components/ui/use-toast";
-import {
-  recordScan,
-  getScanQuota,
-  type ScanQuota,
-} from "@/services/business-card/scanQuotaService";
-import {
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES,
-} from "@/lib/constants/error-messages";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { doc, getDoc } from "firebase/firestore";
+import {
+    ERROR_MESSAGES,
+    SUCCESS_MESSAGES,
+} from "@/lib/constants/error-messages";
 import { db } from "@/lib/firebase";
+import {
+    getScanQuota,
+    recordScan,
+    type ScanQuota,
+} from "@/services/business-card/scanQuotaService";
+import { downloadVCard } from "@/services/business-card/vcardService";
+import { AppStatus, ContactInfo } from "@/types/business-card";
+import { doc, getDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 export default function BusinessCardScanPage() {
   const router = useRouter();
@@ -68,6 +68,12 @@ export default function BusinessCardScanPage() {
       setAppStatus(AppStatus.PROCESSING);
       setError(null);
       setContactInfo(null);
+
+      // Log HEIC format detection for monitoring
+      if (file.type === 'image/heic' || file.type === 'image/heif') {
+        console.log("📱 HEIC format detected from mobile device");
+        console.log("Proceeding with Gemini 2.5 Flash processing");
+      }
 
       const reader = new FileReader();
       reader.readAsDataURL(file);
