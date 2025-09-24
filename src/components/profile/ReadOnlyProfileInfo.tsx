@@ -110,35 +110,36 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
           {company && <p className="text-sm text-gray-600">{company}</p>}
         </div>
-          {/* VCardダウンロードボタン（常に表示） */}
-          <div className="flex justify-center">
-            <VCardButton
-              username={displayName}
-              profileData={vCardData}
-              className="w-full max-w-xs"
-              variant="default"
-              size="lg"
-            />
-          </div>
 
-          {/* 自己紹介（3行制限と展開機能） */}
-          {bio && (
-            <div className="pb-3 border-b border-gray-200">
-              <p
-                className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+        {/* 自己紹介（3行制限と展開機能） */}
+        {bio && (
+          <div className="pb-3 border-b border-gray-200">
+            <p
+              className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+            >
+              {bio}
+            </p>
+            {bio.length > 150 && (
+              <button
+                onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                className="text-blue-600 hover:text-blue-700 text-sm mt-1"
               >
-                {bio}
-              </p>
-              {bio.length > 150 && (
-                <button
-                  onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-                  className="text-blue-600 hover:text-blue-700 text-sm mt-1"
-                >
-                  {isProfileExpanded ? "閉じる" : "...続きを読む"}
-                </button>
-              )}
-            </div>
-          )}
+                {isProfileExpanded ? "閉じる" : "...続きを読む"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* VCardダウンロードボタン（常に表示） */}
+        <div className="flex justify-center">
+          <VCardButton
+            username={displayName}
+            profileData={vCardData}
+            className="w-full max-w-xs"
+            variant="default"
+            size="lg"
+          />
+        </div>
 
           {/* 詳細情報の展開ボタン */}
           {hasDetails && (
