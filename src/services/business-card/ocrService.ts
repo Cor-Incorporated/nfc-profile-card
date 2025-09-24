@@ -162,6 +162,16 @@ export async function processBusinessCardImage(
     try {
       text = response.text();
       console.log("✅ Got text from Gemini response");
+
+      // Check for empty response
+      if (!text || text.trim() === "") {
+        console.error("❌ Gemini returned empty response");
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: "OCR APIから空の応答が返されました。画像が読み取れなかった可能性があります。",
+        };
+      }
     } catch (textError) {
       console.error("❌ Error getting text from Gemini response:", textError);
       console.error("Response object:", response);
@@ -182,11 +192,44 @@ export async function processBusinessCardImage(
     // Try to parse the JSON response
     let contactInfo: ContactInfo;
     try {
+      // First, check if the response looks like an error message
+      if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+        console.error("❌ Gemini returned HTML instead of JSON (likely an error page)");
+        console.error("First 500 chars of HTML:", text.substring(0, 500));
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: "OCR APIがエラーページを返しました。APIキーまたはサービス設定を確認してください。",
+        };
+      }
+
+      if (text.toLowerCase().includes("error") && !text.includes("{")) {
+        console.error("❌ Gemini returned plain text error:", text);
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: `OCR APIエラー: ${text.substring(0, 100)}`,
+        };
+      }
+
       // Remove any markdown code blocks if present
       const jsonText = text
         .replace(/```json\n?/g, "")
         .replace(/```\n?/g, "")
         .trim();
+
+      // Check if the cleaned text starts with { or [
+      if (!jsonText.startsWith("{") && !jsonText.startsWith("[")) {
+        console.error("❌ Response doesn't look like JSON");
+        console.error("First 200 chars after cleaning:", jsonText.substring(0, 200));
+        console.error("Full cleaned text length:", jsonText.length);
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: "OCR APIの応答がJSON形式ではありません。サービスが一時的に利用できない可能性があります。",
+        };
+      }
+
       const parsedJson = JSON.parse(jsonText);
 
       contactInfo = {
@@ -204,12 +247,13 @@ export async function processBusinessCardImage(
 
       // Log the first 200 characters for quick debugging
       console.error("First 200 chars:", text.substring(0, 200));
+      console.error("Text length:", text.length);
 
       // Return error with parsing failure details
       return {
         success: false,
         processingTime: Date.now() - startTime,
-        error: "Failed to parse OCR response. The service may be experiencing issues.",
+        error: "OCR応答の解析に失敗しました。しばらく時間をおいてから再試行してください。",
       };
     }
 
