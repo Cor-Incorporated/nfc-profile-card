@@ -2,14 +2,13 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { LogOut, ExternalLink, Eye, Globe } from "lucide-react";
 import { getAnalyticsSummary } from "@/lib/analytics";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { ExternalLink, Eye, Globe, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const { user, loading, signOut } = useAuth();

@@ -1,24 +1,24 @@
 "use client";
 
+import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
-import { QRCodeModal } from "@/components/profile/QRCodeModal";
-import { db } from "@/lib/firebase";
 import { trackPageView } from "@/lib/analytics";
+import { db } from "@/lib/firebase";
 import { SUPPORTED_SERVICES } from "@/types";
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  getDoc,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    where,
 } from "firebase/firestore";
-import Link from "next/link";
+import { Camera, QrCode } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { QrCode, Camera } from "lucide-react";
 
 interface UserProfile {
   name: string;
