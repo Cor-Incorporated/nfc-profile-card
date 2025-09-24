@@ -100,22 +100,30 @@ export async function processBusinessCardImage(
 ): Promise<OcrResult> {
   const startTime = Date.now();
 
+  // Log request info for debugging
+  console.log("=== OCR Processing Started ===");
+  console.log("Timestamp:", new Date().toISOString());
+  console.log("MIME Type:", mimeType);
+  console.log("Image size (base64):", image.length, "characters");
+
   try {
     // Check API key before processing
     if (!process.env.GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is missing");
+      console.error("❌ GEMINI_API_KEY is missing from environment variables");
       return {
         success: false,
         processingTime: Date.now() - startTime,
         error: "OCR service is not properly configured. API key is missing.",
       };
     }
+    console.log("✅ API key found");
 
     // Get the generative model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
+    console.log("Base64 image size (cleaned):", base64Image.length, "characters");
 
     // Generate content with Gemini (with timeout)
     const generateWithTimeout = async () => {
@@ -136,10 +144,12 @@ export async function processBusinessCardImage(
       return Promise.race([ocrPromise, timeoutPromise]);
     };
 
+    console.log("Calling Gemini API...");
     const result = (await generateWithTimeout()) as any;
 
     if (!result || !result.response) {
-      console.error("No response from Gemini API");
+      console.error("❌ No response from Gemini API");
+      console.error("Result object:", result);
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -151,8 +161,10 @@ export async function processBusinessCardImage(
     let text: string;
     try {
       text = response.text();
+      console.log("✅ Got text from Gemini response");
     } catch (textError) {
-      console.error("Error getting text from Gemini response:", textError);
+      console.error("❌ Error getting text from Gemini response:", textError);
+      console.error("Response object:", response);
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -162,8 +174,10 @@ export async function processBusinessCardImage(
 
     // Calculate processing time
     const processingTime = Date.now() - startTime;
-    console.log(`OCR processing completed in ${processingTime}ms`);
-    console.log("Gemini response:", text);
+    console.log(`⏱️ OCR processing completed in ${processingTime}ms`);
+    console.log("=== Gemini Raw Response ===");
+    console.log(text);
+    console.log("=== End Gemini Response ===");
 
     // Try to parse the JSON response
     let contactInfo: ContactInfo;
@@ -182,8 +196,14 @@ export async function processBusinessCardImage(
         addresses: parsedJson.addresses || [],
       };
     } catch (parseError) {
-      console.error("Failed to parse Gemini response as JSON:", parseError);
-      console.error("Raw response:", text);
+      console.error("❌ Failed to parse Gemini response as JSON");
+      console.error("Parse error:", parseError);
+      console.error("=== Raw text that failed to parse ===");
+      console.error(text);
+      console.error("=== End of failed text ===");
+
+      // Log the first 200 characters for quick debugging
+      console.error("First 200 chars:", text.substring(0, 200));
 
       // Return error with parsing failure details
       return {
@@ -200,26 +220,38 @@ export async function processBusinessCardImage(
     };
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error("Error in OCR processing:", error);
+    console.error("❌ Error in OCR processing");
+    console.error("Error object:", error);
 
     // More specific error messages
     let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
     if (error instanceof Error) {
-      console.error("Error details:", error.message);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
 
       if (error.message.includes("API key") || error.message.includes("API_KEY_INVALID")) {
         errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
+        console.error("🔑 API Key error detected");
       } else if (error.message.includes("timeout")) {
         errorMessage = ERROR_MESSAGES.OCR_TIMEOUT;
+        console.error("⏱️ Timeout error detected");
       } else if (error.message.includes("quota") || error.message.includes("RESOURCE_EXHAUSTED")) {
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
+        console.error("📊 Quota exceeded error detected");
       } else if (error.message.includes("The string did not match the expected pattern")) {
         errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
+        console.error("📝 Response format error detected");
       } else {
         // Include actual error message for debugging
         errorMessage = `OCR処理エラー: ${error.message}`;
+        console.error("⚠️ Unknown error type");
       }
     }
+
+    console.log("=== OCR Processing Failed ===");
+    console.log(`Processing time: ${processingTime}ms`);
+    console.log(`Error message returned: ${errorMessage}`);
 
     return {
       success: false,
