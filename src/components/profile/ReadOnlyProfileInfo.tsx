@@ -7,7 +7,6 @@ import {
   MapPin,
   Globe,
   User,
-  Briefcase,
   Smartphone,
   ChevronDown,
   ChevronUp,
@@ -85,10 +84,6 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const getContainerClass = () => {
     return "w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-6";
   };
-
-  // カード背景色の決定
-  const cardBackgroundColor = content.cardBackgroundColor || "#3b82f6"; // デフォルトはブルー
-  const cardBackgroundOpacity = content.cardBackgroundOpacity ?? 95; // デフォルトは95%
 
   return (
     <div className={getContainerClass()}>
