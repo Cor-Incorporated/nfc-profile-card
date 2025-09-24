@@ -18,7 +18,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Loader2, Palette, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface ProfileData {
   name: string;
@@ -50,15 +50,7 @@ export default function EditProfilePage() {
     address: "",
   });
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-    } else if (user) {
-      loadProfile();
-    }
-  }, [user, loading, router, loadProfile]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -95,7 +87,15 @@ export default function EditProfilePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, t]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/signin");
+    } else if (user) {
+      loadProfile();
+    }
+  }, [user, loading, router, loadProfile]);
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setProfile((prev) => ({

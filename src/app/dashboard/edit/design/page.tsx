@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 function DesignEditorContent() {
   const { user, loading } = useAuth();
@@ -18,15 +18,7 @@ function DesignEditorContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>(null);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-    } else if (user) {
-      loadUserData();
-    }
-  }, [user, loading, router, loadUserData]);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!user) return;
 
     console.log("[DesignEditorPage] Loading user data for user:", user.uid);
@@ -63,7 +55,15 @@ function DesignEditorContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/signin");
+    } else if (user) {
+      loadUserData();
+    }
+  }, [user, loading, router, loadUserData]);
 
   if (loading || isLoading) {
     return (

@@ -8,7 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { ExternalLink, Eye, Globe, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const { user, loading, signOut } = useAuth();
@@ -24,7 +24,7 @@ export default function DashboardPage() {
     weekViews: number;
   } | null>(null);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     if (!user) return;
     try {
       const userRef = doc(db, "users", user.uid);
@@ -41,7 +41,7 @@ export default function DashboardPage() {
     } finally {
       setProfileLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
