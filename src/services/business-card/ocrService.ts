@@ -3,9 +3,9 @@
  * Handles image processing and text extraction using Google Gemini API
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ContactInfo } from "@/types/business-card";
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { ContactInfo } from "@/types/business-card";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI with API key from environment
 // Check if API key exists
@@ -106,6 +106,33 @@ export async function processBusinessCardImage(
   console.log("MIME Type:", mimeType);
   console.log("Image size (base64):", image.length, "characters");
 
+  // Check for supported image formats (including HEIC)
+  const supportedMimeTypes = [
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/heic',
+    'image/heif'
+  ];
+
+  // Check if MIME type is supported
+  if (!supportedMimeTypes.includes(mimeType.toLowerCase())) {
+    console.log("⚠️ Unsupported MIME type:", mimeType);
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error: `サポートされていない画像形式です: ${mimeType}。JPEG、PNG、WebP、GIF、HEIC形式をご利用ください。`,
+    };
+  }
+
+  // Log HEIC format detection for monitoring
+  if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+    console.log("📱 HEIC format detected from mobile device");
+    console.log("Gemini 2.5 Flash should support HEIC format");
+  }
+
   try {
     // Check API key before processing
     if (!process.env.GEMINI_API_KEY) {
@@ -118,8 +145,8 @@ export async function processBusinessCardImage(
     }
     console.log("✅ API key found");
 
-    // Get the generative model
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Get the generative model (updated to Gemini 2.5 Flash)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
@@ -284,8 +311,14 @@ export async function processBusinessCardImage(
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
         console.error("📊 Quota exceeded error detected");
       } else if (error.message.includes("The string did not match the expected pattern")) {
-        errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
-        console.error("📝 Response format error detected");
+        // Check if this is a HEIC format issue
+        if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+          errorMessage = "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。";
+          console.error("📱 HEIC format processing error detected");
+        } else {
+          errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
+          console.error("📝 Response format error detected");
+        }
       } else {
         // Include actual error message for debugging
         errorMessage = `OCR処理エラー: ${error.message}`;

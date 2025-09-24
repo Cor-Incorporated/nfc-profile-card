@@ -19,6 +19,7 @@ export const ERROR_MESSAGES = {
     "情報の抽出に失敗しました。画像の向きを変えたり、明るい場所で再撮影したりすると改善する場合があります。",
   OCR_TIMEOUT: "Timeout: OCR処理が10秒を超えました",
   OCR_PARSING_FAILED: "Failed to parse OCR response",
+  OCR_UNSUPPORTED_FORMAT: "サポートされていない画像形式です。JPEG、PNG、WebP、GIF、HEIC形式をご利用ください。",
 
   // VCard Generation Errors
   VCARD_GENERATION_FAILED: "vCardファイルの生成に失敗しました。",

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useRef } from "react";
-import { Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Camera, Upload } from "lucide-react";
+import React, { useRef } from "react";
 
 interface ImageSelectorProps {
   onImageSelected: (file: File) => void;
@@ -22,6 +22,18 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
+      // Check for supported formats (including HEIC)
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+      if (!supportedTypes.includes(file.type.toLowerCase())) {
+        alert(`サポートされていない画像形式です: ${file.type}。JPEG、PNG、WebP、GIF、HEIC形式をご利用ください。`);
+        return;
+      }
+      
+      // Log HEIC format detection for monitoring
+      if (file.type === 'image/heic' || file.type === 'image/heif') {
+        console.log("📱 HEIC format selected from mobile device");
+      }
+      
       onImageSelected(file);
     } else {
       alert(t("selectImageFile"));
@@ -79,7 +91,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         <input
           ref={cameraInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif"
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
@@ -89,7 +101,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif"
           onChange={handleFileChange}
           className="hidden"
         />
