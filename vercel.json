@@ -6,7 +6,11 @@
   "outputDirectory": ".next",
   "functions": {
     "src/app/api/business-card/scan/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "memory": 1024
     }
+  },
+  "env": {
+    "NEXT_PUBLIC_MAX_BODY_SIZE": "10mb"
   }
 }

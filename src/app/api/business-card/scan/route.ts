@@ -13,10 +13,32 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 30; // 30 seconds timeout
 export const dynamic = 'force-dynamic';
 
+// Configure request body size limit for this API route
+export const runtime = 'nodejs';
+export const bodyParser = {
+  sizeLimit: '10mb',
+};
+
 export async function POST(request: NextRequest) {
   console.log("=== Business Card Scan API Called ===");
   console.log("Time:", new Date().toISOString());
   console.log("Method:", request.method);
+  
+  // Check request body size
+  const contentLength = request.headers.get('content-length');
+  if (contentLength) {
+    const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+    console.log("Request body size:", sizeInMB.toFixed(2), "MB");
+    
+    if (parseInt(contentLength) > 10 * 1024 * 1024) { // 10MB limit
+      console.error("❌ Request body too large:", sizeInMB.toFixed(2), "MB");
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: "リクエストサイズが大きすぎます。10MB以下の画像をご利用ください。",
+      };
+      return NextResponse.json(errorResponse, { status: 413 });
+    }
+  }
 
   try {
     // Apply rate limiting (5 requests per minute for OCR)
