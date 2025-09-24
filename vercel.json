@@ -3,5 +3,10 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "functions": {
+    "src/app/api/business-card/scan/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }

@@ -1,22 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyIdToken } from "@/lib/firebase-admin";
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { verifyIdToken } from "@/lib/firebase-admin";
+import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
 import {
-  BusinessCardScanRequest,
-  BusinessCardScanResponse,
-  ApiErrorResponse,
+    ApiErrorResponse,
+    BusinessCardScanRequest,
+    BusinessCardScanResponse,
 } from "@/types/api";
-import { strictRateLimit } from "@/lib/rateLimit";
+import { NextRequest, NextResponse } from "next/server";
 
 // Configure body size limit for this API route
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
+export const maxDuration = 30; // 30 seconds timeout
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   console.log("=== Business Card Scan API Called ===");
