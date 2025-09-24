@@ -164,34 +164,42 @@ export async function processBusinessCardImage(
     }
     console.log("✅ API key found");
 
-    // Get the generative model (updated to Gemini 2.5 Flash)
+    // Get the generative model (Gemini 2.5 Flash for maximum compatibility)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
     console.log("Base64 image size (cleaned):", base64Image.length, "characters");
 
-    // Generate content with Gemini (with timeout and retry logic)
-    const generateWithTimeout = async () => {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(ERROR_MESSAGES.OCR_TIMEOUT)), 15000), // Increased timeout
-      );
-
-      const ocrPromise = model.generateContent([
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType: mimeType,
-          },
-        },
-        OCR_PROMPT,
-      ]);
-
-      return Promise.race([ocrPromise, timeoutPromise]);
+    // Generate content with Gemini (no timeout - let it complete naturally)
+    console.log("Calling Gemini API...");
+    
+    // Use more robust API call format with explicit content structure
+    const imagePart = {
+      inlineData: {
+        data: base64Image,
+        mimeType: mimeType,
+      },
     };
 
-    console.log("Calling Gemini API...");
-    const result = (await generateWithTimeout()) as any;
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            imagePart,
+            { text: OCR_PROMPT }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: 2048,
+      },
+    });
 
     if (!result || !result.response) {
       console.error("❌ No response from Gemini API");
@@ -272,45 +280,68 @@ export async function processBusinessCardImage(
         };
       }
 
-      // Remove any markdown code blocks if present
-      const jsonText = text
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .replace(/^```.*$/gm, "") // Remove any remaining code block markers
+      // Enhanced JSON extraction with multiple fallback strategies
+      let jsonText = text.trim();
+      
+      // Strategy 1: Remove markdown code blocks
+      jsonText = jsonText
+        .replace(/^```json\s*/g, "")
+        .replace(/```\s*$/g, "")
+        .replace(/^```.*$/gm, "")
         .trim();
 
-      // Check if the cleaned text starts with { or [
+      // Strategy 2: If still not JSON, try to find JSON object boundaries
       if (!jsonText.startsWith("{") && !jsonText.startsWith("[")) {
-        console.error("❌ Response doesn't look like JSON");
-        console.error("First 200 chars after cleaning:", jsonText.substring(0, 200));
-        console.error("Full cleaned text length:", jsonText.length);
-        console.error("Original text first 200 chars:", text.substring(0, 200));
-        return {
-          success: false,
-          processingTime: Date.now() - startTime,
-          error: "OCR APIの応答がJSON形式ではありません。サービスが一時的に利用できない可能性があります。",
-        };
+        console.log("🔍 Attempting to extract JSON from mixed content...");
+        
+        // Look for JSON object boundaries
+        const jsonStart = jsonText.indexOf('{');
+        const jsonEnd = jsonText.lastIndexOf('}');
+        
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
+          jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+          console.log("✅ Extracted JSON from mixed content");
+        } else {
+          console.error("❌ No valid JSON object found in response");
+          console.error("Response content:", text.substring(0, 500));
+          return {
+            success: false,
+            processingTime: Date.now() - startTime,
+            error: "有効なJSONオブジェクトが見つかりませんでした。画像を再撮影してお試しください。",
+          };
+        }
       }
 
-      // Try to find JSON object in the response
-      let jsonStart = jsonText.indexOf('{');
-      let jsonEnd = jsonText.lastIndexOf('}');
-      
-      if (jsonStart === -1 || jsonEnd === -1 || jsonStart >= jsonEnd) {
-        console.error("❌ No valid JSON object found in response");
-        console.error("Cleaned text:", jsonText);
-        return {
-          success: false,
-          processingTime: Date.now() - startTime,
-          error: "有効なJSONオブジェクトが見つかりませんでした。",
-        };
+      console.log("📝 Final JSON text:", jsonText.substring(0, 200) + "...");
+
+      // Parse JSON with detailed error handling
+      let parsedJson;
+      try {
+        parsedJson = JSON.parse(jsonText);
+        console.log("✅ JSON parsed successfully");
+      } catch (parseError) {
+        console.error("❌ JSON parse error:", parseError);
+        console.error("Problematic JSON:", jsonText);
+        
+        // Try to fix common JSON issues
+        try {
+          // Remove any trailing commas or extra characters
+          const fixedJson = jsonText
+            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+            .replace(/([^\\])\\(?!["\\/bfnrt])/g, '$1\\\\') // Fix unescaped backslashes
+            .trim();
+          
+          parsedJson = JSON.parse(fixedJson);
+          console.log("✅ JSON fixed and parsed successfully");
+        } catch (fixError) {
+          console.error("❌ JSON fix failed:", fixError);
+          return {
+            success: false,
+            processingTime: Date.now() - startTime,
+            error: "JSON形式の解析に失敗しました。画像を再撮影してお試しください。",
+          };
+        }
       }
-
-      // Extract the JSON part
-      const jsonPart = jsonText.substring(jsonStart, jsonEnd + 1);
-      console.log("Extracted JSON part:", jsonPart);
-
-      const parsedJson = JSON.parse(jsonPart);
 
       contactInfo = {
         ...emptyContactInfo,
@@ -358,7 +389,7 @@ export async function processBusinessCardImage(
         errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
         console.error("🔑 API Key error detected");
       } else if (error.message.includes("timeout")) {
-        errorMessage = ERROR_MESSAGES.OCR_TIMEOUT;
+        errorMessage = "処理に時間がかかりすぎています。画像を再撮影してお試しください。";
         console.error("⏱️ Timeout error detected");
       } else if (error.message.includes("quota") || error.message.includes("RESOURCE_EXHAUSTED")) {
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
