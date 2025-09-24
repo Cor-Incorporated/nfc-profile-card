@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
@@ -90,9 +91,11 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       {/* アイコンを独立要素として中央配置 */}
       <div className="flex justify-center mb-3">
         {photoURL ? (
-          <img
+          <Image
             src={photoURL}
             alt={displayName}
+            width={80}
+            height={80}
             className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-lg object-cover"
           />
         ) : (

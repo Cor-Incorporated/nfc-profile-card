@@ -8,6 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Upload, Image as ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import Image from "next/image";
 
 interface ImageUploaderProps {
   userId: string;
@@ -125,17 +126,21 @@ export function ImageUploader({
         {preview ? (
           isCircular ? (
             <div className="relative w-32 h-32">
-              <img
+              <Image
                 src={preview}
                 alt="Preview"
+                width={128}
+                height={128}
                 className="w-32 h-32 object-cover rounded-full border-4 border-white shadow-lg"
               />
               <div className="absolute inset-0 rounded-full ring-2 ring-gray-200 ring-offset-2"></div>
             </div>
           ) : (
-            <img
+            <Image
               src={preview}
               alt="Preview"
+              width={400}
+              height={160}
               className="w-full h-32 sm:h-40 object-cover rounded"
             />
           )
