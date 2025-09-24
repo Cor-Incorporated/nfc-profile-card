@@ -22,6 +22,17 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
+      // Check file size before processing
+      const maxFileSize = (file.type === 'image/heic' || file.type === 'image/heif') 
+        ? 8 * 1024 * 1024  // 8MB for HEIC
+        : 4 * 1024 * 1024; // 4MB for other formats
+      
+      if (file.size > maxFileSize) {
+        const maxSizeMB = maxFileSize / (1024 * 1024);
+        alert(`ファイルサイズが大きすぎます。${maxSizeMB}MB以下の画像を選択してください。\n\n現在のファイルサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
+        return;
+      }
+      
       // Check for supported formats (including HEIC)
       const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
       if (!supportedTypes.includes(file.type.toLowerCase())) {
@@ -29,10 +40,13 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         return;
       }
       
-      // Log HEIC format detection for monitoring
-      if (file.type === 'image/heic' || file.type === 'image/heif') {
-        console.log("📱 HEIC format selected from mobile device");
-      }
+      // Log file information for monitoring
+      console.log("📁 File selected:", {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        isHEIC: file.type === 'image/heic' || file.type === 'image/heif'
+      });
       
       onImageSelected(file);
     } else {

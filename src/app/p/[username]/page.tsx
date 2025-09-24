@@ -1,23 +1,24 @@
 "use client";
 
+import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
-import { QRCodeModal } from "@/components/profile/QRCodeModal";
-import { db } from "@/lib/firebase";
 import { trackPageView } from "@/lib/analytics";
+import { db } from "@/lib/firebase";
 import { SUPPORTED_SERVICES } from "@/types";
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  getDoc,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    where,
 } from "firebase/firestore";
+import { Camera, QrCode } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { QrCode, Camera } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -202,9 +203,11 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="text-center">
             {user.photoURL && (
-              <img
+              <Image
                 src={user.photoURL}
                 alt={user.name}
+                width={128}
+                height={128}
                 className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
               />
             )}

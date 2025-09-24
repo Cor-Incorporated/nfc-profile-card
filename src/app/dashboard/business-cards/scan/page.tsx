@@ -157,7 +157,7 @@ export default function BusinessCardScanPage() {
         setAppStatus(AppStatus.IDLE);
       };
     },
-    [getIdToken],
+    [getIdToken, t],
   );
 
   const handleSaveContact = async (updatedContactInfo: ContactInfo) => {
