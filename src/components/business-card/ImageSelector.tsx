@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Camera, Upload } from "lucide-react";
 import React, { useRef } from "react";
+// heic2any is imported dynamically to avoid SSR issues
 
 interface ImageSelectorProps {
   onImageSelected: (file: File) => void;
@@ -19,13 +20,33 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      // Check file size before processing
-      const maxFileSize = (file.type === 'image/heic' || file.type === 'image/heif') 
-        ? 8 * 1024 * 1024  // 8MB for HEIC
-        : 4 * 1024 * 1024; // 4MB for other formats
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    let file = event.target.files?.[0];
+    if (!file) return;
+
+    // HEIC/HEIF形式の場合はJPEGに変換
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      console.log("📱 HEIC format detected. Starting conversion to JPEG...");
+      try {
+        // Dynamic import to avoid SSR issues
+        const heic2any = (await import("heic2any")).default;
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.9, // 品質の調整 (0 to 1)
+        });
+        // 変換後のBlobをFileオブジェクトに変換
+        file = new File([convertedBlob as Blob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" });
+        console.log("✅ HEIC converted to JPEG successfully.");
+      } catch (conversionError) {
+        console.error("HEIC conversion failed:", conversionError);
+        alert("HEIC画像の変換に失敗しました。別の画像をお試しください。");
+        return;
+      }
+    }
+
+    if (file.type.startsWith("image/")) {
+      const maxFileSize = 4 * 1024 * 1024; // 4MB for all formats after conversion
       
       if (file.size > maxFileSize) {
         const maxSizeMB = maxFileSize / (1024 * 1024);
@@ -33,19 +54,16 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         return;
       }
       
-      // Check for supported formats (including HEIC)
-      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
       if (!supportedTypes.includes(file.type.toLowerCase())) {
-        alert(`サポートされていない画像形式です: ${file.type}。JPEG、PNG、WebP、GIF、HEIC形式をご利用ください。`);
+        alert(`サポートされていない画像形式です: ${file.type}。JPEG、PNG、WebP、GIF形式をご利用ください。`);
         return;
       }
       
-      // Log file information for monitoring
       console.log("📁 File selected:", {
         name: file.name,
         type: file.type,
         size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-        isHEIC: file.type === 'image/heic' || file.type === 'image/heif'
       });
       
       onImageSelected(file);
