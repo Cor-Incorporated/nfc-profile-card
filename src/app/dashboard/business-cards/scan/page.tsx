@@ -109,14 +109,37 @@ export default function BusinessCardScanPage() {
             }),
           });
 
-          const result = await response.json();
-
+          // Check if response is ok before parsing JSON
           if (!response.ok) {
-            console.error("OCR API Error:", result);
-            throw new Error(
-              result.error || result.details || "Failed to process business card",
-            );
+            // Try to get error details from response
+            let errorMessage = `Server error: ${response.status}`;
+            try {
+              const errorText = await response.text();
+              console.error("Server error response:", errorText);
+              
+              // Check if it's an HTML error page
+              if (errorText.includes("Request Entity Too Large") || errorText.includes("Request En")) {
+                errorMessage = "画像サイズが大きすぎます。4MB以下の画像をご利用ください。";
+              } else if (errorText.includes("<!DOCTYPE") || errorText.includes("<html")) {
+                errorMessage = "サーバーエラーが発生しました。しばらく時間をおいてから再試行してください。";
+              } else {
+                // Try to parse as JSON for structured error
+                try {
+                  const errorJson = JSON.parse(errorText);
+                  errorMessage = errorJson.error || errorJson.details || errorMessage;
+                } catch {
+                  // Keep the default error message
+                }
+              }
+            } catch (textError) {
+              console.error("Failed to read error response:", textError);
+            }
+            
+            throw new Error(errorMessage);
           }
+
+          // Parse JSON response only if response is ok
+          const result = await response.json();
 
           if (result.success) {
             setContactInfo(result.data);
