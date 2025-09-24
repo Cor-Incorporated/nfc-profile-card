@@ -25,14 +25,6 @@ export default function DashboardPage() {
     weekViews: number;
   } | null>(null);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/signin");
-    } else if (user) {
-      fetchUserProfile();
-    }
-  }, [user, loading, router]);
-
   const fetchUserProfile = async () => {
     if (!user) return;
     try {
@@ -51,6 +43,14 @@ export default function DashboardPage() {
       setProfileLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/signin");
+    } else if (user) {
+      fetchUserProfile();
+    }
+  }, [user, loading, router, fetchUserProfile]);
 
   const handleSignOut = async () => {
     try {

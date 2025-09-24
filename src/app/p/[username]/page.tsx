@@ -15,6 +15,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { QrCode, Camera } from "lucide-react";
@@ -202,9 +203,11 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="text-center">
             {user.photoURL && (
-              <img
+              <Image
                 src={user.photoURL}
                 alt={user.name}
+                width={128}
+                height={128}
                 className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
               />
             )}

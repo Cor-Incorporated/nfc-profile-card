@@ -64,7 +64,7 @@ export function QRCodeModal({
     };
 
     generateQRCode();
-  }, [url, isOpen, toast]);
+  }, [url, isOpen, toast, t]);
 
   const handleDownload = () => {
     if (qrCodeUrl) {

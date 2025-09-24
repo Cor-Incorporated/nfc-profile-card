@@ -24,7 +24,7 @@ function DesignEditorContent() {
     } else if (user) {
       loadUserData();
     }
-  }, [user, loading]);
+  }, [user, loading, router, loadUserData]);
 
   const loadUserData = async () => {
     if (!user) return;

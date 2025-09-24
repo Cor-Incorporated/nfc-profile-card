@@ -9,15 +9,10 @@ import {
 } from "@/types/api";
 import { NextRequest, NextResponse } from "next/server";
 
-// Configure body size limit for this API route
+// Configure API route settings
 export const maxDuration = 30; // 30 seconds timeout
 export const dynamic = 'force-dynamic';
-
-// Configure request body size limit for this API route
 export const runtime = 'nodejs';
-export const bodyParser = {
-  sizeLimit: '10mb',
-};
 
 export async function POST(request: NextRequest) {
   console.log("=== Business Card Scan API Called ===");

@@ -63,7 +63,7 @@ export default function EditProfilePage() {
     } else if (user) {
       loadProfile();
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, loadProfile]);
 
   const loadProfile = async () => {
     if (!user) return;
