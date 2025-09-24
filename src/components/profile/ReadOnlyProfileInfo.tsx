@@ -92,46 +92,30 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
   return (
     <div className={getContainerClass()}>
-      <div
-        className="rounded-lg shadow-lg overflow-hidden"
-        style={{
-          backgroundColor: `${cardBackgroundColor}${Math.round(
-            cardBackgroundOpacity * 2.55,
-          )
-            .toString(16)
-            .padStart(2, "0")}`,
-        }}
-      >
-        {/* ヘッダー部分（最小限のパディング） */}
-        <div
-          className="px-2 py-1 sm:px-3 sm:py-1.5 text-white text-center"
-          style={{
-            backgroundColor: cardBackgroundColor,
-            filter: "brightness(0.9)",
-          }}
-        >
-          <div className="inline-flex items-center gap-2 sm:gap-3">
-            {photoURL ? (
-              <img
-                src={photoURL}
-                alt={displayName}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white bg-opacity-30 flex items-center justify-center">
-                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-            )}
-            <div className="text-left">
-              <h2 className="text-sm sm:text-base font-bold leading-none">{displayName}</h2>
-              {position && <p className="text-xs opacity-90 leading-none mt-0.5">{position}</p>}
-              {company && <p className="text-xs opacity-90 leading-none mt-0.5">{company}</p>}
-            </div>
+      {/* アイコンを独立要素として中央配置 */}
+      <div className="flex justify-center mb-3">
+        {photoURL ? (
+          <img
+            src={photoURL}
+            alt={displayName}
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-lg object-cover"
+          />
+        ) : (
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-300 flex items-center justify-center shadow-lg">
+            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* コンテンツ部分 */}
-        <div className="p-2.5 sm:p-3 space-y-2.5 bg-white bg-opacity-90">
+      {/* プロフィール情報（背景なし） */}
+      <div className="text-center mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-gray-800">{displayName}</h2>
+        {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
+        {company && <p className="text-sm text-gray-600">{company}</p>}
+      </div>
+
+      {/* VCardボタンと詳細情報 */}
+      <div className="space-y-3">
           {/* VCardダウンロードボタン（常に表示） */}
           <div className="flex justify-center">
             <VCardButton
@@ -254,7 +238,6 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   );
