@@ -466,30 +466,41 @@ export function SimplePageEditor({
     <div className="min-h-screen bg-gray-50">
       {/* 固定ヘッダー */}
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-        <div className="flex justify-between items-center p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 gap-2 sm:gap-4">
+          {/* モバイル：上段にタイトル、下段にボタン類 */}
+          {/* デスクトップ：横並び */}
+
           {/* 左：戻るボタン */}
-          <Button variant="ghost" onClick={() => router.push("/dashboard")}>
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/dashboard")}
+            className="w-full sm:w-auto justify-start"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            ダッシュボード
+            <span className="hidden sm:inline">ダッシュボード</span>
+            <span className="sm:hidden">戻る</span>
           </Button>
 
-          {/* 中央：ページタイトル */}
-          <h1 className="font-bold">{t("profileEditor")}</h1>
+          {/* 中央：ページタイトル（モバイルでは非表示） */}
+          <h1 className="hidden sm:block font-bold text-center">{t("profileEditor")}</h1>
 
           {/* 右：プレビューと背景設定ボタン */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowBackgroundSettings(true)}
+              className="flex-1 sm:flex-none"
             >
               <Settings className="mr-1 h-4 w-4" />
-              {t("background")}
+              <span className="hidden sm:inline">{t("background")}</span>
+              <span className="sm:hidden">背景</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowDevicePreview(true)}
+              className="flex-1 sm:flex-none"
             >
               <Eye className="mr-1 h-4 w-4" />
               {t("preview")}
@@ -499,7 +510,7 @@ export function SimplePageEditor({
       </div>
 
       {/* メインコンテンツ（ヘッダー分の余白を追加） */}
-      <div className="pt-20 py-8">
+      <div className="pt-24 sm:pt-20 py-8">
         <div className="max-w-md mx-auto px-4">
           {/* コンポーネントリスト */}
           <DndContext

@@ -7,7 +7,6 @@ import {
   MapPin,
   Globe,
   User,
-  Briefcase,
   Smartphone,
   ChevronDown,
   ChevronUp,
@@ -86,81 +85,61 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     return "w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-6";
   };
 
-  // カード背景色の決定
-  const cardBackgroundColor = content.cardBackgroundColor || "#3b82f6"; // デフォルトはブルー
-  const cardBackgroundOpacity = content.cardBackgroundOpacity ?? 95; // デフォルトは95%
-
   return (
     <div className={getContainerClass()}>
-      <div
-        className="rounded-lg shadow-lg overflow-hidden"
-        style={{
-          backgroundColor: `${cardBackgroundColor}${Math.round(
-            cardBackgroundOpacity * 2.55,
-          )
-            .toString(16)
-            .padStart(2, "0")}`,
-        }}
-      >
-        {/* ヘッダー部分（パディングを縮小） */}
-        <div
-          className="p-4 sm:p-4 text-white"
-          style={{
-            backgroundColor: cardBackgroundColor,
-            filter: "brightness(0.9)",
-          }}
-        >
-          <div className="flex flex-col sm:flex-row items-center sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
-            {photoURL ? (
-              <img
-                src={photoURL}
-                alt={displayName}
-                className="w-16 h-16 rounded-full border-2 border-white object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-white bg-opacity-30 flex items-center justify-center">
-                <User className="w-8 h-8 text-white" />
-              </div>
-            )}
-            <div className="text-center sm:text-left">
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              {position && <p className="text-sm opacity-90">{position}</p>}
-              {company && <p className="text-sm opacity-90">{company}</p>}
-            </div>
+      {/* アイコンを独立要素として中央配置 */}
+      <div className="flex justify-center mb-3">
+        {photoURL ? (
+          <img
+            src={photoURL}
+            alt={displayName}
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-lg object-cover"
+          />
+        ) : (
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-300 flex items-center justify-center shadow-lg">
+            <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
+        )}
+      </div>
+
+      {/* プロフィール情報カード */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        {/* 名前・役職・会社 */}
+        <div className="text-center mb-3">
+          <h2 className="text-base sm:text-lg font-bold text-gray-800">{displayName}</h2>
+          {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
+          {company && <p className="text-sm text-gray-600">{company}</p>}
         </div>
 
-        {/* コンテンツ部分（パディングを縮小） */}
-        <div className="p-4 sm:p-4 space-y-3 bg-white bg-opacity-90">
-          {/* VCardダウンロードボタン（常に表示） */}
-          <div className="flex justify-center">
-            <VCardButton
-              username={displayName}
-              profileData={vCardData}
-              className="w-full max-w-xs"
-              variant="default"
-              size="lg"
-            />
-          </div>
-
-          {/* 自己紹介（3行制限と展開機能） */}
-          {bio && (
-            <div className="pb-3 border-b border-gray-200">
-              <p
-                className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+        {/* 自己紹介（3行制限と展開機能） */}
+        {bio && (
+          <div className="pb-3 border-b border-gray-200">
+            <p
+              className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+            >
+              {bio}
+            </p>
+            {bio.length > 150 && (
+              <button
+                onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+                className="text-blue-600 hover:text-blue-700 text-sm mt-1"
               >
-                {bio}
-              </p>
-              {bio.length > 150 && (
-                <button
-                  onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-                  className="text-blue-600 hover:text-blue-700 text-sm mt-1"
-                >
-                  {isProfileExpanded ? "閉じる" : "...続きを読む"}
-                </button>
-              )}
-            </div>
-          )}
+                {isProfileExpanded ? "閉じる" : "...続きを読む"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* VCardダウンロードボタン（常に表示） */}
+        <div className="flex justify-center">
+          <VCardButton
+            username={displayName}
+            profileData={vCardData}
+            className="w-full max-w-xs"
+            variant="default"
+            size="lg"
+          />
+        </div>
 
           {/* 詳細情報の展開ボタン */}
           {hasDetails && (
@@ -254,7 +233,6 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   );
