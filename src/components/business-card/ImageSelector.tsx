@@ -12,6 +12,72 @@ interface ImageSelectorProps {
   error: string | null;
 }
 
+// 画像リサイズ関数
+const resizeImageFile = async (file: File, maxSizeBytes: number): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // 元のサイズを取得
+      const originalWidth = img.width;
+      const originalHeight = img.height;
+      
+      // リサイズ比率を計算（最大サイズに収まるように）
+      let ratio = 1;
+      const maxDimension = 2048; // 最大解像度を2048pxに制限
+      
+      if (originalWidth > maxDimension || originalHeight > maxDimension) {
+        ratio = Math.min(maxDimension / originalWidth, maxDimension / originalHeight);
+      }
+      
+      const newWidth = Math.floor(originalWidth * ratio);
+      const newHeight = Math.floor(originalHeight * ratio);
+      
+      // Canvasサイズを設定
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      // 画像を描画
+      ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+      
+      // 品質を調整してファイルサイズを制御
+      let quality = 0.9;
+      const tryCompress = (q: number) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create blob'));
+              return;
+            }
+            
+            if (blob.size <= maxSizeBytes || q <= 0.3) {
+              // ファイルサイズが制限内になるか、品質が最低まで下がったら完了
+              const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              resolve(resizedFile);
+            } else {
+              // 品質を下げて再試行
+              tryCompress(q - 0.1);
+            }
+          },
+          'image/jpeg',
+          q
+        );
+      };
+      
+      tryCompress(quality);
+    };
+    
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    
+    // 画像を読み込み
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 const ImageSelector: React.FC<ImageSelectorProps> = ({
   onImageSelected,
   error,
@@ -48,10 +114,18 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
     if (file.type.startsWith("image/")) {
       const maxFileSize = 4 * 1024 * 1024; // 4MB for all formats after conversion
       
+      // ファイルサイズが大きい場合はリサイズを試行
       if (file.size > maxFileSize) {
-        const maxSizeMB = maxFileSize / (1024 * 1024);
-        alert(`ファイルサイズが大きすぎます。${maxSizeMB}MB以下の画像を選択してください。\n\n現在のファイルサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
-        return;
+        console.log("📏 File too large, attempting to resize...");
+        try {
+          file = await resizeImageFile(file, maxFileSize);
+          console.log("✅ Image resized successfully");
+        } catch (resizeError) {
+          console.error("❌ Image resize failed:", resizeError);
+          const maxSizeMB = maxFileSize / (1024 * 1024);
+          alert(`ファイルサイズが大きすぎます。${maxSizeMB}MB以下の画像を選択してください。\n\n現在のファイルサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
+          return;
+        }
       }
       
       const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
