@@ -9,6 +9,15 @@ import {
 } from "@/types/api";
 import { strictRateLimit } from "@/lib/rateLimit";
 
+// Configure body size limit for this API route
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export async function POST(request: NextRequest) {
   console.log("=== Business Card Scan API Called ===");
   console.log("Time:", new Date().toISOString());

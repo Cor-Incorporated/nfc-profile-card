@@ -109,13 +109,18 @@ export async function processBusinessCardImage(
   console.log("Image size (base64):", image.length, "characters");
 
   // Check image size to prevent Request Entity errors
-  const maxImageSize = 4 * 1024 * 1024; // 4MB limit for base64
+  // HEIC images are typically larger, so we allow up to 8MB for HEIC format
+  const maxImageSize = (mimeType === 'image/heic' || mimeType === 'image/heif') 
+    ? 8 * 1024 * 1024  // 8MB for HEIC
+    : 4 * 1024 * 1024; // 4MB for other formats
+  
   if (image.length > maxImageSize) {
     console.error("❌ Image too large:", image.length, "characters (max:", maxImageSize, ")");
+    const maxSizeMB = maxImageSize / (1024 * 1024);
     return {
       success: false,
       processingTime: Date.now() - startTime,
-      error: "画像サイズが大きすぎます。4MB以下の画像をご利用ください。",
+      error: `画像サイズが大きすぎます。${maxSizeMB}MB以下の画像をご利用ください。`,
     };
   }
 
@@ -144,6 +149,7 @@ export async function processBusinessCardImage(
   if (mimeType === 'image/heic' || mimeType === 'image/heif') {
     console.log("📱 HEIC format detected from mobile device");
     console.log("Gemini 2.5 Flash should support HEIC format");
+    console.log("HEIC image size:", Math.round(image.length / 1024), "KB");
   }
 
   try {

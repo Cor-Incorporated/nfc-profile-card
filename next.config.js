@@ -39,6 +39,12 @@ const nextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // API routes body size limit
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
   typescript: {
     // We'll properly type everything, but allow builds during development
     ignoreBuildErrors: false,
