@@ -72,7 +72,7 @@ export default function BusinessCardScanPage() {
       // Log HEIC format detection for monitoring
       if (file.type === 'image/heic' || file.type === 'image/heif') {
         console.log("📱 HEIC format detected from mobile device");
-        console.log("Proceeding with Gemini 2.5 Flash processing");
+        console.log("Proceeding with Gemini Flash Latest processing");
       }
 
       const reader = new FileReader();

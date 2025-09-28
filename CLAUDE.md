@@ -67,7 +67,7 @@ The project follows Next.js 14 App Router conventions with the following planned
 
 ### OCR Functionality
 
-- Uses Google Gemini API 1.5 Flash for business card scanning
+- Uses Google Gemini API Flash Latest for business card scanning
 - Converts scanned data to VCard format
 - Immediate data deletion after processing for privacy
 
