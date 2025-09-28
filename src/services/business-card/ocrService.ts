@@ -148,7 +148,7 @@ export async function processBusinessCardImage(
   // Log HEIC format detection for monitoring
   if (mimeType === 'image/heic' || mimeType === 'image/heif') {
     console.log("📱 HEIC format detected from mobile device");
-    console.log("Gemini 2.5 Flash should support HEIC format");
+    console.log("Gemini Flash Latest should support HEIC format");
     console.log("HEIC image size:", Math.round(image.length / 1024), "KB");
   }
 
@@ -164,8 +164,8 @@ export async function processBusinessCardImage(
     }
     console.log("✅ API key found");
 
-    // Get the generative model (Gemini 2.5 Flash for maximum compatibility)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Get the generative model (Gemini Flash Latest for maximum compatibility)
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
