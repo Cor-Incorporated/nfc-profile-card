@@ -233,7 +233,7 @@ jest.mock("vcards-js", () => {
       },
       get(target: any, prop: string | symbol) {
         return target[prop];
-      }
+      },
     });
   });
 });

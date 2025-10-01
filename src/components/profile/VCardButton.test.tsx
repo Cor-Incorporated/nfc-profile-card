@@ -13,9 +13,7 @@ jest.mock("@/components/ui/use-toast", () => ({
 function TestWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <LanguageProvider>
-        {children}
-      </LanguageProvider>
+      <LanguageProvider>{children}</LanguageProvider>
     </AuthProvider>
   );
 }
@@ -66,7 +64,7 @@ describe("VCardButton", () => {
           size="lg"
           className="custom-class"
         />,
-        { wrapper: TestWrapper }
+        { wrapper: TestWrapper },
       );
 
       const button = screen.getByRole("button");
@@ -118,7 +116,9 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={profileData} />, { wrapper: TestWrapper });
+      render(<VCardButton profileData={profileData} />, {
+        wrapper: TestWrapper,
+      });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -172,7 +172,9 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={fullProfileData} />, { wrapper: TestWrapper });
+      render(<VCardButton profileData={fullProfileData} />, {
+        wrapper: TestWrapper,
+      });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);
@@ -318,7 +320,9 @@ describe("VCardButton", () => {
         blob: async () => mockBlob,
       });
 
-      render(<VCardButton profileData={{ firstName: "John" }} />, { wrapper: TestWrapper });
+      render(<VCardButton profileData={{ firstName: "John" }} />, {
+        wrapper: TestWrapper,
+      });
 
       const button = screen.getByRole("button");
       fireEvent.click(button);

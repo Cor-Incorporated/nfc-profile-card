@@ -3,33 +3,35 @@ import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
 import {
-    ApiErrorResponse,
-    BusinessCardScanRequest,
-    BusinessCardScanResponse,
+  ApiErrorResponse,
+  BusinessCardScanRequest,
+  BusinessCardScanResponse,
 } from "@/types/api";
 import { NextRequest, NextResponse } from "next/server";
 
 // Configure API route settings
 export const maxDuration = 30; // 30 seconds timeout
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   console.log("=== Business Card Scan API Called ===");
   console.log("Time:", new Date().toISOString());
   console.log("Method:", request.method);
-  
+
   // Check request body size
-  const contentLength = request.headers.get('content-length');
+  const contentLength = request.headers.get("content-length");
   if (contentLength) {
     const sizeInMB = parseInt(contentLength) / (1024 * 1024);
     console.log("Request body size:", sizeInMB.toFixed(2), "MB");
-    
-    if (parseInt(contentLength) > 10 * 1024 * 1024) { // 10MB limit
+
+    if (parseInt(contentLength) > 10 * 1024 * 1024) {
+      // 10MB limit
       console.error("❌ Request body too large:", sizeInMB.toFixed(2), "MB");
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: "リクエストサイズが大きすぎます。10MB以下の画像をご利用ください。",
+        error:
+          "リクエストサイズが大きすぎます。10MB以下の画像をご利用ください。",
       };
       return NextResponse.json(errorResponse, { status: 413 });
     }

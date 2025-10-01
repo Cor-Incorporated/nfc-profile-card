@@ -37,7 +37,6 @@ export default defineConfig({
 
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
     port: 3000,
     timeout: 120 * 1000, // 120 seconds for CI environment
     reuseExistingServer: !process.env.CI,
@@ -45,7 +44,7 @@ export default defineConfig({
       // Inherit all environment variables from process
       ...process.env,
       // Set Node environment for consistent behavior
-      NODE_ENV: process.env.NODE_ENV || 'development',
+      NODE_ENV: process.env.NODE_ENV || "development",
     },
   },
 });

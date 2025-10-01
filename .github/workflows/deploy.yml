@@ -1,11 +1,11 @@
-name: Deploy to Vercel
+# Vercelの自動デプロイを使用するため、このワークフローは無効化
+# Vercelプロジェクトの設定でGitHub統合を有効にすることで、
+# main/devブランチへのプッシュで自動的にデプロイされます
+
+name: Deploy to Vercel (Disabled)
 
 on:
-  push:
-    branches: [main, dev]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch:  # 手動実行のみ
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

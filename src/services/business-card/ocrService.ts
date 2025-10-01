@@ -110,12 +110,19 @@ export async function processBusinessCardImage(
 
   // Check image size to prevent Request Entity errors
   // HEIC images are typically larger, so we allow up to 8MB for HEIC format
-  const maxImageSize = (mimeType === 'image/heic' || mimeType === 'image/heif') 
-    ? 8 * 1024 * 1024  // 8MB for HEIC
-    : 4 * 1024 * 1024; // 4MB for other formats
-  
+  const maxImageSize =
+    mimeType === "image/heic" || mimeType === "image/heif"
+      ? 8 * 1024 * 1024 // 8MB for HEIC
+      : 4 * 1024 * 1024; // 4MB for other formats
+
   if (image.length > maxImageSize) {
-    console.error("❌ Image too large:", image.length, "characters (max:", maxImageSize, ")");
+    console.error(
+      "❌ Image too large:",
+      image.length,
+      "characters (max:",
+      maxImageSize,
+      ")",
+    );
     const maxSizeMB = maxImageSize / (1024 * 1024);
     return {
       success: false,
@@ -126,13 +133,13 @@ export async function processBusinessCardImage(
 
   // Check for supported image formats (including HEIC)
   const supportedMimeTypes = [
-    'image/jpeg',
-    'image/jpg', 
-    'image/png',
-    'image/webp',
-    'image/gif',
-    'image/heic',
-    'image/heif'
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "image/heif",
   ];
 
   // Check if MIME type is supported
@@ -146,7 +153,7 @@ export async function processBusinessCardImage(
   }
 
   // Log HEIC format detection for monitoring
-  if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+  if (mimeType === "image/heic" || mimeType === "image/heif") {
     console.log("📱 HEIC format detected from mobile device");
     console.log("Gemini Flash Latest should support HEIC format");
     console.log("HEIC image size:", Math.round(image.length / 1024), "KB");
@@ -169,11 +176,15 @@ export async function processBusinessCardImage(
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
-    console.log("Base64 image size (cleaned):", base64Image.length, "characters");
+    console.log(
+      "Base64 image size (cleaned):",
+      base64Image.length,
+      "characters",
+    );
 
     // Generate content with Gemini (no timeout - let it complete naturally)
     console.log("Calling Gemini API...");
-    
+
     // Use more robust API call format with explicit content structure
     const imagePart = {
       inlineData: {
@@ -186,11 +197,8 @@ export async function processBusinessCardImage(
       contents: [
         {
           role: "user",
-          parts: [
-            imagePart,
-            { text: OCR_PROMPT }
-          ]
-        }
+          parts: [imagePart, { text: OCR_PROMPT }],
+        },
       ],
       generationConfig: {
         responseMimeType: "application/json",
@@ -223,7 +231,8 @@ export async function processBusinessCardImage(
         return {
           success: false,
           processingTime: Date.now() - startTime,
-          error: "OCR APIから空の応答が返されました。画像が読み取れなかった可能性があります。",
+          error:
+            "OCR APIから空の応答が返されました。画像が読み取れなかった可能性があります。",
         };
       }
     } catch (textError) {
@@ -242,7 +251,10 @@ export async function processBusinessCardImage(
     console.log("=== Gemini Raw Response ===");
     console.log("Response length:", text.length);
     console.log("First 200 chars:", text.substring(0, 200));
-    console.log("Last 200 chars:", text.substring(Math.max(0, text.length - 200)));
+    console.log(
+      "Last 200 chars:",
+      text.substring(Math.max(0, text.length - 200)),
+    );
     console.log("Full response:", text);
     console.log("=== End Gemini Response ===");
 
@@ -251,12 +263,15 @@ export async function processBusinessCardImage(
     try {
       // First, check if the response looks like an error message
       if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-        console.error("❌ Gemini returned HTML instead of JSON (likely an error page)");
+        console.error(
+          "❌ Gemini returned HTML instead of JSON (likely an error page)",
+        );
         console.error("First 500 chars of HTML:", text.substring(0, 500));
         return {
           success: false,
           processingTime: Date.now() - startTime,
-          error: "OCR APIがエラーページを返しました。APIキーまたはサービス設定を確認してください。",
+          error:
+            "OCR APIがエラーページを返しました。APIキーまたはサービス設定を確認してください。",
         };
       }
 
@@ -276,13 +291,14 @@ export async function processBusinessCardImage(
         return {
           success: false,
           processingTime: Date.now() - startTime,
-          error: "リクエストエンティティエラーが発生しました。画像サイズが大きすぎる可能性があります。",
+          error:
+            "リクエストエンティティエラーが発生しました。画像サイズが大きすぎる可能性があります。",
         };
       }
 
       // Enhanced JSON extraction with multiple fallback strategies
       let jsonText = text.trim();
-      
+
       // Strategy 1: Remove markdown code blocks
       jsonText = jsonText
         .replace(/^```json\s*/g, "")
@@ -293,11 +309,11 @@ export async function processBusinessCardImage(
       // Strategy 2: If still not JSON, try to find JSON object boundaries
       if (!jsonText.startsWith("{") && !jsonText.startsWith("[")) {
         console.log("🔍 Attempting to extract JSON from mixed content...");
-        
+
         // Look for JSON object boundaries
-        const jsonStart = jsonText.indexOf('{');
-        const jsonEnd = jsonText.lastIndexOf('}');
-        
+        const jsonStart = jsonText.indexOf("{");
+        const jsonEnd = jsonText.lastIndexOf("}");
+
         if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
           jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
           console.log("✅ Extracted JSON from mixed content");
@@ -307,7 +323,8 @@ export async function processBusinessCardImage(
           return {
             success: false,
             processingTime: Date.now() - startTime,
-            error: "有効なJSONオブジェクトが見つかりませんでした。画像を再撮影してお試しください。",
+            error:
+              "有効なJSONオブジェクトが見つかりませんでした。画像を再撮影してお試しください。",
           };
         }
       }
@@ -322,15 +339,15 @@ export async function processBusinessCardImage(
       } catch (parseError) {
         console.error("❌ JSON parse error:", parseError);
         console.error("Problematic JSON:", jsonText);
-        
+
         // Try to fix common JSON issues
         try {
           // Remove any trailing commas or extra characters
           const fixedJson = jsonText
-            .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-            .replace(/([^\\])\\(?!["\\/bfnrt])/g, '$1\\\\') // Fix unescaped backslashes
+            .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
+            .replace(/([^\\])\\(?!["\\/bfnrt])/g, "$1\\\\") // Fix unescaped backslashes
             .trim();
-          
+
           parsedJson = JSON.parse(fixedJson);
           console.log("✅ JSON fixed and parsed successfully");
         } catch (fixError) {
@@ -338,7 +355,8 @@ export async function processBusinessCardImage(
           return {
             success: false,
             processingTime: Date.now() - startTime,
-            error: "JSON形式の解析に失敗しました。画像を再撮影してお試しください。",
+            error:
+              "JSON形式の解析に失敗しました。画像を再撮影してお試しください。",
           };
         }
       }
@@ -364,7 +382,8 @@ export async function processBusinessCardImage(
       return {
         success: false,
         processingTime: Date.now() - startTime,
-        error: "OCR応答の解析に失敗しました。しばらく時間をおいてから再試行してください。",
+        error:
+          "OCR応答の解析に失敗しました。しばらく時間をおいてから再試行してください。",
       };
     }
 
@@ -385,26 +404,41 @@ export async function processBusinessCardImage(
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);
 
-      if (error.message.includes("API key") || error.message.includes("API_KEY_INVALID")) {
+      if (
+        error.message.includes("API key") ||
+        error.message.includes("API_KEY_INVALID")
+      ) {
         errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
         console.error("🔑 API Key error detected");
       } else if (error.message.includes("timeout")) {
-        errorMessage = "処理に時間がかかりすぎています。画像を再撮影してお試しください。";
+        errorMessage =
+          "処理に時間がかかりすぎています。画像を再撮影してお試しください。";
         console.error("⏱️ Timeout error detected");
-      } else if (error.message.includes("quota") || error.message.includes("RESOURCE_EXHAUSTED")) {
+      } else if (
+        error.message.includes("quota") ||
+        error.message.includes("RESOURCE_EXHAUSTED")
+      ) {
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
         console.error("📊 Quota exceeded error detected");
-      } else if (error.message.includes("The string did not match the expected pattern")) {
+      } else if (
+        error.message.includes("The string did not match the expected pattern")
+      ) {
         // Check if this is a HEIC format issue
-        if (mimeType === 'image/heic' || mimeType === 'image/heif') {
-          errorMessage = "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。";
+        if (mimeType === "image/heic" || mimeType === "image/heif") {
+          errorMessage =
+            "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。";
           console.error("📱 HEIC format processing error detected");
         } else {
-          errorMessage = "OCR APIからの応答形式が不正です。再度お試しください。";
+          errorMessage =
+            "OCR APIからの応答形式が不正です。再度お試しください。";
           console.error("📝 Response format error detected");
         }
-      } else if (error.message.includes("Unexpected token") || error.message.includes("not valid JSON")) {
-        errorMessage = "OCR APIの応答形式に問題があります。画像を再撮影してお試しください。";
+      } else if (
+        error.message.includes("Unexpected token") ||
+        error.message.includes("not valid JSON")
+      ) {
+        errorMessage =
+          "OCR APIの応答形式に問題があります。画像を再撮影してお試しください。";
         console.error("🔧 JSON parsing error detected");
       } else {
         // Include actual error message for debugging

@@ -7,14 +7,14 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
-    ERROR_MESSAGES,
-    SUCCESS_MESSAGES,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
 } from "@/lib/constants/error-messages";
 import { db } from "@/lib/firebase";
 import {
-    getScanQuota,
-    recordScan,
-    type ScanQuota,
+  getScanQuota,
+  recordScan,
+  type ScanQuota,
 } from "@/services/business-card/scanQuotaService";
 import { downloadVCard } from "@/services/business-card/vcardService";
 import { AppStatus, ContactInfo } from "@/types/business-card";
@@ -70,7 +70,7 @@ export default function BusinessCardScanPage() {
       setContactInfo(null);
 
       // Log HEIC format detection for monitoring
-      if (file.type === 'image/heic' || file.type === 'image/heif') {
+      if (file.type === "image/heic" || file.type === "image/heif") {
         console.log("📱 HEIC format detected from mobile device");
         console.log("Proceeding with Gemini Flash Latest processing");
       }
@@ -116,17 +116,26 @@ export default function BusinessCardScanPage() {
             try {
               const errorText = await response.text();
               console.error("Server error response:", errorText);
-              
+
               // Check if it's an HTML error page
-              if (errorText.includes("Request Entity Too Large") || errorText.includes("Request En")) {
-                errorMessage = "画像サイズが大きすぎます。4MB以下の画像をご利用ください。";
-              } else if (errorText.includes("<!DOCTYPE") || errorText.includes("<html")) {
-                errorMessage = "サーバーエラーが発生しました。しばらく時間をおいてから再試行してください。";
+              if (
+                errorText.includes("Request Entity Too Large") ||
+                errorText.includes("Request En")
+              ) {
+                errorMessage =
+                  "画像サイズが大きすぎます。4MB以下の画像をご利用ください。";
+              } else if (
+                errorText.includes("<!DOCTYPE") ||
+                errorText.includes("<html")
+              ) {
+                errorMessage =
+                  "サーバーエラーが発生しました。しばらく時間をおいてから再試行してください。";
               } else {
                 // Try to parse as JSON for structured error
                 try {
                   const errorJson = JSON.parse(errorText);
-                  errorMessage = errorJson.error || errorJson.details || errorMessage;
+                  errorMessage =
+                    errorJson.error || errorJson.details || errorMessage;
                 } catch {
                   // Keep the default error message
                 }
@@ -134,7 +143,7 @@ export default function BusinessCardScanPage() {
             } catch (textError) {
               console.error("Failed to read error response:", textError);
             }
-            
+
             throw new Error(errorMessage);
           }
 
@@ -165,7 +174,9 @@ export default function BusinessCardScanPage() {
         } catch (e) {
           console.error("OCR Processing Error:", e);
           const errorMessage =
-            e instanceof Error ? e.message : ERROR_MESSAGES.OCR_EXTRACTION_FAILED;
+            e instanceof Error
+              ? e.message
+              : ERROR_MESSAGES.OCR_EXTRACTION_FAILED;
           setError(errorMessage);
           setAppStatus(AppStatus.IDLE);
           toast({

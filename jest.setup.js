@@ -113,7 +113,7 @@ jest.mock("firebase/auth", () => ({
       uid: "test-uid",
       email: "test@example.com",
       emailVerified: true,
-      providerData: [{ providerId: "password" }]
+      providerData: [{ providerId: "password" }],
     },
   }),
   createUserWithEmailAndPassword: jest.fn().mockResolvedValue({
@@ -121,7 +121,7 @@ jest.mock("firebase/auth", () => ({
       uid: "test-uid",
       email: "test@example.com",
       emailVerified: false,
-      providerData: [{ providerId: "password" }]
+      providerData: [{ providerId: "password" }],
     },
   }),
   signOut: jest.fn().mockResolvedValue(),
@@ -139,7 +139,7 @@ jest.mock("firebase/auth", () => ({
       uid: "test-uid",
       email: "test@example.com",
       emailVerified: true,
-      providerData: [{ providerId: "google.com" }]
+      providerData: [{ providerId: "google.com" }],
     },
   }),
   GoogleAuthProvider: jest.fn(() => ({})),
