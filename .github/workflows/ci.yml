@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint -- --max-warnings 50  # 警告は50個まで許可、エラーは失敗
+        run: npm run lint -- --max-warnings 10  # 警告は10個まで許可（段階的に削減予定: 10→5→2→0）
 
       - name: Check TypeScript types
         run: npm run type-check

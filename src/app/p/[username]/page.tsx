@@ -414,9 +414,8 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* フローティングボタン - 名刺スキャンとQRコード（従来テンプレート用） */}
-      <div className="fixed bottom-6 right-6 z-50 space-y-3">
-        {/* 名刺スキャンボタン */}
+      {/* フローティングボタン - 名刺スキャン（従来テンプレート用） */}
+      <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={handleCameraClick}
           className={`p-3 rounded-full shadow-lg transition-all flex items-center justify-center ${
@@ -430,16 +429,6 @@ export default function ProfilePage() {
           title={!authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"}
         >
           <Camera className="h-6 w-6" />
-        </button>
-
-        {/* QRコードボタン（既存のQRボタンと統一） */}
-        <button
-          onClick={() => setShowQRCode(true)}
-          className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
-          aria-label="QRコード表示"
-          title="QRコード表示"
-        >
-          <QrCode className="h-6 w-6 text-gray-700" />
         </button>
       </div>
     </div>

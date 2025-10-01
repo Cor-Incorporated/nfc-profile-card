@@ -9,15 +9,9 @@ import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI with API key from environment
-// Throw error immediately if API key is missing
-if (!process.env.GEMINI_API_KEY) {
-  const error = new Error(
-    "GEMINI_API_KEY is not configured in environment variables",
-  );
-  ocrLogger.error(error.message);
-  throw error;
-}
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Use empty string as fallback to avoid build-time errors
+// Actual validation happens at runtime in processBusinessCardImage
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
@@ -165,7 +159,15 @@ export async function processBusinessCardImage(
   }
 
   try {
-    // API key is already checked during initialization
+    // Check API key at runtime
+    if (!process.env.GEMINI_API_KEY) {
+      ocrLogger.error("❌ GEMINI_API_KEY is missing from environment variables");
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        error: "OCR service is not properly configured. API key is missing.",
+      };
+    }
     ocrLogger.debug("✅ Starting OCR processing");
 
     // Get the generative model (Gemini Flash Latest for maximum compatibility)
