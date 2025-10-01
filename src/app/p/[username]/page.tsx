@@ -5,6 +5,7 @@ import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackPageView } from "@/lib/analytics";
+import { ROUTES, createAuthRedirectUrl } from "@/lib/constants/routes";
 import { db } from "@/lib/firebase";
 import { SUPPORTED_SERVICES } from "@/types";
 import {
@@ -68,10 +69,13 @@ export default function ProfilePage() {
   const handleCameraClick = () => {
     if (!authUser) {
       // 未認証の場合は認証画面にリダイレクト
-      router.push("/signin?redirect=/dashboard/business-cards/scan");
+      const redirectUrl = createAuthRedirectUrl(
+        ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN,
+      );
+      router.push(redirectUrl);
     } else {
       // 認証済みの場合は名刺スキャン画面へ
-      router.push("/dashboard/business-cards/scan");
+      router.push(ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN);
     }
   };
 
@@ -140,7 +144,7 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-bold mb-4">
             プロフィールが見つかりません
           </h1>
-          <Link href="/" className="text-primary hover:underline">
+          <Link href={ROUTES.HOME} className="text-primary hover:underline">
             ホームに戻る
           </Link>
         </div>
@@ -410,8 +414,9 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* フローティングボタン - 名刺スキャン */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* フローティングボタン - 名刺スキャンとQRコード（従来テンプレート用） */}
+      <div className="fixed bottom-6 right-6 z-50 space-y-3">
+        {/* 名刺スキャンボタン */}
         <button
           onClick={handleCameraClick}
           className={`p-3 rounded-full shadow-lg transition-all flex items-center justify-center ${
@@ -425,6 +430,16 @@ export default function ProfilePage() {
           title={!authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"}
         >
           <Camera className="h-6 w-6" />
+        </button>
+
+        {/* QRコードボタン（既存のQRボタンと統一） */}
+        <button
+          onClick={() => setShowQRCode(true)}
+          className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+          aria-label="QRコード表示"
+          title="QRコード表示"
+        >
+          <QrCode className="h-6 w-6 text-gray-700" />
         </button>
       </div>
     </div>

@@ -4,15 +4,20 @@
  */
 
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI with API key from environment
-// Check if API key exists
+// Throw error immediately if API key is missing
 if (!process.env.GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY is not configured in environment variables");
+  const error = new Error(
+    "GEMINI_API_KEY is not configured in environment variables",
+  );
+  ocrLogger.error(error.message);
+  throw error;
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
@@ -154,22 +159,14 @@ export async function processBusinessCardImage(
 
   // Log HEIC format detection for monitoring
   if (mimeType === "image/heic" || mimeType === "image/heif") {
-    console.log("📱 HEIC format detected from mobile device");
-    console.log("Gemini Flash Latest should support HEIC format");
-    console.log("HEIC image size:", Math.round(image.length / 1024), "KB");
+    ocrLogger.info("📱 HEIC format detected from mobile device");
+    ocrLogger.debug("Gemini Flash Latest should support HEIC format");
+    ocrLogger.debug("HEIC image size:", Math.round(image.length / 1024), "KB");
   }
 
   try {
-    // Check API key before processing
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("❌ GEMINI_API_KEY is missing from environment variables");
-      return {
-        success: false,
-        processingTime: Date.now() - startTime,
-        error: "OCR service is not properly configured. API key is missing.",
-      };
-    }
-    console.log("✅ API key found");
+    // API key is already checked during initialization
+    ocrLogger.debug("✅ Starting OCR processing");
 
     // Get the generative model (Gemini Flash Latest for maximum compatibility)
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });

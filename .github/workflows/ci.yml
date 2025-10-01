@@ -27,15 +27,18 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
-        continue-on-error: true  # 警告があっても続行
+        run: npm run lint -- --max-warnings 50  # 警告は50個まで許可、エラーは失敗
 
       - name: Check TypeScript types
         run: npm run type-check
 
-      - name: Check code formatting
+      - name: Check code formatting (PR only)
+        if: github.event_name == 'pull_request'
         run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}"
-        continue-on-error: true  # フォーマットエラーでビルドをブロックしない
+
+      - name: Check code formatting (Push)
+        if: github.event_name != 'pull_request'
+        run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}" || true  # プッシュ時は警告のみ
 
   # Jestテストは現在保守されていないのでスキップ
   # test:
