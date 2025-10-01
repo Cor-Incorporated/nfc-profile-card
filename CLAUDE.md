@@ -9,7 +9,7 @@ TapForge - A Next.js application that integrates physical NFC cards with digital
 **Tech Stack:**
 
 - Frontend: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
-- Authentication: Clerk (GitHub/Google OAuth)
+- Authentication: Firebase Auth (Google OAuth)
 - Backend: Firebase (Firestore, Cloud Functions, Storage)
 - OCR: Google Gemini API
 - Payments: Stripe
@@ -38,7 +38,7 @@ The project follows Next.js 14 App Router conventions with the following planned
 - **app/** - Next.js App Router pages and API routes
   - **(auth)/** - Authenticated routes (dashboard, edit, contacts)
   - **(public)/** - Public routes (profile pages, landing)
-  - **api/** - API endpoints for Clerk webhooks, OCR, vCard generation
+  - **api/** - API endpoints for Firebase webhooks, OCR, vCard generation
 - **components/** - React components organized by feature
 - **lib/** - Utilities for Firebase, Stripe, and general helpers
 - **types/** - TypeScript type definitions
@@ -48,9 +48,10 @@ The project follows Next.js 14 App Router conventions with the following planned
 
 ### Authentication Flow
 
-- Uses Clerk for authentication with GitHub/Google OAuth
-- Webhook integration syncs Clerk users with Firestore
-- Protected routes use Clerk middleware
+- Uses **Firebase Auth** for authentication with Google OAuth
+- AuthContext (`/src/contexts/AuthContext.tsx`) manages authentication state
+- Protected routes use Firebase Auth hooks (`useAuth`)
+- User data syncs automatically with Firestore on authentication
 
 ### Profile System
 
@@ -83,10 +84,9 @@ Main collections:
 
 The project requires configuration in `.env.local`:
 
-- Clerk API keys and webhook secrets
-- Firebase project configuration
-- Google Gemini API key
-- Stripe keys (for payment features)
+- Firebase project configuration (API keys, auth domain, etc.)
+- Google Gemini API key for OCR functionality
+- Stripe keys (for payment features - if implemented)
 
 ## Development Workflow
 

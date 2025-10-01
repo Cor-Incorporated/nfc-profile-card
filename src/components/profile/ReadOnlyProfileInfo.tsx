@@ -109,8 +109,12 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       <div className="bg-white rounded-lg shadow-md p-4">
         {/* 名前・役職・会社 */}
         <div className="text-center mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800">{displayName}</h2>
-          {position && <p className="text-sm text-gray-600 mt-0.5">{position}</p>}
+          <h2 className="text-base sm:text-lg font-bold text-gray-800">
+            {displayName}
+          </h2>
+          {position && (
+            <p className="text-sm text-gray-600 mt-0.5">{position}</p>
+          )}
           {company && <p className="text-sm text-gray-600">{company}</p>}
         </div>
 
@@ -144,98 +148,98 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           />
         </div>
 
-          {/* 詳細情報の展開ボタン */}
-          {hasDetails && (
-            <Button
-              variant="ghost"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
-            >
-              <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
+        {/* 詳細情報の展開ボタン */}
+        {hasDetails && (
+          <Button
+            variant="ghost"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
+          >
+            <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+
+        {/* 折りたたみ可能な詳細情報 */}
+        <div
+          className={`space-y-3 overflow-hidden transition-all duration-300 ${
+            isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          {email && (
+            <div className="flex items-center space-x-3">
+              <Mail className="w-5 h-5 text-gray-400" />
+              <a
+                href={`mailto:${email}`}
+                className="text-blue-600 hover:underline"
+              >
+                {email}
+              </a>
+            </div>
           )}
 
-          {/* 折りたたみ可能な詳細情報 */}
-          <div
-            className={`space-y-3 overflow-hidden transition-all duration-300 ${
-              isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
-            }`}
-          >
-            {email && (
-              <div className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <a
-                  href={`mailto:${email}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {email}
-                </a>
-              </div>
-            )}
+          {phone && (
+            <div className="flex items-center space-x-3">
+              <Phone className="w-5 h-5 text-gray-400" />
+              <a
+                href={`tel:${phone}`}
+                className="text-blue-600 hover:underline"
+              >
+                {phone}
+              </a>
+            </div>
+          )}
 
-            {phone && (
-              <div className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-gray-400" />
-                <a
-                  href={`tel:${phone}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {phone}
-                </a>
-              </div>
-            )}
+          {cellPhone && (
+            <div className="flex items-center space-x-3">
+              <Smartphone className="w-5 h-5 text-gray-400" />
+              <a
+                href={`tel:${cellPhone}`}
+                className="text-blue-600 hover:underline"
+              >
+                {cellPhone}
+              </a>
+            </div>
+          )}
 
-            {cellPhone && (
-              <div className="flex items-center space-x-3">
-                <Smartphone className="w-5 h-5 text-gray-400" />
-                <a
-                  href={`tel:${cellPhone}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  {cellPhone}
-                </a>
-              </div>
-            )}
+          {website && (
+            <div className="flex items-center space-x-3">
+              <Globe className="w-5 h-5 text-gray-400" />
+              <a
+                href={website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {website}
+              </a>
+            </div>
+          )}
 
-            {website && (
-              <div className="flex items-center space-x-3">
-                <Globe className="w-5 h-5 text-gray-400" />
-                <a
-                  href={website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  {website}
-                </a>
-              </div>
-            )}
+          {(company || department) && (
+            <div className="flex items-center space-x-3">
+              <Building className="w-5 h-5 text-gray-400" />
+              <span className="text-gray-700">
+                {company}
+                {department && ` - ${department}`}
+              </span>
+            </div>
+          )}
 
-            {(company || department) && (
-              <div className="flex items-center space-x-3">
-                <Building className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">
-                  {company}
-                  {department && ` - ${department}`}
-                </span>
-              </div>
-            )}
-
-            {(address || city || postalCode) && (
-              <div className="flex items-center space-x-3">
-                <MapPin className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">
-                  {postalCode && `〒${postalCode} `}
-                  {city} {address}
-                </span>
-              </div>
-            )}
-          </div>
+          {(address || city || postalCode) && (
+            <div className="flex items-center space-x-3">
+              <MapPin className="w-5 h-5 text-gray-400" />
+              <span className="text-gray-700">
+                {postalCode && `〒${postalCode} `}
+                {city} {address}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

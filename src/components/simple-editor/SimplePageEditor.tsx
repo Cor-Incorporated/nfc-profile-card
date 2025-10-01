@@ -482,7 +482,9 @@ export function SimplePageEditor({
           </Button>
 
           {/* 中央：ページタイトル（モバイルでは非表示） */}
-          <h1 className="hidden sm:block font-bold text-center">{t("profileEditor")}</h1>
+          <h1 className="hidden sm:block font-bold text-center">
+            {t("profileEditor")}
+          </h1>
 
           {/* 右：プレビューと背景設定ボタン */}
           <div className="flex gap-2 w-full sm:w-auto">
