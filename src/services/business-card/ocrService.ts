@@ -102,10 +102,10 @@ export async function processBusinessCardImage(
   const startTime = Date.now();
 
   // Log request info for debugging
-  console.log("=== OCR Processing Started ===");
-  console.log("Timestamp:", new Date().toISOString());
-  console.log("MIME Type:", mimeType);
-  console.log("Image size (base64):", image.length, "characters");
+  ocrLogger.debug("=== OCR Processing Started ===");
+  ocrLogger.debug("Timestamp:", new Date().toISOString());
+  ocrLogger.debug("MIME Type:", mimeType);
+  ocrLogger.debug("Image size (base64):", image.length, "characters");
 
   // Check image size to prevent Request Entity errors
   // HEIC images are typically larger, so we allow up to 8MB for HEIC format
@@ -115,7 +115,7 @@ export async function processBusinessCardImage(
       : 4 * 1024 * 1024; // 4MB for other formats
 
   if (image.length > maxImageSize) {
-    console.error(
+    ocrLogger.error(
       "❌ Image too large:",
       image.length,
       "characters (max:",
@@ -143,7 +143,7 @@ export async function processBusinessCardImage(
 
   // Check if MIME type is supported
   if (!supportedMimeTypes.includes(mimeType.toLowerCase())) {
-    console.log("⚠️ Unsupported MIME type:", mimeType);
+    ocrLogger.warn("⚠️ Unsupported MIME type:", mimeType);
     return {
       success: false,
       processingTime: Date.now() - startTime,
@@ -161,7 +161,9 @@ export async function processBusinessCardImage(
   try {
     // Check API key at runtime
     if (!process.env.GEMINI_API_KEY) {
-      ocrLogger.error("❌ GEMINI_API_KEY is missing from environment variables");
+      ocrLogger.error(
+        "❌ GEMINI_API_KEY is missing from environment variables",
+      );
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -175,14 +177,14 @@ export async function processBusinessCardImage(
 
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
-    console.log(
+    ocrLogger.debug(
       "Base64 image size (cleaned):",
       base64Image.length,
       "characters",
     );
 
     // Generate content with Gemini (no timeout - let it complete naturally)
-    console.log("Calling Gemini API...");
+    ocrLogger.debug("Calling Gemini API...");
 
     // Use more robust API call format with explicit content structure
     const imagePart = {
@@ -209,8 +211,8 @@ export async function processBusinessCardImage(
     });
 
     if (!result || !result.response) {
-      console.error("❌ No response from Gemini API");
-      console.error("Result object:", result);
+      ocrLogger.error("❌ No response from Gemini API");
+      ocrLogger.error("Result object:", result);
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -222,11 +224,11 @@ export async function processBusinessCardImage(
     let text: string;
     try {
       text = response.text();
-      console.log("✅ Got text from Gemini response");
+      ocrLogger.debug("✅ Got text from Gemini response");
 
       // Check for empty response
       if (!text || text.trim() === "") {
-        console.error("❌ Gemini returned empty response");
+        ocrLogger.error("❌ Gemini returned empty response");
         return {
           success: false,
           processingTime: Date.now() - startTime,
@@ -235,8 +237,8 @@ export async function processBusinessCardImage(
         };
       }
     } catch (textError) {
-      console.error("❌ Error getting text from Gemini response:", textError);
-      console.error("Response object:", response);
+      ocrLogger.error("❌ Error getting text from Gemini response:", textError);
+      ocrLogger.error("Response object:", response);
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -246,26 +248,26 @@ export async function processBusinessCardImage(
 
     // Calculate processing time
     const processingTime = Date.now() - startTime;
-    console.log(`⏱️ OCR processing completed in ${processingTime}ms`);
-    console.log("=== Gemini Raw Response ===");
-    console.log("Response length:", text.length);
-    console.log("First 200 chars:", text.substring(0, 200));
-    console.log(
+    ocrLogger.debug(`⏱️ OCR processing completed in ${processingTime}ms`);
+    ocrLogger.debug("=== Gemini Raw Response ===");
+    ocrLogger.debug("Response length:", text.length);
+    ocrLogger.debug("First 200 chars:", text.substring(0, 200));
+    ocrLogger.debug(
       "Last 200 chars:",
       text.substring(Math.max(0, text.length - 200)),
     );
-    console.log("Full response:", text);
-    console.log("=== End Gemini Response ===");
+    ocrLogger.debug("Full response:", text);
+    ocrLogger.debug("=== End Gemini Response ===");
 
     // Try to parse the JSON response
     let contactInfo: ContactInfo;
     try {
       // First, check if the response looks like an error message
       if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-        console.error(
+        ocrLogger.error(
           "❌ Gemini returned HTML instead of JSON (likely an error page)",
         );
-        console.error("First 500 chars of HTML:", text.substring(0, 500));
+        ocrLogger.error("First 500 chars of HTML:", text.substring(0, 500));
         return {
           success: false,
           processingTime: Date.now() - startTime,
@@ -275,7 +277,7 @@ export async function processBusinessCardImage(
       }
 
       if (text.toLowerCase().includes("error") && !text.includes("{")) {
-        console.error("❌ Gemini returned plain text error:", text);
+        ocrLogger.error("❌ Gemini returned plain text error:", text);
         return {
           success: false,
           processingTime: Date.now() - startTime,
@@ -285,8 +287,8 @@ export async function processBusinessCardImage(
 
       // Check for common error patterns
       if (text.includes("Request En") || text.includes("Request Entity")) {
-        console.error("❌ Request Entity error detected");
-        console.error("Response:", text);
+        ocrLogger.error("❌ Request Entity error detected");
+        ocrLogger.error("Response:", text);
         return {
           success: false,
           processingTime: Date.now() - startTime,
@@ -307,7 +309,7 @@ export async function processBusinessCardImage(
 
       // Strategy 2: If still not JSON, try to find JSON object boundaries
       if (!jsonText.startsWith("{") && !jsonText.startsWith("[")) {
-        console.log("🔍 Attempting to extract JSON from mixed content...");
+        ocrLogger.debug("🔍 Attempting to extract JSON from mixed content...");
 
         // Look for JSON object boundaries
         const jsonStart = jsonText.indexOf("{");
@@ -315,10 +317,10 @@ export async function processBusinessCardImage(
 
         if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
           jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
-          console.log("✅ Extracted JSON from mixed content");
+          ocrLogger.debug("✅ Extracted JSON from mixed content");
         } else {
-          console.error("❌ No valid JSON object found in response");
-          console.error("Response content:", text.substring(0, 500));
+          ocrLogger.error("❌ No valid JSON object found in response");
+          ocrLogger.error("Response content:", text.substring(0, 500));
           return {
             success: false,
             processingTime: Date.now() - startTime,
@@ -328,16 +330,16 @@ export async function processBusinessCardImage(
         }
       }
 
-      console.log("📝 Final JSON text:", jsonText.substring(0, 200) + "...");
+      ocrLogger.debug("📝 Final JSON text:", jsonText.substring(0, 200) + "...");
 
       // Parse JSON with detailed error handling
       let parsedJson;
       try {
         parsedJson = JSON.parse(jsonText);
-        console.log("✅ JSON parsed successfully");
+        ocrLogger.debug("✅ JSON parsed successfully");
       } catch (parseError) {
-        console.error("❌ JSON parse error:", parseError);
-        console.error("Problematic JSON:", jsonText);
+        ocrLogger.error("❌ JSON parse error:", parseError);
+        ocrLogger.error("Problematic JSON:", jsonText);
 
         // Try to fix common JSON issues
         try {
@@ -348,9 +350,9 @@ export async function processBusinessCardImage(
             .trim();
 
           parsedJson = JSON.parse(fixedJson);
-          console.log("✅ JSON fixed and parsed successfully");
+          ocrLogger.debug("✅ JSON fixed and parsed successfully");
         } catch (fixError) {
-          console.error("❌ JSON fix failed:", fixError);
+          ocrLogger.error("❌ JSON fix failed:", fixError);
           return {
             success: false,
             processingTime: Date.now() - startTime,
@@ -367,15 +369,15 @@ export async function processBusinessCardImage(
         addresses: parsedJson.addresses || [],
       };
     } catch (parseError) {
-      console.error("❌ Failed to parse Gemini response as JSON");
-      console.error("Parse error:", parseError);
-      console.error("=== Raw text that failed to parse ===");
-      console.error(text);
-      console.error("=== End of failed text ===");
+      ocrLogger.error("❌ Failed to parse Gemini response as JSON");
+      ocrLogger.error("Parse error:", parseError);
+      ocrLogger.error("=== Raw text that failed to parse ===");
+      ocrLogger.error(text);
+      ocrLogger.error("=== End of failed text ===");
 
       // Log the first 200 characters for quick debugging
-      console.error("First 200 chars:", text.substring(0, 200));
-      console.error("Text length:", text.length);
+      ocrLogger.error("First 200 chars:", text.substring(0, 200));
+      ocrLogger.error("Text length:", text.length);
 
       // Return error with parsing failure details
       return {
@@ -393,32 +395,32 @@ export async function processBusinessCardImage(
     };
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error("❌ Error in OCR processing");
-    console.error("Error object:", error);
+    ocrLogger.error("❌ Error in OCR processing");
+    ocrLogger.error("Error object:", error);
 
     // More specific error messages
     let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
     if (error instanceof Error) {
-      console.error("Error name:", error.name);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
+      ocrLogger.error("Error name:", error.name);
+      ocrLogger.error("Error message:", error.message);
+      ocrLogger.error("Error stack:", error.stack);
 
       if (
         error.message.includes("API key") ||
         error.message.includes("API_KEY_INVALID")
       ) {
         errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
-        console.error("🔑 API Key error detected");
+        ocrLogger.error("🔑 API Key error detected");
       } else if (error.message.includes("timeout")) {
         errorMessage =
           "処理に時間がかかりすぎています。画像を再撮影してお試しください。";
-        console.error("⏱️ Timeout error detected");
+        ocrLogger.error("⏱️ Timeout error detected");
       } else if (
         error.message.includes("quota") ||
         error.message.includes("RESOURCE_EXHAUSTED")
       ) {
         errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
-        console.error("📊 Quota exceeded error detected");
+        ocrLogger.error("📊 Quota exceeded error detected");
       } else if (
         error.message.includes("The string did not match the expected pattern")
       ) {
@@ -426,11 +428,11 @@ export async function processBusinessCardImage(
         if (mimeType === "image/heic" || mimeType === "image/heif") {
           errorMessage =
             "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。";
-          console.error("📱 HEIC format processing error detected");
+          ocrLogger.error("📱 HEIC format processing error detected");
         } else {
           errorMessage =
             "OCR APIからの応答形式が不正です。再度お試しください。";
-          console.error("📝 Response format error detected");
+          ocrLogger.error("📝 Response format error detected");
         }
       } else if (
         error.message.includes("Unexpected token") ||
@@ -438,17 +440,17 @@ export async function processBusinessCardImage(
       ) {
         errorMessage =
           "OCR APIの応答形式に問題があります。画像を再撮影してお試しください。";
-        console.error("🔧 JSON parsing error detected");
+        ocrLogger.error("🔧 JSON parsing error detected");
       } else {
         // Include actual error message for debugging
         errorMessage = `OCR処理エラー: ${error.message}`;
-        console.error("⚠️ Unknown error type");
+        ocrLogger.error("⚠️ Unknown error type");
       }
     }
 
-    console.log("=== OCR Processing Failed ===");
-    console.log(`Processing time: ${processingTime}ms`);
-    console.log(`Error message returned: ${errorMessage}`);
+    ocrLogger.info("=== OCR Processing Failed ===");
+    ocrLogger.info(`Processing time: ${processingTime}ms`);
+    ocrLogger.info(`Error message returned: ${errorMessage}`);
 
     return {
       success: false,
