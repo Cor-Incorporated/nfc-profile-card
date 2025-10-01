@@ -36,15 +36,11 @@ export function createAuthRedirectUrl(redirect: string): string {
  * @param url URLまたはURLSearchParams
  * @returns リダイレクト先のパス（デフォルト: ダッシュボード）
  */
-export function getRedirectUrl(
-  url: string | URLSearchParams | null,
-): string {
+export function getRedirectUrl(url: string | URLSearchParams | null): string {
   if (!url) return ROUTES.DASHBOARD;
 
   const searchParams =
-    typeof url === "string"
-      ? new URLSearchParams(new URL(url).search)
-      : url;
+    typeof url === "string" ? new URLSearchParams(new URL(url).search) : url;
 
   return searchParams.get("redirect") || ROUTES.DASHBOARD;
 }

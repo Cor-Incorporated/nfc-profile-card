@@ -7,6 +7,7 @@
 ### ✅ アクティブなCI/CDプロセス
 
 #### 1. GitHub Actions CI (`ci.yml`)
+
 - **Lint & Type Check**: コード品質の基本チェック
   - ESLint (警告は許可)
   - TypeScript型チェック
@@ -14,6 +15,7 @@
 - **Build Check**: ビルドが成功することを確認
 
 #### 2. Vercel自動デプロイ
+
 - **本番環境**: `main`ブランチへのプッシュで自動デプロイ
 - **プレビュー環境**: PRで自動的にプレビューURLを生成
 - **設定**: Vercelダッシュボードで設定済み
@@ -67,6 +69,7 @@ npm run build
 ### 🚀 デプロイプロセス
 
 1. **開発**
+
    ```bash
    git checkout -b feature/your-feature
    # 開発作業
