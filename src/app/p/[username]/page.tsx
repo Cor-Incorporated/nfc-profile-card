@@ -4,6 +4,7 @@ import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { VCardButton } from "@/components/profile/VCardButton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trackPageView } from "@/lib/analytics";
 import { ROUTES, createAuthRedirectUrl } from "@/lib/constants/routes";
 import { db } from "@/lib/firebase";
@@ -16,7 +17,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { Camera, QrCode } from "lucide-react";
+import { Camera, Globe, QrCode } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -59,10 +60,12 @@ export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user: authUser } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showLangSelector, setShowLangSelector] = useState(false);
   const username = params.username as string;
 
   // 名刺スキャンボタンのクリックハンドラー
@@ -89,34 +92,33 @@ export default function ProfilePage() {
         if (snapshot.empty) {
           setUser(null);
           setProfileData(null);
+          setLoading(false);
         } else {
           const userData = snapshot.docs[0].data() as UserProfile;
           const userId = snapshot.docs[0].id;
           setUser(userData);
 
-          // Load profile data from subcollection
+          // Load profile data from subcollection (並列化は不要、userIdが必要なため)
           try {
             const profileDoc = await getDoc(
               doc(db, "users", userId, "profile", "data"),
             );
             if (profileDoc.exists()) {
-              const profile = profileDoc.data();
-              console.log("[ProfilePage] Profile data loaded:", profile);
-              setProfileData(profile);
+              setProfileData(profileDoc.data());
             } else {
-              console.log("[ProfilePage] No profile data found");
               setProfileData(null);
             }
           } catch (profileError) {
             console.error("Error fetching profile data:", profileError);
             setProfileData(null);
+          } finally {
+            setLoading(false);
           }
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
         setUser(null);
         setProfileData(null);
-      } finally {
         setLoading(false);
       }
     };
@@ -141,11 +143,9 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">
-            プロフィールが見つかりません
-          </h1>
+          <h1 className="text-2xl font-bold mb-4">{t("profileNotFound")}</h1>
           <Link href={ROUTES.HOME} className="text-primary hover:underline">
-            ホームに戻る
+            {t("returnHome")}
           </Link>
         </div>
       </div>
@@ -168,6 +168,33 @@ export default function ProfilePage() {
       : undefined,
   };
 
+  // フッターコンポーネント
+  const Footer = () => (
+    <footer className="w-full py-6 mt-12 border-t border-gray-200 bg-white/50 backdrop-blur">
+      <div className="container mx-auto px-4 text-center">
+        <p className="text-sm text-gray-600">
+          <Link
+            href="https://tapforge.pages.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+          >
+            TapForge
+          </Link>
+          {" powered by "}
+          <Link
+            href="https://cor-jp.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+          >
+            Cor.Inc.
+          </Link>
+        </p>
+      </div>
+    </footer>
+  );
+
   // 新しいプロファイルデータが存在する場合はSimpleRendererを使用
   if (profileData?.components && Array.isArray(profileData.components)) {
     return (
@@ -176,8 +203,46 @@ export default function ProfilePage() {
           components={profileData.components}
           background={profileData.background}
         />
-        {/* フローティングボタン - QRコードと名刺スキャン */}
+        {/* フローティングボタン - 言語切り替え、QRコード、名刺スキャン */}
         <div className="fixed bottom-6 right-6 z-50 space-y-3">
+          {/* 言語切り替えボタン */}
+          <div className="relative">
+            <button
+              onClick={() => setShowLangSelector(!showLangSelector)}
+              className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+              aria-label={t("language")}
+              title={t("language")}
+            >
+              <Globe className="h-6 w-6 text-gray-700" />
+            </button>
+            {showLangSelector && (
+              <div className="absolute right-0 bottom-full mb-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setLanguage("ja");
+                    setShowLangSelector(false);
+                  }}
+                  className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                    language === "ja" ? "bg-blue-50 text-blue-600" : ""
+                  }`}
+                >
+                  日本語
+                </button>
+                <button
+                  onClick={() => {
+                    setLanguage("en");
+                    setShowLangSelector(false);
+                  }}
+                  className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                    language === "en" ? "bg-blue-50 text-blue-600" : ""
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* 名刺スキャンボタン */}
           <button
             onClick={handleCameraClick}
@@ -187,9 +252,11 @@ export default function ProfilePage() {
                 : "bg-blue-600 hover:bg-blue-700 hover:shadow-xl text-white"
             }`}
             aria-label={
-              !authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"
+              !authUser ? t("loginToScanCard") : t("scanBusinessCardButton")
             }
-            title={!authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"}
+            title={
+              !authUser ? t("loginToScanCard") : t("scanBusinessCardButton")
+            }
           >
             <Camera className="h-6 w-6" />
           </button>
@@ -198,8 +265,8 @@ export default function ProfilePage() {
           <button
             onClick={() => setShowQRCode(true)}
             className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
-            aria-label="QRコード表示"
-            title="QRコード表示"
+            aria-label={t("showQRCode")}
+            title={t("showQRCode")}
           >
             <QrCode className="h-6 w-6 text-gray-700" />
           </button>
@@ -214,6 +281,9 @@ export default function ProfilePage() {
             logoUrl={user.photoURL}
           />
         )}
+
+        {/* フッター */}
+        <Footer />
       </>
     );
   }
@@ -249,7 +319,7 @@ export default function ProfilePage() {
 
         {/* Contact Information */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <h2 className="text-xl font-semibold mb-4">連絡先</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("contactInfo")}</h2>
           <div className="space-y-3">
             {user.email && (
               <div className="flex items-center gap-3">
@@ -357,7 +427,7 @@ export default function ProfilePage() {
             <button
               onClick={() => setShowQRCode(true)}
               className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
-              aria-label="QRコード表示"
+              aria-label={t("showQRCode")}
             >
               <QrCode className="h-5 w-5" />
             </button>
@@ -367,7 +437,7 @@ export default function ProfilePage() {
         {/* Social Links */}
         {user.links && user.links.length > 0 && (
           <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-xl font-semibold mb-4">ソーシャルリンク</h2>
+            <h2 className="text-xl font-semibold mb-4">{t("socialLinks")}</h2>
             <div className="grid gap-3">
               {user.links.map((link) => (
                 <a
@@ -380,7 +450,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🔗</span>
                     <span className="font-medium text-gray-800">
-                      {link.title || link.url || "リンク"}
+                      {link.title || link.url || t("linkText")}
                     </span>
                   </div>
                   <svg
@@ -414,8 +484,47 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* フローティングボタン - 名刺スキャン（従来テンプレート用） */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* フローティングボタン - 言語切り替えと名刺スキャン（従来テンプレート用） */}
+      <div className="fixed bottom-6 right-6 z-50 space-y-3">
+        {/* 言語切り替えボタン */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLangSelector(!showLangSelector)}
+            className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+            aria-label={t("language")}
+            title={t("language")}
+          >
+            <Globe className="h-6 w-6 text-gray-700" />
+          </button>
+          {showLangSelector && (
+            <div className="absolute right-0 bottom-full mb-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => {
+                  setLanguage("ja");
+                  setShowLangSelector(false);
+                }}
+                className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                  language === "ja" ? "bg-blue-50 text-blue-600" : ""
+                }`}
+              >
+                日本語
+              </button>
+              <button
+                onClick={() => {
+                  setLanguage("en");
+                  setShowLangSelector(false);
+                }}
+                className={`block w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                  language === "en" ? "bg-blue-50 text-blue-600" : ""
+                }`}
+              >
+                English
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 名刺スキャンボタン */}
         <button
           onClick={handleCameraClick}
           className={`p-3 rounded-full shadow-lg transition-all flex items-center justify-center ${
@@ -424,13 +533,16 @@ export default function ProfilePage() {
               : "bg-blue-600 hover:bg-blue-700 hover:shadow-xl text-white"
           }`}
           aria-label={
-            !authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"
+            !authUser ? t("loginToScanCard") : t("scanBusinessCardButton")
           }
-          title={!authUser ? "ログインして名刺をスキャン" : "名刺をスキャン"}
+          title={!authUser ? t("loginToScanCard") : t("scanBusinessCardButton")}
         >
           <Camera className="h-6 w-6" />
         </button>
       </div>
+
+      {/* フッター */}
+      <Footer />
     </div>
   );
 }

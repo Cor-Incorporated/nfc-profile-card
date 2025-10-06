@@ -3,6 +3,18 @@
  * Centralized error message constants for internationalization
  */
 
+// API Error Codes (used for client-side translation)
+export const API_ERROR_CODES = {
+  // Promo Code Errors
+  PROMO_CODE_INVALID: "promoCodeInvalid",
+  PROMO_CODE_ALREADY_USED: "promoCodeAlreadyUsed",
+  PROMO_CODE_ALREADY_PRO: "promoCodeAlreadyPro",
+
+  // Scan Quota Errors
+  SCAN_QUOTA_EXCEEDED: "quotaExceeded",
+  SCAN_SAVE_FAILED: "scanSaveFailed",
+} as const;
+
 export const ERROR_MESSAGES = {
   // Authentication Errors
   AUTH_REQUIRED: "Authentication required",

@@ -11,6 +11,7 @@ import {
   SUCCESS_MESSAGES,
 } from "@/lib/constants/error-messages";
 import { db } from "@/lib/firebase";
+import { Crown } from "lucide-react";
 import {
   getScanQuota,
   recordScan,
@@ -169,7 +170,9 @@ export default function BusinessCardScanPage() {
               });
             }
           } else {
-            throw new Error(result.error || "Failed to extract information");
+            // Translate error message if it's a translation key
+            const errorMessage = t(result.error) || result.error || "Failed to extract information";
+            throw new Error(errorMessage);
           }
         } catch (e) {
           console.error("OCR Processing Error:", e);
@@ -324,25 +327,86 @@ export default function BusinessCardScanPage() {
 
             {/* スキャン上限表示 */}
             {scanQuota && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-blue-700">{t("scansThisMonth")}</span>
-                  <span className="font-semibold text-blue-900">
-                    {scanQuota.used} /{" "}
-                    {scanQuota.limit === 999999
-                      ? t("unlimited")
-                      : scanQuota.limit}
+              <div
+                className={`mt-4 p-4 rounded-lg border ${
+                  scanQuota.plan === "pro"
+                    ? "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-300"
+                    : "bg-blue-50 border-blue-200"
+                }`}
+              >
+                {/* Plan Badge */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {scanQuota.plan === "pro" && (
+                      <Crown className="w-4 h-4 text-yellow-600" />
+                    )}
+                    <span
+                      className={`text-xs font-semibold ${
+                        scanQuota.plan === "pro"
+                          ? "text-yellow-700"
+                          : "text-blue-700"
+                      }`}
+                    >
+                      {scanQuota.plan === "pro" ? t("proPlan") : t("freePlan")}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {t("reset")}: {scanQuota.daysRemaining} {t("daysRemaining")}
                   </span>
                 </div>
-                {scanQuota.limit !== 999999 &&
-                  scanQuota.used >= scanQuota.limit - 5 && (
+
+                {/* Scan Count */}
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-sm ${
+                      scanQuota.plan === "pro"
+                        ? "text-yellow-800"
+                        : "text-blue-800"
+                    }`}
+                  >
+                    {t("scansThisMonth")}
+                  </span>
+                  <span
+                    className={`text-lg font-bold ${
+                      scanQuota.plan === "pro"
+                        ? "text-yellow-900"
+                        : "text-blue-900"
+                    }`}
+                  >
+                    {scanQuota.used}
+                    {scanQuota.plan === "pro" ? (
+                      <span className="text-sm font-normal ml-1">
+                        ({t("unlimited")})
+                      </span>
+                    ) : (
+                      <span className="text-sm font-normal ml-1">
+                        / {scanQuota.limit}
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Warning for free users approaching limit */}
+                {scanQuota.plan === "free" &&
+                  scanQuota.used >= scanQuota.limit - 3 &&
+                  scanQuota.used < scanQuota.limit && (
                     <p className="text-xs text-orange-600 mt-2">
                       ⚠️ {t("approachingMonthlyLimit")}
                     </p>
                   )}
-                <p className="text-xs text-gray-500 mt-1">
-                  {t("reset")}: {scanQuota.daysRemaining} {t("daysRemaining")}
-                </p>
+
+                {/* Limit reached message */}
+                {scanQuota.plan === "free" &&
+                  scanQuota.used >= scanQuota.limit && (
+                    <div className="mt-3 p-2 bg-orange-100 border border-orange-300 rounded">
+                      <p className="text-xs text-orange-800 font-medium">
+                        {t("scanLimitReached")}
+                      </p>
+                      <p className="text-xs text-orange-700 mt-1">
+                        {t("upgradeForUnlimited")}
+                      </p>
+                    </div>
+                  )}
               </div>
             )}
           </div>

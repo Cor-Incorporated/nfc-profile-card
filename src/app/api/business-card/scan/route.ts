@@ -1,7 +1,8 @@
-import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { ERROR_MESSAGES, API_ERROR_CODES } from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
+import { canScan, recordScan } from "@/services/business-card/scanQuotaService";
 import {
   ApiErrorResponse,
   BusinessCardScanRequest,
@@ -71,6 +72,21 @@ export async function POST(request: NextRequest) {
     }
     console.log("✅ Token verified, user:", tokenVerification.uid);
 
+    const userId = tokenVerification.uid!;
+
+    // Check scan quota before processing
+    console.log("Checking scan quota...");
+    const canPerformScan = await canScan(userId);
+    if (!canPerformScan) {
+      console.error("❌ Monthly scan limit exceeded");
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: API_ERROR_CODES.SCAN_QUOTA_EXCEEDED,
+      };
+      return NextResponse.json(errorResponse, { status: 429 });
+    }
+    console.log("✅ Scan quota check passed");
+
     // Get the image data from request body
     const body: BusinessCardScanRequest = await request.json();
     const { image, mimeType } = body;
@@ -105,6 +121,22 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ OCR processing succeeded");
     console.log("Processing time:", ocrResult.processingTime, "ms");
+
+    // Record the scan to Firestore and update quota
+    console.log("Recording scan to database...");
+    const recordResult = await recordScan(userId, ocrResult.contactInfo);
+    if (!recordResult.success) {
+      console.error("❌ Failed to record scan:", recordResult.error);
+      // DB保存失敗時は上限カウントされないため、エラーを返す
+      // これにより無限スキャンの抜け穴を防ぐ
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: API_ERROR_CODES.SCAN_SAVE_FAILED,
+        details: recordResult.error,
+      };
+      return NextResponse.json(errorResponse, { status: 500 });
+    }
+    console.log("✅ Scan recorded successfully, docId:", recordResult.docId);
 
     const successResponse: BusinessCardScanResponse = {
       success: true,

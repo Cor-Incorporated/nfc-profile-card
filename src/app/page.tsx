@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function HomePage() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -51,13 +53,13 @@ export default function HomePage() {
           href="/signin?tab=signup"
           className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
         >
-          Get Started
+          {t("getStarted")}
         </Link>
         <Link
           href="/signin?tab=signin"
           className="w-full py-4 bg-white/80 backdrop-blur text-gray-700 rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
         >
-          Sign In
+          {t("signIn")}
         </Link>
       </div>
 

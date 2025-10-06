@@ -186,3 +186,102 @@ Always check the "特許リスク回避開発ガイドライン.md" document and
 - Enterprise-level features
 
 Detailed risk assessment available in "特許リスク評価レポート\_TapForge_20250921.md"
+
+## Recent Updates (October 2025)
+
+### 🎯 Promo Code System & Plan Management
+
+**Implementation Date**: October 6, 2025
+
+#### Overview
+Implemented a comprehensive promo code system with Free/Pro plan differentiation to control business card scanning quotas and prepare for future monetization.
+
+#### Key Features
+
+1. **Plan System**
+   - **Free Plan**: 10 business card scans per month
+   - **Pro Plan**: Unlimited business card scans
+   - Plan data stored in Firestore `users` collection
+   - Server-side plan validation for security
+
+2. **Promo Code Redemption**
+   - API endpoint: `/api/promo-code`
+   - Initial code: `TapForgeβTestUser` (for beta testers)
+   - Instant upgrade to Pro plan upon valid code entry
+   - Code validation with Firebase Admin SDK
+
+3. **Server-side Quota Enforcement**
+   - Quota check before OCR processing in `/api/business-card/scan`
+   - Returns 429 error when monthly limit reached
+   - Prevents client-side bypass attempts
+
+4. **UI Enhancements**
+   - Dashboard: Plan display with promo code input (Free users only)
+   - Business card scan page: Enhanced quota display with plan badge
+   - Visual differentiation: Free (blue) vs Pro (gold gradient)
+   - Crown icon for Pro plan users
+
+5. **Multi-language Support**
+   - Added 12 new translation keys for promo code features
+   - Full Japanese/English support for all new UI elements
+
+#### Technical Implementation
+
+**New Files:**
+- `src/lib/constants/plans.ts` - Plan constants and limits
+- `src/app/api/promo-code/route.ts` - Promo code validation API
+
+**Modified Files:**
+- `src/services/business-card/scanQuotaService.ts` - Plan-based quota logic
+- `src/app/api/business-card/scan/route.ts` - Server-side quota check
+- `src/app/dashboard/page.tsx` - Promo code input UI
+- `src/app/dashboard/business-cards/scan/page.tsx` - Enhanced quota display
+- `src/contexts/LanguageContext.tsx` - New translations
+
+**Key Functions:**
+```typescript
+// Plan limits configuration
+export const PLAN_LIMITS = {
+  free: { scansPerMonth: 10 },
+  pro: { scansPerMonth: 999999 },
+};
+
+// Quota checking
+export async function canScan(userId: string): Promise<boolean>
+export async function getScanQuota(userId: string): Promise<ScanQuota>
+```
+
+#### Database Schema Updates
+
+**users/{userId}:**
+```typescript
+{
+  plan: "free" | "pro",
+  planUpgradedAt?: Timestamp,
+  promoCode?: string
+}
+```
+
+#### Security Considerations
+- All plan checks performed server-side
+- Firebase Admin SDK for token verification
+- Rate limiting on promo code endpoint
+- Promo codes stored as constants (easy to rotate)
+
+#### Future Enhancements
+- Stripe integration for paid Pro upgrades
+- Multiple promo code tiers
+- Usage analytics per plan
+- Plan downgrade functionality
+- Expiration dates for promo codes
+
+### 🎨 UI/UX Improvements
+
+**Preview Modal Responsiveness**
+- Fixed component width overflow in preview modal
+- Changed from fixed widths to `max-w-[600px]` for better mobile support
+- Ensures consistent display across all device preview sizes
+
+**Files Updated:**
+- `src/components/profile/SimpleRenderer.tsx`
+- `src/components/profile/ReadOnlyProfileInfo.tsx`

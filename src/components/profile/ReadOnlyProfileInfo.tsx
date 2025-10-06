@@ -83,7 +83,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
   // レスポンシブ対応のコンテナー幅
   const getContainerClass = () => {
-    return "w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-6";
+    return "w-[90%] max-w-[600px] mx-auto mb-6";
   };
 
   return (

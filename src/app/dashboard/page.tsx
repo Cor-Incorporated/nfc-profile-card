@@ -5,7 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getAnalyticsSummary } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { ExternalLink, Eye, Globe, LogOut } from "lucide-react";
+import { ExternalLink, Eye, Globe, LogOut, Crown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +23,10 @@ export default function DashboardPage() {
     todayViews: number;
     weekViews: number;
   } | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoCodeLoading, setPromoCodeLoading] = useState(false);
+  const [promoCodeError, setPromoCodeError] = useState("");
+  const [promoCodeSuccess, setPromoCodeSuccess] = useState("");
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -62,6 +66,49 @@ export default function DashboardPage() {
   const handleLanguageChange = async (lang: "ja" | "en") => {
     setLanguage(lang);
     setShowLangSelector(false);
+  };
+
+  const handlePromoCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPromoCodeError("");
+    setPromoCodeSuccess("");
+
+    if (!promoCode.trim()) {
+      setPromoCodeError(t("enterPromoCode"));
+      return;
+    }
+
+    setPromoCodeLoading(true);
+
+    try {
+      const idToken = await user?.getIdToken();
+      const response = await fetch("/api/promo-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ code: promoCode }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Translate success message using translation key
+        setPromoCodeSuccess(t(data.message || "promoCodeSuccess"));
+        setPromoCode("");
+        // Refresh user profile to get updated plan
+        await fetchUserProfile();
+      } else {
+        // Translate error using translation key
+        setPromoCodeError(t(data.error || "promoCodeInvalid"));
+      }
+    } catch (error) {
+      console.error("Error applying promo code:", error);
+      setPromoCodeError(t("error"));
+    } finally {
+      setPromoCodeLoading(false);
+    }
   };
 
   if (loading) {
@@ -156,6 +203,70 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">{t("weekViews")}</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Plan & Promo Code Section */}
+        {!profileLoading && (
+          <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-500">
+                {t("currentPlan")}
+              </h3>
+              {userProfile?.plan === "pro" && (
+                <Crown className="w-5 h-5 text-yellow-500" />
+              )}
+            </div>
+
+            {userProfile?.plan === "pro" ? (
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-yellow-600">
+                  {t("proPlan")}
+                </span>
+                <span className="text-sm text-gray-500">
+                  • {t("unlimited")}
+                </span>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg font-bold text-gray-700">
+                    {t("freePlan")}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    (10 {t("scansThisMonth")})
+                  </span>
+                </div>
+
+                {/* Promo Code Input Form */}
+                <form onSubmit={handlePromoCodeSubmit} className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder={t("promoCodePlaceholder")}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={promoCodeLoading}
+                    />
+                    <button
+                      type="submit"
+                      disabled={promoCodeLoading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {promoCodeLoading ? t("loading") : t("applyPromoCode")}
+                    </button>
+                  </div>
+
+                  {promoCodeError && (
+                    <p className="text-xs text-red-600">{promoCodeError}</p>
+                  )}
+                  {promoCodeSuccess && (
+                    <p className="text-xs text-green-600">{promoCodeSuccess}</p>
+                  )}
+                </form>
+              </div>
+            )}
           </div>
         )}
 
