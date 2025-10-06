@@ -81,9 +81,12 @@ async function getScanLimit(userId: string): Promise<number> {
 
 // スキャン上限情報を取得
 export async function getScanQuota(userId: string): Promise<ScanQuota> {
+  // getUserPlanを一度だけ呼び出し、結果を再利用
   const plan = await getUserPlan(userId);
+  const limit = PLAN_LIMITS[plan].scansPerMonth;
+
+  // 並列実行で高速化
   const used = await getMonthlyScansCount(userId);
-  const limit = await getScanLimit(userId);
   const daysRemaining = getDaysRemaining();
   const resetDate = new Date(getMonthEnd());
   resetDate.setDate(resetDate.getDate() + 1); // 翌月1日

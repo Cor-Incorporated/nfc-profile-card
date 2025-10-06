@@ -127,12 +127,16 @@ export async function POST(request: NextRequest) {
     const recordResult = await recordScan(userId, ocrResult.contactInfo);
     if (!recordResult.success) {
       console.error("❌ Failed to record scan:", recordResult.error);
-      // OCRは成功したがDB保存に失敗した場合でも、結果は返す（ユーザー体験優先）
-      // ただし、警告をログに残す
-      console.warn("⚠️ Scan result will be returned despite DB save failure");
-    } else {
-      console.log("✅ Scan recorded successfully, docId:", recordResult.docId);
+      // DB保存失敗時は上限カウントされないため、エラーを返す
+      // これにより無限スキャンの抜け穴を防ぐ
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: "スキャン結果の保存に失敗しました。もう一度お試しください。",
+        details: recordResult.error,
+      };
+      return NextResponse.json(errorResponse, { status: 500 });
     }
+    console.log("✅ Scan recorded successfully, docId:", recordResult.docId);
 
     const successResponse: BusinessCardScanResponse = {
       success: true,

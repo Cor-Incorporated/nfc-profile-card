@@ -1,6 +1,7 @@
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import { VALID_PROMO_CODES } from "@/lib/constants/plans";
 import { verifyIdToken } from "@/lib/firebase-admin";
+import { strictRateLimit } from "@/lib/rateLimit";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -19,6 +20,13 @@ interface PromoCodeResponse {
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting (3 requests per minute for promo code attempts)
+    const rateLimitResponse = await strictRateLimit(request);
+    if (rateLimitResponse) {
+      console.log("❌ Rate limit exceeded for promo code");
+      return rateLimitResponse;
+    }
+
     // Check for authorization header
     const authorization = request.headers.get("authorization");
     if (!authorization || !authorization.startsWith("Bearer ")) {

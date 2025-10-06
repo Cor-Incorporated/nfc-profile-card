@@ -2,6 +2,12 @@
 export type UserPlan = "free" | "pro";
 
 // Valid promo codes
+// NOTE: These codes are currently hardcoded for simplicity during beta.
+// For production, consider:
+// - Moving to Firestore for dynamic management
+// - Adding expiration dates and usage limits
+// - Implementing usage tracking per code
+// - Using environment variables for sensitive codes
 export const VALID_PROMO_CODES = ["TapForgeβTestUser"];
 
 // Plan limits
