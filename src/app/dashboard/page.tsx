@@ -94,12 +94,14 @@ export default function DashboardPage() {
       const data = await response.json();
 
       if (data.success) {
-        setPromoCodeSuccess(data.message || t("promoCodeSuccess"));
+        // Translate success message using translation key
+        setPromoCodeSuccess(t(data.message || "promoCodeSuccess"));
         setPromoCode("");
         // Refresh user profile to get updated plan
         await fetchUserProfile();
       } else {
-        setPromoCodeError(data.error || t("promoCodeInvalid"));
+        // Translate error using translation key
+        setPromoCodeError(t(data.error || "promoCodeInvalid"));
       }
     } catch (error) {
       console.error("Error applying promo code:", error);

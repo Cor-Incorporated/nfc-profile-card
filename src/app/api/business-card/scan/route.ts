@@ -1,4 +1,4 @@
-import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { ERROR_MESSAGES, API_ERROR_CODES } from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       console.error("❌ Monthly scan limit exceeded");
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
+        error: API_ERROR_CODES.SCAN_QUOTA_EXCEEDED,
       };
       return NextResponse.json(errorResponse, { status: 429 });
     }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       // これにより無限スキャンの抜け穴を防ぐ
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: "スキャン結果の保存に失敗しました。もう一度お試しください。",
+        error: API_ERROR_CODES.SCAN_SAVE_FAILED,
         details: recordResult.error,
       };
       return NextResponse.json(errorResponse, { status: 500 });

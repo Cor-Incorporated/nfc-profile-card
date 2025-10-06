@@ -331,12 +331,16 @@ const translations = {
     promoCodePlaceholder: "コードを入力してください",
     promoCodeSuccess: "Proプランにアップグレードしました！",
     promoCodeInvalid: "無効なプロモーションコードです。",
+    promoCodeAlreadyUsed: "このコードは既に使用済みです。",
+    promoCodeAlreadyPro: "既にProプランです。",
     upgradeToPro: "Proプランにアップグレード",
     currentPlan: "現在のプラン",
     freePlan: "無料プラン",
     proPlan: "Proプラン",
     scanLimitReached: "今月のスキャン上限に達しました",
     upgradeForUnlimited: "Proプランで無制限スキャン",
+    scanSaveFailed: "スキャン結果の保存に失敗しました。もう一度お試しください。",
+    quotaExceeded: "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
   },
   en: {
     // Dashboard
@@ -644,12 +648,16 @@ const translations = {
     promoCodePlaceholder: "Enter your code",
     promoCodeSuccess: "Upgraded to Pro plan!",
     promoCodeInvalid: "Invalid promo code.",
+    promoCodeAlreadyUsed: "This code has already been used.",
+    promoCodeAlreadyPro: "You are already on the Pro plan.",
     upgradeToPro: "Upgrade to Pro",
     currentPlan: "Current Plan",
     freePlan: "Free Plan",
     proPlan: "Pro Plan",
     scanLimitReached: "Monthly scan limit reached",
     upgradeForUnlimited: "Upgrade to Pro for unlimited scans",
+    scanSaveFailed: "Failed to save scan result. Please try again.",
+    quotaExceeded: "Monthly scan limit reached. Upgrade to Pro with a promo code for unlimited scans.",
   },
 };
 
