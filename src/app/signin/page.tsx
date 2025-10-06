@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { FcGoogle } from "react-icons/fc";
 function SignInForm() {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLanguage();
   const {
     signInWithGoogle,
     signInWithEmail,
@@ -105,13 +107,13 @@ function SignInForm() {
 
     // バリデーション
     if (password !== confirmPassword) {
-      setError("パスワードが一致しません。");
+      setError(t("passwordMismatch"));
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("パスワードは6文字以上にしてください。");
+      setError(t("passwordTooShort"));
       setIsLoading(false);
       return;
     }
@@ -119,7 +121,7 @@ function SignInForm() {
     try {
       await signUpWithEmail(email, password, displayName);
       setVerificationEmailSent(true);
-      setSuccess("アカウントを作成しました。確認メールをご確認ください。");
+      setSuccess(t("accountCreated"));
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -134,14 +136,14 @@ function SignInForm() {
     setSuccess(null);
 
     if (!email) {
-      setError("メールアドレスを入力してください。");
+      setError(t("enterEmail"));
       setIsLoading(false);
       return;
     }
 
     try {
       await resetPassword(email);
-      setSuccess(`パスワードリセットメールを ${email} に送信しました。`);
+      setSuccess(t("resetEmailSent").replace("{email}", email));
       setTimeout(() => {
         setShowResetPassword(false);
         setSuccess(null);
@@ -160,7 +162,7 @@ function SignInForm() {
 
     try {
       await resendVerificationEmail();
-      setSuccess("確認メールを再送信しました。");
+      setSuccess(t("verificationEmailResent"));
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -181,12 +183,10 @@ function SignInForm() {
                 onClick={() => setShowResetPassword(false)}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                ログインに戻る
+                {t("backToSignIn")}
               </Button>
-              <CardTitle>パスワードリセット</CardTitle>
-              <CardDescription>
-                登録したメールアドレスにパスワードリセットリンクを送信します。
-              </CardDescription>
+              <CardTitle>{t("passwordReset")}</CardTitle>
+              <CardDescription>{t("resetPasswordDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {error && (
@@ -205,11 +205,11 @@ function SignInForm() {
               )}
               <form onSubmit={handlePasswordReset} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reset-email">メールアドレス</Label>
+                  <Label htmlFor="reset-email">{t("emailAddress")}</Label>
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder="example@email.com"
+                    placeholder={t("emailPlaceholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -221,10 +221,10 @@ function SignInForm() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      送信中...
+                      {t("sendingEmail")}
                     </>
                   ) : (
-                    "リセットメールを送信"
+                    t("sendResetEmail")
                   )}
                 </Button>
               </form>
@@ -240,9 +240,7 @@ function SignInForm() {
       <div className="w-full max-w-md space-y-4">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">TapForge</h1>
-          <p className="text-muted-foreground">
-            デジタル名刺で新しいネットワーキングを始めましょう
-          </p>
+          <p className="text-muted-foreground">{t("tagline")}</p>
         </div>
 
         <Card>
@@ -269,13 +267,13 @@ function SignInForm() {
                 <Alert className="mb-4 border-yellow-200 bg-yellow-50">
                   <Info className="h-4 w-4 text-yellow-600" />
                   <AlertDescription className="text-yellow-800">
-                    メールアドレスが確認されていません。
+                    {t("emailNotVerified")}
                     <button
                       onClick={handleResendVerification}
                       className="ml-1 underline font-medium hover:text-yellow-900"
                       disabled={isLoading}
                     >
-                      確認メールを再送信
+                      {t("resendVerificationEmail")}
                     </button>
                   </AlertDescription>
                 </Alert>
@@ -287,18 +285,18 @@ function SignInForm() {
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">ログイン</TabsTrigger>
-                <TabsTrigger value="signup">新規登録</TabsTrigger>
+                <TabsTrigger value="signin">{t("signIn")}</TabsTrigger>
+                <TabsTrigger value="signup">{t("signUp")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin" className="space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">メールアドレス</Label>
+                    <Label htmlFor="signin-email">{t("emailAddress")}</Label>
                     <Input
                       id="signin-email"
                       type="email"
-                      placeholder="example@email.com"
+                      placeholder={t("emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -309,13 +307,13 @@ function SignInForm() {
 
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <Label htmlFor="signin-password">パスワード</Label>
+                      <Label htmlFor="signin-password">{t("password")}</Label>
                       <button
                         type="button"
                         onClick={() => setShowResetPassword(true)}
                         className="text-sm text-primary hover:underline"
                       >
-                        パスワードをお忘れですか？
+                        {t("forgotPassword")}
                       </button>
                     </div>
                     <Input
@@ -334,12 +332,12 @@ function SignInForm() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ログイン中...
+                        {t("signingIn")}
                       </>
                     ) : (
                       <>
                         <Mail className="mr-2 h-4 w-4" />
-                        メールでログイン
+                        {t("signInWithEmail")}
                       </>
                     )}
                   </Button>
@@ -351,18 +349,17 @@ function SignInForm() {
                   <Alert className="mb-4 border-blue-200 bg-blue-50">
                     <Info className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800">
-                      アカウント作成後、メールアドレスの確認が必要です。
-                      確認メールに記載されたリンクをクリックしてください。
+                      {t("verificationEmailInfo")}
                     </AlertDescription>
                   </Alert>
                 )}
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">名前（任意）</Label>
+                    <Label htmlFor="signup-name">{t("displayName")}</Label>
                     <Input
                       id="signup-name"
                       type="text"
-                      placeholder="山田 太郎"
+                      placeholder={t("namePlaceholderJa")}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       disabled={isLoading}
@@ -371,11 +368,11 @@ function SignInForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">メールアドレス</Label>
+                    <Label htmlFor="signup-email">{t("emailAddress")}</Label>
                     <Input
                       id="signup-email"
                       type="email"
-                      placeholder="example@email.com"
+                      placeholder={t("emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -385,11 +382,11 @@ function SignInForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">パスワード</Label>
+                    <Label htmlFor="signup-password">{t("password")}</Label>
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="••••••••（6文字以上）"
+                      placeholder={t("passwordPlaceholder6Chars")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -399,7 +396,9 @@ function SignInForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">パスワード（確認）</Label>
+                    <Label htmlFor="signup-confirm">
+                      {t("confirmPasswordLabel")}
+                    </Label>
                     <Input
                       id="signup-confirm"
                       type="password"
@@ -416,12 +415,12 @@ function SignInForm() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        アカウント作成中...
+                        {t("creatingAccount")}
                       </>
                     ) : (
                       <>
                         <Mail className="mr-2 h-4 w-4" />
-                        アカウント作成
+                        {t("createAccount")}
                       </>
                     )}
                   </Button>
@@ -435,7 +434,7 @@ function SignInForm() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  または
+                  {t("or")}
                 </span>
               </div>
             </div>
@@ -447,34 +446,71 @@ function SignInForm() {
               disabled={isLoading}
             >
               <FcGoogle className="mr-2 h-5 w-5" />
-              Googleでログイン
+              {t("signInWithGoogle")}
             </Button>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
             <div>
-              続行することで、
-              <Link
-                href="https://tapforge.pages.dev/terms/"
-                className="underline underline-offset-4 hover:text-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                利用規約
-              </Link>
-              と
-              <Link
-                href="https://tapforge.pages.dev/privacy/"
-                className="underline underline-offset-4 hover:text-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                プライバシーポリシー
-              </Link>
-              に同意したものとみなされます。
+              {(() => {
+                const text = t("termsAgreement");
+                const parts = [];
+                let lastIndex = 0;
+
+                // {terms}の位置を見つける
+                const termsIndex = text.indexOf("{terms}");
+                if (termsIndex !== -1) {
+                  // {terms}の前のテキスト
+                  if (termsIndex > 0) {
+                    parts.push(text.substring(0, termsIndex));
+                  }
+                  // Termsリンク
+                  parts.push(
+                    <Link
+                      key="terms"
+                      href="https://tapforge.pages.dev/terms/"
+                      className="underline underline-offset-4 hover:text-primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("terms")}
+                    </Link>
+                  );
+                  lastIndex = termsIndex + 7; // "{terms}".length
+                }
+
+                // {privacy}の位置を見つける
+                const privacyIndex = text.indexOf("{privacy}", lastIndex);
+                if (privacyIndex !== -1) {
+                  // {privacy}の前のテキスト
+                  if (privacyIndex > lastIndex) {
+                    parts.push(text.substring(lastIndex, privacyIndex));
+                  }
+                  // Privacyリンク
+                  parts.push(
+                    <Link
+                      key="privacy"
+                      href="https://tapforge.pages.dev/privacy/"
+                      className="underline underline-offset-4 hover:text-primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("privacyPolicy")}
+                    </Link>
+                  );
+                  lastIndex = privacyIndex + 9; // "{privacy}".length
+                }
+
+                // 残りのテキスト
+                if (lastIndex < text.length) {
+                  parts.push(text.substring(lastIndex));
+                }
+
+                return parts;
+              })()}
             </div>
             <Link href="/" className="text-primary hover:underline">
-              ホームに戻る
+              {t("returnHome")}
             </Link>
           </CardFooter>
         </Card>

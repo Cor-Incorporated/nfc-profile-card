@@ -2,6 +2,7 @@ import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
+import { canScan, recordScan } from "@/services/business-card/scanQuotaService";
 import {
   ApiErrorResponse,
   BusinessCardScanRequest,
@@ -71,6 +72,21 @@ export async function POST(request: NextRequest) {
     }
     console.log("✅ Token verified, user:", tokenVerification.uid);
 
+    const userId = tokenVerification.uid!;
+
+    // Check scan quota before processing
+    console.log("Checking scan quota...");
+    const canPerformScan = await canScan(userId);
+    if (!canPerformScan) {
+      console.error("❌ Monthly scan limit exceeded");
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
+      };
+      return NextResponse.json(errorResponse, { status: 429 });
+    }
+    console.log("✅ Scan quota check passed");
+
     // Get the image data from request body
     const body: BusinessCardScanRequest = await request.json();
     const { image, mimeType } = body;
@@ -105,6 +121,18 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ OCR processing succeeded");
     console.log("Processing time:", ocrResult.processingTime, "ms");
+
+    // Record the scan to Firestore and update quota
+    console.log("Recording scan to database...");
+    const recordResult = await recordScan(userId, ocrResult.contactInfo);
+    if (!recordResult.success) {
+      console.error("❌ Failed to record scan:", recordResult.error);
+      // OCRは成功したがDB保存に失敗した場合でも、結果は返す（ユーザー体験優先）
+      // ただし、警告をログに残す
+      console.warn("⚠️ Scan result will be returned despite DB save failure");
+    } else {
+      console.log("✅ Scan recorded successfully, docId:", recordResult.docId);
+    }
 
     const successResponse: BusinessCardScanResponse = {
       success: true,

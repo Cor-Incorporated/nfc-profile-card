@@ -1,26 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { SocialLinkButton } from "../simple-editor/SocialLinkButton";
 import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
 import { getBackgroundStyle } from "../simple-editor/BackgroundCustomizer";
 import Image from "next/image";
 
-// 各コンポーネントタイプの表示コンポーネント
-function TextComponent({ component }: { component: ProfileComponent }) {
+// 各コンポーネントタイプの表示コンポーネント（memo化）
+const TextComponent = memo(({ component }: { component: ProfileComponent }) => {
   const content = component.content as any;
   return (
-    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
+    <div className="w-[90%] max-w-[600px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
       <p className="text-gray-800">{content?.text || "テキストコンテンツ"}</p>
     </div>
   );
-}
+});
+TextComponent.displayName = "TextComponent";
 
-function ImageComponent({ component }: { component: ProfileComponent }) {
+const ImageComponent = memo(({ component }: { component: ProfileComponent }) => {
   const content = component.content as any;
   return (
-    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
+    <div className="w-[90%] max-w-[600px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
       {content?.src ? (
         <Image
           src={content.src}
@@ -28,6 +29,8 @@ function ImageComponent({ component }: { component: ProfileComponent }) {
           width={500}
           height={300}
           className="w-full h-auto rounded"
+          priority={false}
+          loading="lazy"
         />
       ) : (
         <div className="bg-gray-200 h-32 rounded flex items-center justify-center">
@@ -36,27 +39,30 @@ function ImageComponent({ component }: { component: ProfileComponent }) {
       )}
     </div>
   );
-}
+});
+ImageComponent.displayName = "ImageComponent";
 
-function LinkComponent({ component }: { component: ProfileComponent }) {
+const LinkComponent = memo(({ component }: { component: ProfileComponent }) => {
   const content = component.content as any;
   const { url, label } = content || {};
 
   // ソーシャルリンクの自動認識
   return (
-    <div className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto mb-4">
+    <div className="w-[90%] max-w-[600px] mx-auto mb-4">
       <SocialLinkButton url={url || "#"} label={label} />
     </div>
   );
-}
+});
+LinkComponent.displayName = "LinkComponent";
 
-function ProfileComponent({ component }: { component: ProfileComponent }) {
+const ProfileComponentView = memo(({ component }: { component: ProfileComponent }) => {
   // ReadOnlyProfileInfoを使用して拡充されたプロフィールを表示
   return <ReadOnlyProfileInfo component={component} />;
-}
+});
+ProfileComponentView.displayName = "ProfileComponentView";
 
-// メインのSimpleRendererコンポーネント
-export function SimpleRenderer({
+// メインのSimpleRendererコンポーネント（memo化）
+export const SimpleRenderer = memo(function SimpleRenderer({
   components = [],
   background = null,
 }: {
@@ -103,7 +109,7 @@ export function SimpleRenderer({
                     );
                   case "profile":
                     return (
-                      <ProfileComponent
+                      <ProfileComponentView
                         key={component.id}
                         component={component}
                       />
@@ -112,7 +118,7 @@ export function SimpleRenderer({
                     return (
                       <div
                         key={component.id}
-                        className="w-[90%] sm:w-3/4 md:w-[600px] lg:w-[500px] mx-auto bg-red-100 p-4 mb-4 rounded"
+                        className="w-[90%] max-w-[600px] mx-auto bg-red-100 p-4 mb-4 rounded"
                       >
                         未対応のコンポーネントタイプ: {component.type}
                       </div>
@@ -124,4 +130,4 @@ export function SimpleRenderer({
       </div>
     </div>
   );
-}
+});

@@ -9,12 +9,14 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { PLAN_LIMITS, type UserPlan } from "@/lib/constants/plans";
 
 export interface ScanQuota {
   used: number; // 今月の使用数
-  limit: number; // 上限（無料:50、Pro:無制限）
+  limit: number; // 上限（無料:10、Pro:無制限）
   daysRemaining: number; // 月末まで
   resetDate: Date; // 次回リセット日
+  plan: UserPlan; // ユーザーのプラン
 }
 
 // 月初めの日付を取得
@@ -53,28 +55,33 @@ export async function getMonthlyScansCount(userId: string): Promise<number> {
   return snapshot.size;
 }
 
-// ユーザーのプラン情報を取得（将来的に実装）
-async function getUserPlan(userId: string): Promise<"free" | "pro" | "team"> {
-  // TODO: ユーザーのサブスクリプション情報を取得
-  // 現在は全員無料プランとして扱う
-  return "free";
+// ユーザーのプラン情報を取得
+async function getUserPlan(userId: string): Promise<UserPlan> {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      return userData.plan || "free";
+    }
+
+    return "free";
+  } catch (error) {
+    console.error("Error fetching user plan:", error);
+    return "free";
+  }
 }
 
 // スキャン上限を取得
 async function getScanLimit(userId: string): Promise<number> {
   const plan = await getUserPlan(userId);
-  switch (plan) {
-    case "pro":
-    case "team":
-      return 999999; // 実質無制限
-    case "free":
-    default:
-      return 50;
-  }
+  return PLAN_LIMITS[plan].scansPerMonth;
 }
 
 // スキャン上限情報を取得
 export async function getScanQuota(userId: string): Promise<ScanQuota> {
+  const plan = await getUserPlan(userId);
   const used = await getMonthlyScansCount(userId);
   const limit = await getScanLimit(userId);
   const daysRemaining = getDaysRemaining();
@@ -86,6 +93,7 @@ export async function getScanQuota(userId: string): Promise<ScanQuota> {
     limit,
     daysRemaining,
     resetDate,
+    plan,
   };
 }
 
