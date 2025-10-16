@@ -10,6 +10,7 @@ if (!getApps().length) {
       process.env.FIREBASE_ADMIN_PRIVATE_KEY &&
       process.env.FIREBASE_ADMIN_CLIENT_EMAIL
     ) {
+      console.log("[firebase-admin] Initializing with environment variables");
       const serviceAccount = {
         projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "nfc-profile-card",
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
@@ -22,27 +23,33 @@ if (!getApps().length) {
       initializeApp({
         credential: cert(serviceAccount),
       });
+      console.log("[firebase-admin] Initialized successfully with environment variables");
     } else if (process.env.NODE_ENV === "development") {
       // Only try to load service account file in development
       try {
+        console.log("[firebase-admin] Initializing in development mode");
         const serviceAccount = require("../../nfc-profile-card-firebase-adminsdk-fbsvc-832eaa1a80.json");
         initializeApp({
           credential: cert(serviceAccount),
         });
+        console.log("[firebase-admin] Initialized successfully with service account file");
       } catch (e) {
         console.warn(
-          "Firebase Admin SDK service account file not found. Using default config.",
+          "[firebase-admin] Service account file not found. Using default config.",
         );
         initializeApp();
       }
     } else {
       // Production without environment variables - use default
-      console.warn("Firebase Admin SDK credentials not configured properly");
+      console.warn("[firebase-admin] Credentials not configured properly, using default");
       initializeApp();
     }
   } catch (error) {
-    console.error("Failed to initialize Firebase Admin SDK:", error);
+    console.error("[firebase-admin] Failed to initialize:", error);
+    throw error;
   }
+} else {
+  console.log("[firebase-admin] Already initialized");
 }
 
 export const adminDb = getFirestore();

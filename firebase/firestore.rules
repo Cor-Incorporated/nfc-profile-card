@@ -11,7 +11,10 @@ service cloud.firestore {
     }
     
     function isValidProfile() {
-      return request.resource.data.profile.links.size() <= 10;
+      // profile.linksが存在する場合のみ検証（存在しない場合は許可）
+      return !('profile' in request.resource.data) || 
+             !('links' in request.resource.data.profile) || 
+             request.resource.data.profile.links.size() <= 10;
     }
     
     // ユーザードキュメント
@@ -23,6 +26,19 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) && isValidProfile();
       allow delete: if isOwner(userId);
+      
+      // プロフィールサブコレクション（公開プロフィール用）
+      match /profile/{docId} {
+        // 誰でも読める（公開プロフィール表示用）
+        allow read: if true;
+        // 本人のみ作成・更新可能
+        allow write: if isOwner(userId);
+      }
+      
+      // スキャン済み名刺サブコレクション（プライベート）
+      match /businessCards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
       
       // 連絡先サブコレクション（プライベート）
       match /contacts/{contactId} {
