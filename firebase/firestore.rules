@@ -24,6 +24,19 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isValidProfile();
       allow delete: if isOwner(userId);
       
+      // プロフィールサブコレクション（公開プロフィール用）
+      match /profile/{docId} {
+        // 誰でも読める（公開プロフィール表示用）
+        allow read: if true;
+        // 本人のみ作成・更新可能
+        allow write: if isOwner(userId);
+      }
+      
+      // スキャン済み名刺サブコレクション（プライベート）
+      match /businessCards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
+      
       // 連絡先サブコレクション（プライベート）
       match /contacts/{contactId} {
         allow read, write: if isOwner(userId);

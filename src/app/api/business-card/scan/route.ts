@@ -1,12 +1,12 @@
-import { ERROR_MESSAGES, API_ERROR_CODES } from "@/lib/constants/error-messages";
+import { API_ERROR_CODES, ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
-import { canScan, recordScan } from "@/services/business-card/scanQuotaService";
+import { canScan, recordScan } from "@/services/business-card/scanQuotaService.server";
 import {
-  ApiErrorResponse,
-  BusinessCardScanRequest,
-  BusinessCardScanResponse,
+    ApiErrorResponse,
+    BusinessCardScanRequest,
+    BusinessCardScanResponse,
 } from "@/types/api";
 import { NextRequest, NextResponse } from "next/server";
 
