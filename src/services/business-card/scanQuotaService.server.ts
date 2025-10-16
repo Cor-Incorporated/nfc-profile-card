@@ -33,35 +33,47 @@ function getDaysRemaining(): number {
 
 // 今月のスキャン数を取得（Admin SDK版）
 export async function getMonthlyScansCount(userId: string): Promise<number> {
-  const monthStart = getMonthStart();
+  try {
+    console.log("[scanQuotaService.server] Getting monthly scans count for user:", userId);
+    const monthStart = getMonthStart();
+    console.log("[scanQuotaService.server] Month start:", monthStart);
 
-  const businessCardsRef = adminDb
-    .collection("users")
-    .doc(userId)
-    .collection("businessCards");
+    const businessCardsRef = adminDb
+      .collection("users")
+      .doc(userId)
+      .collection("businessCards");
 
-  const snapshot = await businessCardsRef
-    .where("scannedAt", ">=", monthStart)
-    .get();
+    const snapshot = await businessCardsRef
+      .where("scannedAt", ">=", monthStart)
+      .get();
 
-  return snapshot.size;
+    console.log("[scanQuotaService.server] Monthly scans count:", snapshot.size);
+    return snapshot.size;
+  } catch (error) {
+    console.error("[scanQuotaService.server] Error getting monthly scans count:", error);
+    throw error;
+  }
 }
 
 // ユーザーのプラン情報を取得（Admin SDK版）
 async function getUserPlan(userId: string): Promise<UserPlan> {
   try {
+    console.log("[scanQuotaService.server] Getting user plan for:", userId);
     const userRef = adminDb.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
     if (userSnap.exists) {
       const userData = userSnap.data();
-      return userData?.plan || "free";
+      const plan = userData?.plan || "free";
+      console.log("[scanQuotaService.server] User plan:", plan);
+      return plan;
     }
 
+    console.log("[scanQuotaService.server] User document not found, defaulting to free");
     return "free";
   } catch (error) {
-    console.error("Error fetching user plan:", error);
-    return "free";
+    console.error("[scanQuotaService.server] Error fetching user plan:", error);
+    throw error;
   }
 }
 
@@ -92,8 +104,16 @@ export async function getScanQuota(userId: string): Promise<ScanQuota> {
 
 // スキャンが可能かチェック（Admin SDK版）
 export async function canScan(userId: string): Promise<boolean> {
-  const quota = await getScanQuota(userId);
-  return quota.used < quota.limit;
+  try {
+    console.log("[scanQuotaService.server] Checking if user can scan:", userId);
+    const quota = await getScanQuota(userId);
+    const canPerformScan = quota.used < quota.limit;
+    console.log("[scanQuotaService.server] Can scan:", canPerformScan, `(used: ${quota.used}, limit: ${quota.limit})`);
+    return canPerformScan;
+  } catch (error) {
+    console.error("[scanQuotaService.server] Error checking if user can scan:", error);
+    throw error;
+  }
 }
 
 // スキャン履歴を追加（Admin SDK版・上限チェック付き）
@@ -101,10 +121,13 @@ export async function recordScan(
   userId: string,
   contactInfo: any,
 ): Promise<{ success: boolean; error?: string; docId?: string }> {
+  console.log("[scanQuotaService.server] Recording scan for user:", userId);
+  
   // 上限チェック
   const canPerformScan = await canScan(userId);
   if (!canPerformScan) {
     const quota = await getScanQuota(userId);
+    console.log("[scanQuotaService.server] Scan quota exceeded");
     return {
       success: false,
       error: `今月のスキャン上限（${quota.limit}枚）に達しました。プロプランへのアップグレードをご検討ください。`,
@@ -113,6 +136,7 @@ export async function recordScan(
 
   // Firestoreに保存（Admin SDK使用）
   try {
+    console.log("[scanQuotaService.server] Saving business card to Firestore...");
     const businessCardsRef = adminDb
       .collection("users")
       .doc(userId)
@@ -124,12 +148,13 @@ export async function recordScan(
       userId,
     });
 
+    console.log("[scanQuotaService.server] Business card saved successfully, docId:", docRef.id);
     return {
       success: true,
       docId: docRef.id,
     };
   } catch (error) {
-    console.error("Error saving business card:", error);
+    console.error("[scanQuotaService.server] Error saving business card:", error);
     return {
       success: false,
       error:
@@ -137,4 +162,5 @@ export async function recordScan(
     };
   }
 }
+
 

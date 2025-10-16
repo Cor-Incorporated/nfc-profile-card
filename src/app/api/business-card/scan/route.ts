@@ -76,16 +76,26 @@ export async function POST(request: NextRequest) {
 
     // Check scan quota before processing
     console.log("Checking scan quota...");
-    const canPerformScan = await canScan(userId);
-    if (!canPerformScan) {
-      console.error("❌ Monthly scan limit exceeded");
+    try {
+      const canPerformScan = await canScan(userId);
+      if (!canPerformScan) {
+        console.error("❌ Monthly scan limit exceeded");
+        const errorResponse: ApiErrorResponse = {
+          success: false,
+          error: API_ERROR_CODES.SCAN_QUOTA_EXCEEDED,
+        };
+        return NextResponse.json(errorResponse, { status: 429 });
+      }
+      console.log("✅ Scan quota check passed");
+    } catch (quotaError) {
+      console.error("❌ Error checking scan quota:", quotaError);
       const errorResponse: ApiErrorResponse = {
         success: false,
-        error: API_ERROR_CODES.SCAN_QUOTA_EXCEEDED,
+        error: ERROR_MESSAGES.IMAGE_PROCESSING_FAILED,
+        details: quotaError instanceof Error ? quotaError.message : "Quota check failed",
       };
-      return NextResponse.json(errorResponse, { status: 429 });
+      return NextResponse.json(errorResponse, { status: 500 });
     }
-    console.log("✅ Scan quota check passed");
 
     // Get the image data from request body
     const body: BusinessCardScanRequest = await request.json();
