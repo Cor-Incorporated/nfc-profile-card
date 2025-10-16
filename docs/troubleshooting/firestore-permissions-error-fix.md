@@ -514,10 +514,10 @@ function isValidUpdate() {
 
 **ルール**:
 
-| 環境 | SDK | 権限 | 使用箇所 |
-|------|-----|------|---------|
-| クライアント | `firebase` | ユーザー権限 | React コンポーネント、フック |
-| サーバー | `firebase-admin` | 管理者権限 | API Routes、Cloud Functions |
+| 環境   | SDK              | 権限       | 使用箇所                   |
+|--------|------------------|----------|----------------------------|
+| クライアント | `firebase`       | ユーザー権限   | React コンポーネント、フック          |
+| サーバー   | `firebase-admin` | 管理者権限 | API Routes、Cloud Functions |
 
 **ファイル命名規則**:
 - クライアント側: `serviceName.ts`
