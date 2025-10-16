@@ -11,7 +11,10 @@ service cloud.firestore {
     }
     
     function isValidProfile() {
-      return request.resource.data.profile.links.size() <= 10;
+      // profile.linksが存在する場合のみ検証（存在しない場合は許可）
+      return !('profile' in request.resource.data) || 
+             !('links' in request.resource.data.profile) || 
+             request.resource.data.profile.links.size() <= 10;
     }
     
     // ユーザードキュメント
