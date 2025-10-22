@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence)
       .then(() => {
-        console.log("Auth persistence set to LOCAL");
+        // Auth persistence set to LOCAL
       })
       .catch((error) => {
         console.error("Error setting auth persistence:", error);
@@ -145,11 +145,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             startedAt: serverTimestamp(),
           },
         });
-        console.log("New user document created");
+        // New user document created
       } else {
         // 既存ユーザーの場合は更新
         await setDoc(userRef, userData, { merge: true });
-        console.log("User document updated");
+        // User document updated
       }
     } catch (error) {
       console.error("Error creating/updating user document:", error);
@@ -161,7 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     getRedirectResult(auth)
       .then(async (result) => {
         if (result && result.user) {
-          console.log("Redirect result user:", result.user.email);
           await createOrUpdateUserDocument(result.user);
           router.push("/dashboard");
         }
@@ -174,7 +173,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 認証状態の監視
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed:", user?.email || "No user");
 
       if (user) {
         await createOrUpdateUserDocument(user);
@@ -182,7 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // ログイン直後の場合、ダッシュボードへリダイレクト
         if (window.location.pathname === "/signin") {
-          console.log("Redirecting to dashboard...");
           router.push("/dashboard");
         }
 
@@ -191,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           !user.emailVerified &&
           user.providerData[0]?.providerId === "password"
         ) {
-          console.log("User email not verified");
+          // User email not verified
         }
       } else {
         setUser(null);
@@ -213,7 +210,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     provider.setCustomParameters({ prompt: "select_account" });
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log("Google sign in successful:", result.user.email);
 
       await createOrUpdateUserDocument(result.user);
       router.push("/dashboard");
@@ -243,7 +239,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signInWithEmail = async (email: string, password: string) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Email sign in successful:", result.user.email);
 
       // ユーザードキュメント更新
       await createOrUpdateUserDocument(result.user);
@@ -269,7 +264,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email,
         password,
       );
-      console.log("Account created:", result.user.email);
 
       // プロフィール更新
       if (displayName) {
@@ -278,7 +272,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // 確認メール送信
       await sendEmailVerification(result.user);
-      console.log("Verification email sent");
 
       // ユーザードキュメント作成
       await createOrUpdateUserDocument(result.user);
@@ -294,7 +287,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const resetPassword = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
-      console.log("Password reset email sent to:", email);
     } catch (error: any) {
       console.error("Password reset error:", error);
       throw new Error(getErrorMessage(error));
@@ -309,7 +301,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       await sendEmailVerification(user);
-      console.log("Verification email resent");
     } catch (error: any) {
       console.error("Resend verification email error:", error);
       if (error.code === "auth/too-many-requests") {
@@ -325,7 +316,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
-      console.log("User signed out");
       router.push("/");
     } catch (error: any) {
       console.error("Sign out error:", error);
