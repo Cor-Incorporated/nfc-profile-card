@@ -1,12 +1,17 @@
-import { ERROR_MESSAGES, API_ERROR_CODES } from "@/lib/constants/error-messages";
-import { VALID_PROMO_CODES } from "@/lib/constants/plans";
-import { verifyIdToken } from "@/lib/firebase-admin";
+import { API_ERROR_CODES, ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import { VALID_PROMO_CODES, type UserPlan } from "@/lib/constants/plans";
+import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
-import { db } from "@/lib/firebase";
-import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+interface UserDocSchema {
+  plan?: UserPlan;
+  promoCode?: string;
+}
 
 interface PromoCodeRequest {
   code: string;
@@ -73,11 +78,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has Pro plan or already used a promo code
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
+    const userRef = adminDb.collection("users").doc(userId);
+    const userSnap = await userRef.get();
 
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
+  if (userSnap.exists) {
+      const userData = userSnap.data() as UserDocSchema;
 
       // Check if already Pro
       if (userData.plan === "pro") {
@@ -98,12 +103,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update user plan to pro
-    await updateDoc(userRef, {
-      plan: "pro",
-      planUpgradedAt: serverTimestamp(),
-      promoCode: code,
-    });
+    // Update (or create) user plan to pro using Admin SDK (bypasses Firestore rules)
+    await userRef.set(
+      {
+        plan: "pro",
+        planUpgradedAt: FieldValue.serverTimestamp(),
+        promoCode: code,
+      },
+      { merge: true },
+    );
 
     const successResponse: PromoCodeResponse = {
       success: true,

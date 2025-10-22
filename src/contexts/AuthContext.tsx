@@ -1,26 +1,26 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebase";
 import {
-  User,
+  AuthError,
   GoogleAuthProvider,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
+  User,
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile,
+  signOut as firebaseSignOut,
+  getRedirectResult,
+  onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
-  browserLocalPersistence,
-  AuthError,
-  getRedirectResult,
-  signInWithRedirect,
+  signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  updateProfile,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
   user: User | null;
@@ -210,17 +210,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Googleでサインイン
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
     try {
       const result = await signInWithPopup(auth, provider);
       console.log("Google sign in successful:", result.user.email);
 
-      // ユーザードキュメント作成/更新
       await createOrUpdateUserDocument(result.user);
-
-      // 明示的にダッシュボードへリダイレクト
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Google sign in error:", error);
+      // ポップアップがブロックされた場合のみ、リダイレクト方式へフォールバック
+      if (
+        error?.code === "auth/popup-blocked" ||
+        (process.env.NODE_ENV === "development" &&
+          (error?.code === "auth/popup-closed-by-user" ||
+            error?.code === "auth/cancelled-popup-request"))
+      ) {
+        try {
+          await signInWithRedirect(auth, provider);
+          return; // 結果は getRedirectResult で処理
+        } catch (redirectErr: any) {
+          console.error("Google redirect sign in error:", redirectErr);
+          throw new Error(getErrorMessage(redirectErr));
+        }
+      }
+
       throw new Error(getErrorMessage(error));
     }
   };
