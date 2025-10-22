@@ -1,5 +1,5 @@
 import { API_ERROR_CODES, ERROR_MESSAGES } from "@/lib/constants/error-messages";
-import { VALID_PROMO_CODES } from "@/lib/constants/plans";
+import { VALID_PROMO_CODES, type UserPlan } from "@/lib/constants/plans";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { FieldValue } from "firebase-admin/firestore";
@@ -7,6 +7,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+interface UserDocSchema {
+  plan?: UserPlan;
+  promoCode?: string;
+}
 
 interface PromoCodeRequest {
   code: string;
@@ -76,8 +81,8 @@ export async function POST(request: NextRequest) {
     const userRef = adminDb.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
-    if (userSnap.exists) {
-      const userData = userSnap.data() as any;
+  if (userSnap.exists) {
+      const userData = userSnap.data() as UserDocSchema;
 
       // Check if already Pro
       if (userData.plan === "pro") {
@@ -104,10 +109,6 @@ export async function POST(request: NextRequest) {
         plan: "pro",
         planUpgradedAt: FieldValue.serverTimestamp(),
         promoCode: code,
-        subscription: {
-          plan: "pro",
-          upgradedAt: FieldValue.serverTimestamp(),
-        },
       },
       { merge: true },
     );
