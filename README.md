@@ -23,6 +23,7 @@
 - ✅ 自動ログイン状態管理
 - ✅ セキュアなログアウト
 - ✅ エラーメッセージの日本語化
+- ✅ 開発環境での認証フロー最適化
 
 ### 📊 ダッシュボード
 
@@ -30,6 +31,8 @@
 - ✅ プロフィール編集へのナビゲーション
 - ✅ 公開プロフィールページへのリンク
 - ✅ ログアウト機能
+- ✅ プロモーションコード機能（Proプランアップグレード）
+- ✅ プラン表示とクォータ管理
 
 ### ✏️ プロフィール管理
 
@@ -59,10 +62,16 @@
 - ✅ **フォールバック機能** - 従来の静的テンプレートとの互換性
 - ✅ **Vercel Analytics** - ページビューとユーザー行動の追跡
 
+### 📸 名刺スキャン機能
+
+- ✅ 名刺OCR機能（カメラで撮影するだけで連絡先を自動保存）
+- ✅ 月間スキャン上限管理（Free: 10回、Pro: 無制限）
+- ✅ プロモーションコードによるProプランアップグレード
+- ✅ スキャン履歴の保存と管理
+- ✅ VCardダウンロード機能
+
 ## 🔮 今後実装予定の機能
 
-- 📸 **名刺OCR機能** - カメラで撮影するだけで連絡先を自動保存
-  - ⚠️ アプリ内カメラ方式で実装予定（特許リスク回避のため）
 - 🏷️ **NFCカード管理** - 物理カードの登録・管理
   - ⚠️ 静的URL方式で実装予定（動的データ連携は特許リスクあり）
 - 📊 **詳細アナリティクス** - プロフィール閲覧数やリンククリック数の詳細分析
@@ -173,13 +182,14 @@ src/
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Styling**: Tailwind CSS, shadcn/ui, vanilla-extract
 - **Authentication**: Firebase Authentication
-- **Backend**: Firebase (Firestore, Functions, Storage)
+- **Backend**: Firebase (Firestore, Functions, Storage, Admin SDK)
 - **State Management**: React Context API
 - **Form Handling**: React Hook Form
 - **Editor**: Craft.js (ドラッグ&ドロップエディター)
 - **DnD**: @dnd-kit (ドラッグ&ドロップライブラリ)
 - **QRCode**: qr-code-styling (QRコード生成)
 - **Color Picker**: react-colorful
+- **OCR**: Google Cloud Vision API
 - **Analytics**: Vercel Analytics (ユーザー行動追跡)
 - **Hosting**: Vercel
 

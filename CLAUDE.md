@@ -44,6 +44,44 @@ The project follows Next.js 14 App Router conventions with the following planned
 - **types/** - TypeScript type definitions
 - **firebase/** - Firebase configuration and Cloud Functions
 
+## Recent Updates (October 2025)
+
+### 🔧 Bug Fixes & Improvements
+
+#### Authentication & Security
+- **Fixed Google OAuth login issues**: Resolved popup blocking and redirect flow problems in development environment
+- **Enhanced error handling**: Improved authentication error messages and fallback mechanisms
+- **Firestore rules optimization**: Updated security rules to prevent permission errors while maintaining data security
+
+#### Promo Code System
+- **Admin SDK integration**: Migrated `/api/promo-code` to use Firebase Admin SDK for reliable server-side operations
+- **Type safety improvements**: Replaced `as any` with proper TypeScript interfaces
+- **Data structure optimization**: Removed redundant subscription fields, streamlined plan management
+- **Rate limiting**: Implemented proper rate limiting for promo code attempts
+
+#### Performance & UX
+- **Language context optimization**: Eliminated initial loading spinner, improved first render performance
+- **Font loading optimization**: Disabled font preloading to reduce initial page load warnings
+- **Debug log cleanup**: Removed unnecessary console logs for production readiness
+
+#### Business Card Scanning
+- **OCR integration**: Successfully implemented Google Cloud Vision API for business card text extraction
+- **Quota management**: Added monthly scan limits (Free: 10 scans, Pro: unlimited)
+- **Scan history**: Implemented proper storage and retrieval of scanned business cards
+- **VCard generation**: Enhanced vCard download functionality with proper formatting
+
+### 🚀 New Features Implemented
+
+#### Pro Plan System
+- **Promo code functionality**: Users can upgrade to Pro plan using promo codes
+- **Plan-based quotas**: Different scan limits based on user plan
+- **Dashboard integration**: Plan status and upgrade options in user dashboard
+
+#### Enhanced Profile Management
+- **Visual editor improvements**: Better drag-and-drop experience with Craft.js
+- **Background customization**: Advanced background options including gradients and images
+- **Component management**: Improved text, image, and link component editing
+
 ## Key Features & Implementation Notes
 
 ### Authentication Flow

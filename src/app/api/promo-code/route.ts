@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
     // Apply rate limiting (3 requests per minute for promo code attempts)
     const rateLimitResponse = await strictRateLimit(request);
     if (rateLimitResponse) {
-      console.log("❌ Rate limit exceeded for promo code");
       return rateLimitResponse;
     }
 
@@ -120,8 +119,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(successResponse, { status: 200 });
   } catch (error) {
-    console.error("Error in promo code API:", error);
-
     const errorResponse: PromoCodeResponse = {
       success: false,
       error: "プロモーションコードの処理中にエラーが発生しました。",
