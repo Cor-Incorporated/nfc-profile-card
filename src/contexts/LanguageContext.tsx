@@ -1,15 +1,15 @@
 "use client";
 
+import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 type Language = "ja" | "en";
 
@@ -663,37 +663,36 @@ const translations = {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [language, setLanguageState] = useState<Language>("ja");
-  const [loading, setLoading] = useState(true);
-
-  // Load user's language preference
-  useEffect(() => {
-    if (user) {
-      const loadLanguage = async () => {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            if (data.language) {
-              setLanguageState(data.language as Language);
-            }
-          }
-        } catch (error) {
-          console.error("Error loading language preference:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadLanguage();
-    } else {
-      // Load from localStorage for non-authenticated users
-      const savedLang = localStorage.getItem("userLanguage");
-      if (savedLang === "ja" || savedLang === "en") {
-        setLanguageState(savedLang);
-      }
-      setLoading(false);
+  // クライアント側で即時に既存の言語設定を反映し、初回描画の空白を避ける
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("userLanguage");
+      if (saved === "ja" || saved === "en") return saved;
     }
+    return "ja";
+  });
+
+  // 認証ユーザーの言語設定をFirestoreから非同期で上書き
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user) return;
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (!cancelled && userSnap.exists()) {
+          const data = userSnap.data();
+          if (data.language === "ja" || data.language === "en") {
+            setLanguageState(data.language as Language);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading language preference:", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   // Save language preference
@@ -726,14 +725,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     return typeof value === "string" ? value : key;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

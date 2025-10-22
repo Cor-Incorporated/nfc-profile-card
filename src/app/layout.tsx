@@ -1,11 +1,11 @@
-import { Inter } from "next/font/google";
-import "./globals.css";
-import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { Analytics } from "@vercel/analytics/next";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], preload: false });
 
 export const metadata: Metadata = {
   title: "TapForge",
