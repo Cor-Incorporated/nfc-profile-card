@@ -145,4 +145,4 @@ public/sitemap*.xml
 public/robots.txt
 
 # Storybook
-storybook-static/
+storybook-static/.opencode/
