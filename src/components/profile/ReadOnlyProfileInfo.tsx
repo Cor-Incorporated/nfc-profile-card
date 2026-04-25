@@ -40,6 +40,23 @@ function getCardBackgroundStyle(
   return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
 }
 
+function isDarkBackground(color?: string, opacity?: number) {
+  if (!color) return false;
+
+  const alpha =
+    typeof opacity === "number" ? Math.min(100, Math.max(0, opacity)) / 100 : 1;
+  const hex = color.replace("#", "");
+
+  if (alpha < 0.5 || !/^[0-9a-fA-F]{6}$/.test(hex)) return false;
+
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+  const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+
+  return luminance < 140;
+}
+
 export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
@@ -69,6 +86,21 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     cardBackgroundColor,
     cardBackgroundOpacity,
   );
+  const useLightText = isDarkBackground(
+    cardBackgroundColor,
+    cardBackgroundOpacity,
+  );
+  const primaryTextClass = useLightText ? "text-white" : "text-gray-800";
+  const secondaryTextClass = useLightText ? "text-gray-100" : "text-gray-600";
+  const bodyTextClass = useLightText ? "text-gray-100" : "text-gray-700";
+  const borderClass = useLightText ? "border-white/30" : "border-gray-200";
+  const iconClass = useLightText ? "text-gray-100" : "text-gray-400";
+  const linkClass = useLightText
+    ? "text-blue-100 hover:underline"
+    : "text-blue-600 hover:underline";
+  const detailButtonClass = useLightText
+    ? "text-gray-100 hover:text-white"
+    : "text-gray-600 hover:text-gray-900";
 
   // 表示名の決定
   const displayName =
@@ -136,27 +168,29 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       <div className="bg-white rounded-lg shadow-md p-4" style={cardStyle}>
         {/* 名前・役職・会社 */}
         <div className="text-center mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800">
+          <h2 className={`text-base sm:text-lg font-bold ${primaryTextClass}`}>
             {displayName}
           </h2>
           {position && (
-            <p className="text-sm text-gray-600 mt-0.5">{position}</p>
+            <p className={`text-sm mt-0.5 ${secondaryTextClass}`}>{position}</p>
           )}
-          {company && <p className="text-sm text-gray-600">{company}</p>}
+          {company && (
+            <p className={`text-sm ${secondaryTextClass}`}>{company}</p>
+          )}
         </div>
 
         {/* 自己紹介（3行制限と展開機能） */}
         {bio && (
-          <div className="pb-3 border-b border-gray-200">
+          <div className={`pb-3 border-b ${borderClass}`}>
             <p
-              className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+              className={`${bodyTextClass} text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
             >
               {bio}
             </p>
             {bio.length > 150 && (
               <button
                 onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-                className="text-blue-600 hover:text-blue-700 text-sm mt-1"
+                className={`${linkClass} text-sm mt-1`}
               >
                 {isProfileExpanded ? "閉じる" : "...続きを読む"}
               </button>
@@ -180,7 +214,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           <Button
             variant="ghost"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
+            className={`w-full h-8 flex items-center justify-center gap-2 text-sm ${detailButtonClass}`}
           >
             <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
             {isExpanded ? (
@@ -199,11 +233,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
         >
           {email && (
             <div className="flex items-center space-x-3">
-              <Mail className="w-5 h-5 text-gray-400" />
-              <a
-                href={`mailto:${email}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Mail className={`w-5 h-5 ${iconClass}`} />
+              <a href={`mailto:${email}`} className={linkClass}>
                 {email}
               </a>
             </div>
@@ -211,11 +242,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {phone && (
             <div className="flex items-center space-x-3">
-              <Phone className="w-5 h-5 text-gray-400" />
-              <a
-                href={`tel:${phone}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Phone className={`w-5 h-5 ${iconClass}`} />
+              <a href={`tel:${phone}`} className={linkClass}>
                 {phone}
               </a>
             </div>
@@ -223,11 +251,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {cellPhone && (
             <div className="flex items-center space-x-3">
-              <Smartphone className="w-5 h-5 text-gray-400" />
-              <a
-                href={`tel:${cellPhone}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Smartphone className={`w-5 h-5 ${iconClass}`} />
+              <a href={`tel:${cellPhone}`} className={linkClass}>
                 {cellPhone}
               </a>
             </div>
@@ -235,12 +260,12 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {website && (
             <div className="flex items-center space-x-3">
-              <Globe className="w-5 h-5 text-gray-400" />
+              <Globe className={`w-5 h-5 ${iconClass}`} />
               <a
                 href={website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className={linkClass}
               >
                 {website}
               </a>
@@ -249,8 +274,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {(company || department) && (
             <div className="flex items-center space-x-3">
-              <Building className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-700">
+              <Building className={`w-5 h-5 ${iconClass}`} />
+              <span className={bodyTextClass}>
                 {company}
                 {department && ` - ${department}`}
               </span>
@@ -259,8 +284,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {(address || city || postalCode) && (
             <div className="flex items-center space-x-3">
-              <MapPin className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-700">
+              <MapPin className={`w-5 h-5 ${iconClass}`} />
+              <span className={bodyTextClass}>
                 {postalCode && `〒${postalCode} `}
                 {city} {address}
               </span>
