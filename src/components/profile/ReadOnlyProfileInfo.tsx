@@ -40,14 +40,12 @@ function getCardBackgroundStyle(
   return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
 }
 
-function isDarkBackground(color?: string, opacity?: number) {
+function isDarkBackground(color?: string) {
   if (!color) return false;
 
-  const alpha =
-    typeof opacity === "number" ? Math.min(100, Math.max(0, opacity)) / 100 : 1;
   const hex = color.replace("#", "");
 
-  if (alpha < 0.5 || !/^[0-9a-fA-F]{6}$/.test(hex)) return false;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
 
   const red = parseInt(hex.slice(0, 2), 16);
   const green = parseInt(hex.slice(2, 4), 16);
@@ -86,10 +84,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     cardBackgroundColor,
     cardBackgroundOpacity,
   );
-  const useLightText = isDarkBackground(
-    cardBackgroundColor,
-    cardBackgroundOpacity,
-  );
+  const useLightText = isDarkBackground(cardBackgroundColor);
   const primaryTextClass = useLightText ? "text-white" : "text-gray-800";
   const secondaryTextClass = useLightText ? "text-gray-100" : "text-gray-600";
   const bodyTextClass = useLightText ? "text-gray-100" : "text-gray-700";
