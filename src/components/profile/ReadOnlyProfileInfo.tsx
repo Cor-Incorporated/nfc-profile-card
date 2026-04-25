@@ -19,6 +19,27 @@ interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
 }
 
+function getCardBackgroundStyle(
+  color?: string,
+  opacity?: number,
+): React.CSSProperties | undefined {
+  if (!color) return undefined;
+
+  const alpha =
+    typeof opacity === "number" ? Math.min(100, Math.max(0, opacity)) / 100 : 1;
+  const hex = color.replace("#", "");
+
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+    return { backgroundColor: color };
+  }
+
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+
+  return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
+}
+
 export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
@@ -41,7 +62,13 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     website,
     bio,
     photoURL,
+    cardBackgroundColor,
+    cardBackgroundOpacity,
   } = content;
+  const cardStyle = getCardBackgroundStyle(
+    cardBackgroundColor,
+    cardBackgroundOpacity,
+  );
 
   // 表示名の決定
   const displayName =
@@ -106,7 +133,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       </div>
 
       {/* プロフィール情報カード */}
-      <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="bg-white rounded-lg shadow-md p-4" style={cardStyle}>
         {/* 名前・役職・会社 */}
         <div className="text-center mb-3">
           <h2 className="text-base sm:text-lg font-bold text-gray-800">
