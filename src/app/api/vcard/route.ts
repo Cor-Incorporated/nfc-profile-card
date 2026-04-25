@@ -6,7 +6,6 @@ import { standardRateLimit } from "@/lib/rateLimit";
 
 export interface VCardData {
   firstName?: string;
-  middleName?: string;
   lastName?: string;
   phoneticFirstName?: string;
   phoneticLastName?: string;
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
     const vCard = vCardsJS();
 
     if (data.firstName) vCard.firstName = data.firstName;
-    if (data.middleName) vCard.middleName = data.middleName;
     if (data.lastName) vCard.lastName = data.lastName;
     if (data.organization) vCard.organization = data.organization;
     if (data.title) vCard.title = data.title;
@@ -123,25 +121,21 @@ export async function POST(request: NextRequest) {
 
     let vcardString = vCard.getFormattedString();
 
-    const customFields = [];
-    if (data.middleName) {
-      customFields.push(`X-MIDDLE-NAME:${data.middleName}`);
-    }
-
+    // Add phonetic fields (furigana) as custom X-PHONETIC fields
     if (data.phoneticFirstName || data.phoneticLastName) {
+      const phoneticFields = [];
       if (data.phoneticLastName) {
-        customFields.push(`X-PHONETIC-LAST-NAME:${data.phoneticLastName}`);
+        phoneticFields.push(`X-PHONETIC-LAST-NAME:${data.phoneticLastName}`);
       }
       if (data.phoneticFirstName) {
-        customFields.push(`X-PHONETIC-FIRST-NAME:${data.phoneticFirstName}`);
+        phoneticFields.push(`X-PHONETIC-FIRST-NAME:${data.phoneticFirstName}`);
       }
-    }
 
-    if (customFields.length > 0) {
+      // Insert phonetic fields after the name fields
       const lines = vcardString.split("\n");
       const insertIndex = lines.findIndex((line) => line.startsWith("FN:")) + 1;
       if (insertIndex > 0) {
-        lines.splice(insertIndex, 0, ...customFields);
+        lines.splice(insertIndex, 0, ...phoneticFields);
         vcardString = lines.join("\n");
       }
     }
@@ -199,23 +193,11 @@ export async function GET(request: NextRequest) {
 
     // 名前
     const nameParts = profile.name?.split(" ") || [];
-    let firstName = "";
-    let middleName = "";
-    let lastName = "";
-    if (nameParts.length === 1) {
-      firstName = nameParts[0] || "";
-    } else if (nameParts.length === 2) {
-      firstName = nameParts[0] || "";
-      lastName = nameParts[1] || "";
-    } else if (nameParts.length >= 3) {
-      firstName = nameParts[0] || "";
-      middleName = nameParts.slice(1, -1).join(" ");
-      lastName = nameParts[nameParts.length - 1] || "";
-    }
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
     if (firstName || lastName) {
-      const fnParts = [firstName, middleName, lastName].filter(Boolean);
-      vcardLines.push(`FN:${fnParts.join(" ")}`);
-      vcardLines.push(`N:${lastName};${firstName};${middleName};;`);
+      vcardLines.push(`FN:${profile.name || ""}`);
+      vcardLines.push(`N:${lastName};${firstName};;;`);
     }
 
     // 組織情報

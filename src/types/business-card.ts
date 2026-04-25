@@ -18,7 +18,6 @@ export interface Address {
 export interface ContactInfo {
   lastName: string;
   firstName: string;
-  middleName?: string;
   phoneticLastName: string;
   phoneticFirstName: string;
   company: string;
