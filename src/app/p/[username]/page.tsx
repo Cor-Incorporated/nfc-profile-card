@@ -153,9 +153,21 @@ export default function ProfilePage() {
   }
 
   // VCardデータの準備（両方のテンプレートで使用）
+  const nameParts = user.name?.split(" ") || [];
+  let vcardFirstName = nameParts[0] || "";
+  let vcardMiddleName = "";
+  let vcardLastName = "";
+  if (nameParts.length === 2) {
+    vcardLastName = nameParts[1] || "";
+  } else if (nameParts.length >= 3) {
+    vcardMiddleName = nameParts.slice(1, -1).join(" ");
+    vcardLastName = nameParts[nameParts.length - 1] || "";
+  }
+
   const vcardData = {
-    firstName: user.name?.split(" ")[0] || "",
-    lastName: user.name?.split(" ").slice(1).join(" ") || "",
+    firstName: vcardFirstName,
+    middleName: vcardMiddleName,
+    lastName: vcardLastName,
     organization: user.company || "",
     title: user.position || "",
     email: user.email || "",

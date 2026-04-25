@@ -2,6 +2,46 @@ import vCardsJS from "vcards-js";
 import { GET, POST } from "./route";
 import { getDocs } from "firebase/firestore";
 
+jest.mock("@/lib/rateLimit", () => ({
+  standardRateLimit: jest.fn(() => Promise.resolve(null)),
+}));
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+class WorkingReadableStream {
+  private _chunks: Uint8Array[] = [];
+  private _closed = false;
+
+  constructor(underlyingSource?: { start?: (controller: any) => void }) {
+    const controller = {
+      enqueue: (chunk: Uint8Array) => this._chunks.push(chunk),
+      close: () => { this._closed = true; },
+      error: () => {},
+    };
+    if (underlyingSource?.start) {
+      underlyingSource.start(controller);
+    }
+  }
+
+  getReader() {
+    let read = false;
+    return {
+      read: async () => {
+        if (read || this._chunks.length === 0) {
+          return { done: true, value: undefined };
+        }
+        read = true;
+        return { done: false, value: this._chunks[0] };
+      },
+      cancel: async () => {},
+      releaseLock: () => {},
+    };
+  }
+}
+
+(global as any).ReadableStream = WorkingReadableStream;
+
 // NextResponseのモック
 jest.mock("next/server", () => {
   class MockResponse {
@@ -195,6 +235,7 @@ jest.mock("vcards-js", () => {
   return jest.fn(() => {
     const mockInstance = {
       firstName: "",
+      middleName: "",
       lastName: "",
       organization: "",
       title: "",
@@ -394,6 +435,30 @@ describe("VCard API Routes", () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe("Failed to generate VCard");
+    });
+
+    it("middleNameを含むVCardを生成し、X-MIDDLE-NAMEフィールドを追加する", async () => {
+      const requestData = {
+        firstName: "John",
+        middleName: "Michael",
+        lastName: "Doe",
+        email: "john@example.com",
+      };
+
+      const request = new MockNextRequest("http://localhost:3000/api/vcard", {
+        method: "POST",
+        body: JSON.stringify(requestData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const response = await POST(request as any);
+
+      expect(response.status).toBe(200);
+
+      const bodyText = String(response.body);
+      expect(bodyText).toContain("X-MIDDLE-NAME:Michael");
     });
   });
 
@@ -636,6 +701,37 @@ describe("VCard API Routes", () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe("Failed to generate VCard");
+    });
+
+    it("3つの部分から成る名前をfirstName/middleName/lastNameに正しく分割する", async () => {
+      const mockProfile = {
+        name: "John Michael Doe",
+        email: "john@example.com",
+      };
+
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [
+          {
+            data: () => mockProfile,
+          },
+        ],
+      });
+
+      const request = new MockNextRequest(
+        "http://localhost:3000/api/vcard?username=johndoe",
+        {
+          method: "GET",
+        },
+      );
+
+      const response = await GET(request as any);
+
+      expect(response.status).toBe(200);
+
+      const bodyText = String(response.body);
+      expect(bodyText).toContain("FN:John Michael Doe");
+      expect(bodyText).toContain("N:Doe;John;Michael;;");
     });
   });
 });

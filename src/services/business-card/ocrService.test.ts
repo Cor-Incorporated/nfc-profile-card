@@ -167,4 +167,35 @@ describe("processBusinessCardImage Gemini model selection", () => {
       model: "same-model",
     });
   });
+
+  it("includes middleName from OCR response in contact info", async () => {
+    const { processBusinessCardImage } = await loadOcrService();
+    const westernResponse = {
+      response: {
+        text: () =>
+          JSON.stringify({
+            lastName: "Smith",
+            firstName: "John",
+            middleName: "Michael",
+            phoneticLastName: "",
+            phoneticFirstName: "",
+            company: "Acme Corp",
+            department: "",
+            title: "Engineer",
+            addresses: [],
+            email: "john.smith@example.com",
+            website: "",
+            phoneNumbers: [],
+          }),
+      },
+    };
+    generateContentMock.mockResolvedValueOnce(westernResponse);
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(true);
+    expect(result.contactInfo?.middleName).toBe("Michael");
+    expect(result.contactInfo?.firstName).toBe("John");
+    expect(result.contactInfo?.lastName).toBe("Smith");
+  });
 });
