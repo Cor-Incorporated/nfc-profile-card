@@ -114,12 +114,13 @@ function isModelAvailabilityError(error: unknown) {
     return false;
   }
 
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("model") ||
-    message.includes("not found") ||
-    message.includes("not supported")
-  );
+  const message = error.message;
+  const referencesModel = /\bmodels\/[\w.-]+/i.test(message);
+  const modelNotFound =
+    /\[404[^\]]*\]/i.test(message) && /\bnot found\b/i.test(message);
+  const modelMethodUnsupported = /\bis not supported for\b/i.test(message);
+
+  return referencesModel && (modelNotFound || modelMethodUnsupported);
 }
 
 async function generateOcrContent(modelName: string, imagePart: Part) {

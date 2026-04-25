@@ -88,7 +88,11 @@ describe("processBusinessCardImage Gemini model selection", () => {
     process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
     const { processBusinessCardImage } = await loadOcrService();
     generateContentMock
-      .mockRejectedValueOnce(new Error("models/primary-model is not found"))
+      .mockRejectedValueOnce(
+        new Error(
+          "[GoogleGenerativeAI Error]: [404 Not Found] models/primary-model is not found for API version v1beta",
+        ),
+      )
       .mockResolvedValueOnce(successfulGeminiResponse);
 
     const result = await processBusinessCardImage("base64-image", "image/png");
@@ -102,13 +106,39 @@ describe("processBusinessCardImage Gemini model selection", () => {
     });
   });
 
-  it("does not fall back for quota errors", async () => {
+  it("falls back when the primary model does not support content generation", async () => {
     process.env.GEMINI_MODEL = "primary-model";
     process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
     const { processBusinessCardImage } = await loadOcrService();
-    generateContentMock.mockRejectedValueOnce(
-      new Error("RESOURCE_EXHAUSTED quota exceeded"),
-    );
+    generateContentMock
+      .mockRejectedValueOnce(
+        new Error("models/primary-model is not supported for generateContent"),
+      )
+      .mockResolvedValueOnce(successfulGeminiResponse);
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(true);
+    expect(getGenerativeModelMock).toHaveBeenNthCalledWith(1, {
+      model: "primary-model",
+    });
+    expect(getGenerativeModelMock).toHaveBeenNthCalledWith(2, {
+      model: "fallback-model",
+    });
+  });
+
+  it.each([
+    "[GoogleGenerativeAI Error]: [429 Too Many Requests] You exceeded your current quota for model gemini-3.1-flash-lite-preview",
+    "Candidate was blocked due to SAFETY. The model returned no content.",
+    "[503 Service Unavailable] The model is overloaded. Please try again later.",
+    "[401 Unauthorized] API key not valid. Please pass a valid API key.",
+    "DEADLINE_EXCEEDED",
+    "Invalid or unsupported image data",
+  ])("does not fall back for non-model-availability errors: %s", async (message) => {
+    process.env.GEMINI_MODEL = "primary-model";
+    process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
+    const { processBusinessCardImage } = await loadOcrService();
+    generateContentMock.mockRejectedValueOnce(new Error(message));
 
     const result = await processBusinessCardImage("base64-image", "image/png");
 
@@ -124,7 +154,9 @@ describe("processBusinessCardImage Gemini model selection", () => {
     process.env.GEMINI_FALLBACK_MODEL = "same-model";
     const { processBusinessCardImage } = await loadOcrService();
     generateContentMock.mockRejectedValueOnce(
-      new Error("models/same-model is not found"),
+      new Error(
+        "[GoogleGenerativeAI Error]: [404 Not Found] models/same-model is not found for API version v1beta",
+      ),
     );
 
     const result = await processBusinessCardImage("base64-image", "image/png");
