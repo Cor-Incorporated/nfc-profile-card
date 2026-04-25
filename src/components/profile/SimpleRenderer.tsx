@@ -18,28 +18,30 @@ const TextComponent = memo(({ component }: { component: ProfileComponent }) => {
 });
 TextComponent.displayName = "TextComponent";
 
-const ImageComponent = memo(({ component }: { component: ProfileComponent }) => {
-  const content = component.content as any;
-  return (
-    <div className="w-[90%] max-w-[600px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
-      {content?.src ? (
-        <Image
-          src={content.src}
-          alt={content?.alt || "画像"}
-          width={500}
-          height={300}
-          className="w-full h-auto rounded"
-          priority={false}
-          loading="lazy"
-        />
-      ) : (
-        <div className="bg-gray-200 h-32 rounded flex items-center justify-center">
-          <span className="text-gray-500">画像がありません</span>
-        </div>
-      )}
-    </div>
-  );
-});
+const ImageComponent = memo(
+  ({ component }: { component: ProfileComponent }) => {
+    const content = component.content as any;
+    return (
+      <div className="w-[90%] max-w-[600px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
+        {content?.src ? (
+          <Image
+            src={content.src}
+            alt={content?.alt || "画像"}
+            width={500}
+            height={300}
+            className="w-full h-auto rounded"
+            priority={false}
+            loading="lazy"
+          />
+        ) : (
+          <div className="bg-gray-200 h-32 rounded flex items-center justify-center">
+            <span className="text-gray-500">画像がありません</span>
+          </div>
+        )}
+      </div>
+    );
+  },
+);
 ImageComponent.displayName = "ImageComponent";
 
 const LinkComponent = memo(({ component }: { component: ProfileComponent }) => {
@@ -55,10 +57,20 @@ const LinkComponent = memo(({ component }: { component: ProfileComponent }) => {
 });
 LinkComponent.displayName = "LinkComponent";
 
-const ProfileComponentView = memo(({ component }: { component: ProfileComponent }) => {
-  // ReadOnlyProfileInfoを使用して拡充されたプロフィールを表示
-  return <ReadOnlyProfileInfo component={component} />;
-});
+const ProfileComponentView = memo(
+  ({
+    component,
+    background,
+  }: {
+    component: ProfileComponent;
+    background?: any;
+  }) => {
+    // ReadOnlyProfileInfoを使用して拡充されたプロフィールを表示
+    return (
+      <ReadOnlyProfileInfo component={component} pageBackground={background} />
+    );
+  },
+);
 ProfileComponentView.displayName = "ProfileComponentView";
 
 // メインのSimpleRendererコンポーネント（memo化）
@@ -112,6 +124,7 @@ export const SimpleRenderer = memo(function SimpleRenderer({
                       <ProfileComponentView
                         key={component.id}
                         component={component}
+                        background={background}
                       />
                     );
                   default:

@@ -17,6 +17,7 @@ import Image from "next/image";
 
 interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
+  pageBackground?: any;
 }
 
 function getCardBackgroundStyle(
@@ -25,30 +26,66 @@ function getCardBackgroundStyle(
 ): React.CSSProperties | undefined {
   if (!color) return undefined;
 
-  return { backgroundColor: getBlendedCardColor(color, opacity) };
-}
-
-function getBlendedCardColor(color: string, opacity?: number) {
-  const { red, green, blue } = getBlendedRgbColor(color, opacity);
-  if (red === null || green === null || blue === null) return color;
-
-  return `rgb(${red}, ${green}, ${blue})`;
-}
-
-function getBlendedRgbColor(color: string, opacity?: number) {
   const { red, green, blue } = getRgbColor(color);
   if (red === null || green === null || blue === null) {
-    return { red: null, green: null, blue: null };
+    return { backgroundColor: color };
   }
 
-  const alpha =
-    typeof opacity === "number" ? Math.min(100, Math.max(0, opacity)) / 100 : 1;
+  const alpha = getAlpha(opacity);
 
+  return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
+}
+
+function getAlpha(opacity?: number) {
+  return typeof opacity === "number"
+    ? Math.min(100, Math.max(0, opacity)) / 100
+    : 1;
+}
+
+function blendRgb(
+  foreground: RgbColor,
+  alpha: number,
+  background: RgbColor,
+): RgbColor {
   return {
-    red: Math.round(red * alpha + 255 * (1 - alpha)),
-    green: Math.round(green * alpha + 255 * (1 - alpha)),
-    blue: Math.round(blue * alpha + 255 * (1 - alpha)),
+    red: Math.round(foreground.red * alpha + background.red * (1 - alpha)),
+    green: Math.round(
+      foreground.green * alpha + background.green * (1 - alpha),
+    ),
+    blue: Math.round(foreground.blue * alpha + background.blue * (1 - alpha)),
   };
+}
+
+type RgbColor = { red: number; green: number; blue: number };
+
+function getPageBackgroundRgb(pageBackground?: any): RgbColor {
+  if (pageBackground?.type === "solid") {
+    const solid = getRgbColor(pageBackground.color || "#ffffff");
+    if (solid.red !== null && solid.green !== null && solid.blue !== null) {
+      return solid;
+    }
+  }
+
+  if (pageBackground?.type === "gradient") {
+    const from = getRgbColor(pageBackground.from || "#ffffff");
+    const to = getRgbColor(pageBackground.to || "#ffffff");
+    if (
+      from.red !== null &&
+      from.green !== null &&
+      from.blue !== null &&
+      to.red !== null &&
+      to.green !== null &&
+      to.blue !== null
+    ) {
+      return {
+        red: Math.round((from.red + to.red) / 2),
+        green: Math.round((from.green + to.green) / 2),
+        blue: Math.round((from.blue + to.blue) / 2),
+      };
+    }
+  }
+
+  return { red: 255, green: 255, blue: 255 };
 }
 
 function getRgbColor(color: string) {
@@ -65,17 +102,37 @@ function getRgbColor(color: string) {
   };
 }
 
-function isDarkBackground(color?: string, opacity?: number) {
+function isDarkBackground(
+  color?: string,
+  opacity?: number,
+  pageBackground?: any,
+) {
   if (!color) return false;
 
-  const { red, green, blue } = getBlendedRgbColor(color, opacity);
-  if (red === null || green === null || blue === null) return false;
-  const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+  const foreground = getRgbColor(color);
+  if (
+    foreground.red === null ||
+    foreground.green === null ||
+    foreground.blue === null
+  ) {
+    return false;
+  }
+
+  const effective = blendRgb(
+    foreground,
+    getAlpha(opacity),
+    getPageBackgroundRgb(pageBackground),
+  );
+  const luminance =
+    0.299 * effective.red + 0.587 * effective.green + 0.114 * effective.blue;
 
   return luminance < 140;
 }
 
-export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
+export function ReadOnlyProfileInfo({
+  component,
+  pageBackground,
+}: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const content = (component.content as any) || {};
@@ -107,6 +164,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
   const useLightText = isDarkBackground(
     cardBackgroundColor,
     cardBackgroundOpacity,
+    pageBackground,
   );
   const primaryTextClass = useLightText ? "text-white" : "text-gray-800";
   const secondaryTextClass = useLightText ? "text-gray-100" : "text-gray-600";
@@ -117,7 +175,7 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     ? "text-blue-100 hover:underline"
     : "text-blue-600 hover:underline";
   const detailButtonClass = useLightText
-    ? "text-gray-100 hover:text-white"
+    ? "text-gray-100 hover:text-white hover:bg-white/10"
     : "text-gray-600 hover:text-gray-900";
 
   // 表示名の決定
