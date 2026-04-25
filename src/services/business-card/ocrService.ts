@@ -88,7 +88,7 @@ const OCR_PROMPT = `
 
 【ミドルネームの抽出ルール】
 - 日本語の氏名の場合: middleNameは空文字列""にしてください
-- 西洋名で3つ以上のトークンがある場合: 最初のトークルをfirstName、最後のトークンをlastName、その間のトークンをmiddleNameにしてください
+- 西洋名で3つ以上のトークンがある場合: 最初のトークンをfirstName、最後のトークンをlastName、その間のトークンをmiddleNameにしてください
 - 複合姓の前置詞（van, von, de, del, da, di, la, le, el, al, bin, ibn）はlastNameに含めてください
 - 不確かな場合は推測せず、middleNameは空文字列""にしてください
 
