@@ -7,6 +7,7 @@ import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { GenerateContentResult, Part } from "@google/generative-ai";
 
 // Initialize Gemini AI with API key from environment
 // Use empty string as fallback to avoid build-time errors
@@ -99,19 +100,29 @@ export interface OcrResult {
 }
 
 function getPrimaryGeminiModel() {
-  return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 }
 
-function getFallbackGeminiModel() {
+function getFallbackGeminiModel(primaryModel: string) {
   const fallbackModel =
-    process.env.GEMINI_FALLBACK_MODEL || DEFAULT_GEMINI_FALLBACK_MODEL;
-  return fallbackModel === getPrimaryGeminiModel() ? null : fallbackModel;
+    process.env.GEMINI_FALLBACK_MODEL?.trim() || DEFAULT_GEMINI_FALLBACK_MODEL;
+  return fallbackModel === primaryModel ? null : fallbackModel;
 }
 
-async function generateOcrContent(
-  modelName: string,
-  imagePart: { inlineData: { data: string; mimeType: string } },
-) {
+function isModelAvailabilityError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("model") ||
+    message.includes("not found") ||
+    message.includes("not supported")
+  );
+}
+
+async function generateOcrContent(modelName: string, imagePart: Part) {
   const model = genAI.getGenerativeModel({ model: modelName });
 
   return model.generateContent({
@@ -231,14 +242,14 @@ export async function processBusinessCardImage(
     };
 
     const primaryModelName = getPrimaryGeminiModel();
-    const fallbackModelName = getFallbackGeminiModel();
-    let result;
+    const fallbackModelName = getFallbackGeminiModel(primaryModelName);
+    let result: GenerateContentResult;
 
     try {
       ocrLogger.info("Calling Gemini API with model:", primaryModelName);
       result = await generateOcrContent(primaryModelName, imagePart);
     } catch (primaryError) {
-      if (!fallbackModelName) {
+      if (!fallbackModelName || !isModelAvailabilityError(primaryError)) {
         throw primaryError;
       }
 
@@ -246,7 +257,10 @@ export async function processBusinessCardImage(
         "Primary Gemini model failed; retrying with fallback model:",
         fallbackModelName,
       );
-      ocrLogger.warn("Primary Gemini error:", primaryError);
+      ocrLogger.warn(
+        "Primary Gemini error:",
+        primaryError instanceof Error ? primaryError.message : String(primaryError),
+      );
       result = await generateOcrContent(fallbackModelName, imagePart);
     }
 
