@@ -4,6 +4,7 @@ import React, { memo } from "react";
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { SocialLinkButton } from "../simple-editor/SocialLinkButton";
 import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
+import type { PageBackground } from "./ReadOnlyProfileInfo";
 import { getBackgroundStyle } from "../simple-editor/BackgroundCustomizer";
 import Image from "next/image";
 
@@ -63,7 +64,7 @@ const ProfileComponentView = memo(
     background,
   }: {
     component: ProfileComponent;
-    background?: any;
+    background?: PageBackground | null;
   }) => {
     // ReadOnlyProfileInfoを使用して拡充されたプロフィールを表示
     return (
@@ -79,7 +80,7 @@ export const SimpleRenderer = memo(function SimpleRenderer({
   background = null,
 }: {
   components: ProfileComponent[];
-  background?: any;
+  background?: PageBackground | null;
 }) {
   // componentsが配列でない場合の対応
   const safeComponents = Array.isArray(components) ? components : [];

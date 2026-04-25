@@ -15,9 +15,20 @@ import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
+export type PageBackground =
+  | { type?: "solid" | "color"; color?: string }
+  | {
+      type: "gradient";
+      from?: string;
+      to?: string;
+      gradient?: { from?: string; to?: string };
+    }
+  | { type: "image"; url?: string; opacity?: number }
+  | { type: "pattern"; pattern?: string };
+
 interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
-  pageBackground?: any;
+  pageBackground?: PageBackground | null;
 }
 
 function getCardBackgroundStyle(
@@ -58,8 +69,12 @@ function blendRgb(
 
 type RgbColor = { red: number; green: number; blue: number };
 
-function getPageBackgroundRgb(pageBackground?: any): RgbColor {
-  if (pageBackground?.type === "solid") {
+function getLuminance(color: RgbColor) {
+  return 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue;
+}
+
+function getPageBackgroundRgb(pageBackground?: PageBackground | null): RgbColor {
+  if (pageBackground?.type === "solid" || pageBackground?.type === "color") {
     const solid = getRgbColor(pageBackground.color || "#ffffff");
     if (solid.red !== null && solid.green !== null && solid.blue !== null) {
       return solid;
@@ -67,8 +82,12 @@ function getPageBackgroundRgb(pageBackground?: any): RgbColor {
   }
 
   if (pageBackground?.type === "gradient") {
-    const from = getRgbColor(pageBackground.from || "#ffffff");
-    const to = getRgbColor(pageBackground.to || "#ffffff");
+    const from = getRgbColor(
+      pageBackground.from || pageBackground.gradient?.from || "#ffffff",
+    );
+    const to = getRgbColor(
+      pageBackground.to || pageBackground.gradient?.to || "#ffffff",
+    );
     if (
       from.red !== null &&
       from.green !== null &&
@@ -77,11 +96,7 @@ function getPageBackgroundRgb(pageBackground?: any): RgbColor {
       to.green !== null &&
       to.blue !== null
     ) {
-      return {
-        red: Math.round((from.red + to.red) / 2),
-        green: Math.round((from.green + to.green) / 2),
-        blue: Math.round((from.blue + to.blue) / 2),
-      };
+      return getLuminance(from) < getLuminance(to) ? from : to;
     }
   }
 
@@ -105,7 +120,7 @@ function getRgbColor(color: string) {
 function isDarkBackground(
   color?: string,
   opacity?: number,
-  pageBackground?: any,
+  pageBackground?: PageBackground | null,
 ) {
   if (!color) return false;
 
@@ -123,8 +138,7 @@ function isDarkBackground(
     getAlpha(opacity),
     getPageBackgroundRgb(pageBackground),
   );
-  const luminance =
-    0.299 * effective.red + 0.587 * effective.green + 0.114 * effective.blue;
+  const luminance = getLuminance(effective);
 
   return luminance < 140;
 }
@@ -177,6 +191,9 @@ export function ReadOnlyProfileInfo({
   const detailButtonClass = useLightText
     ? "text-gray-100 hover:text-white hover:bg-white/10"
     : "text-gray-600 hover:text-gray-900";
+  const vCardButtonClass = useLightText
+    ? "w-full max-w-xs border-white/50 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+    : "w-full max-w-xs";
 
   // 表示名の決定
   const displayName =
@@ -279,8 +296,8 @@ export function ReadOnlyProfileInfo({
           <VCardButton
             username={displayName}
             profileData={vCardData}
-            className="w-full max-w-xs"
-            variant="default"
+            className={vCardButtonClass}
+            variant={useLightText ? "outline" : "default"}
             size="lg"
           />
         </div>
@@ -294,9 +311,9 @@ export function ReadOnlyProfileInfo({
           >
             <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className={`h-4 w-4 ${iconClass}`} />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={`h-4 w-4 ${iconClass}`} />
             )}
           </Button>
         )}
