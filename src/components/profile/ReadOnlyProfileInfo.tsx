@@ -25,31 +25,51 @@ function getCardBackgroundStyle(
 ): React.CSSProperties | undefined {
   if (!color) return undefined;
 
+  return { backgroundColor: getBlendedCardColor(color, opacity) };
+}
+
+function getBlendedCardColor(color: string, opacity?: number) {
+  const { red, green, blue } = getBlendedRgbColor(color, opacity);
+  if (red === null || green === null || blue === null) return color;
+
+  return `rgb(${red}, ${green}, ${blue})`;
+}
+
+function getBlendedRgbColor(color: string, opacity?: number) {
+  const { red, green, blue } = getRgbColor(color);
+  if (red === null || green === null || blue === null) {
+    return { red: null, green: null, blue: null };
+  }
+
   const alpha =
     typeof opacity === "number" ? Math.min(100, Math.max(0, opacity)) / 100 : 1;
+
+  return {
+    red: Math.round(red * alpha + 255 * (1 - alpha)),
+    green: Math.round(green * alpha + 255 * (1 - alpha)),
+    blue: Math.round(blue * alpha + 255 * (1 - alpha)),
+  };
+}
+
+function getRgbColor(color: string) {
   const hex = color.replace("#", "");
 
   if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
-    return { backgroundColor: color };
+    return { red: null, green: null, blue: null };
   }
 
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
-
-  return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
+  return {
+    red: parseInt(hex.slice(0, 2), 16),
+    green: parseInt(hex.slice(2, 4), 16),
+    blue: parseInt(hex.slice(4, 6), 16),
+  };
 }
 
-function isDarkBackground(color?: string) {
+function isDarkBackground(color?: string, opacity?: number) {
   if (!color) return false;
 
-  const hex = color.replace("#", "");
-
-  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return false;
-
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
+  const { red, green, blue } = getBlendedRgbColor(color, opacity);
+  if (red === null || green === null || blue === null) return false;
   const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
 
   return luminance < 140;
@@ -84,7 +104,10 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     cardBackgroundColor,
     cardBackgroundOpacity,
   );
-  const useLightText = isDarkBackground(cardBackgroundColor);
+  const useLightText = isDarkBackground(
+    cardBackgroundColor,
+    cardBackgroundOpacity,
+  );
   const primaryTextClass = useLightText ? "text-white" : "text-gray-800";
   const secondaryTextClass = useLightText ? "text-gray-100" : "text-gray-600";
   const bodyTextClass = useLightText ? "text-gray-100" : "text-gray-700";
