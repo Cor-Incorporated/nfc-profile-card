@@ -137,15 +137,6 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 placeholder="太郎"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="middleName">{t("middleName")}</Label>
-              <Input
-                id="middleName"
-                value={formData.middleName || ""}
-                onChange={handleChange("middleName")}
-                placeholder="Michael"
-              />
-            </div>
           </div>
 
           {/* ふりがな */}

@@ -10,9 +10,8 @@ VERSION:3.0
 `;
 
   // Name
-  vCard += `N;CHARSET=UTF-8:${contact.lastName || ""};${contact.firstName || ""};${contact.middleName || ""};;\n`;
-  const nameParts = [contact.firstName, contact.middleName, contact.lastName].filter(Boolean);
-  vCard += `FN;CHARSET=UTF-8:${nameParts.join(" ")}\n`;
+  vCard += `N;CHARSET=UTF-8:${contact.lastName || ""};${contact.firstName || ""};;;\n`;
+  vCard += `FN;CHARSET=UTF-8:${contact.firstName || ""} ${contact.lastName || ""}\n`;
 
   // Photo (if provided)
   if (base64Image && imageMimeType) {
