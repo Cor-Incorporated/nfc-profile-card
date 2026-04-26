@@ -99,20 +99,22 @@ The project follows Next.js 14 App Router conventions with the following planned
 
 ### Profile System
 
-- Dynamic routing at `/p/[username]` for public profiles
+- Dynamic routing at `/p/[username]` for public profiles (Server Component + ISR, revalidate=300)
 - Support for up to 10 social/portfolio links with automatic service detection
-- VCard download functionality for contact exchange
+- VCard download functionality for contact exchange (VERSION:3.0 with middleName support)
 - One-time URL support for enhanced security
+- Server-side analytics tracking via `/api/analytics/track`
 
 ### NFC Integration
 
-- Physical NFC cards link to digital profiles
+- Physical NFC cards link to digital profiles (static URL only — no dynamic data sync for patent safety)
 - Card management in user dashboard
 - Analytics tracking for card taps
 
 ### OCR Functionality
 
-- Uses Google Gemini API Flash Latest for business card scanning
+- Uses Google Gemini API with model fallback (gemini-3.1-flash-lite-preview → gemini-2.5-flash)
+- Extracts name (first/middle/last), company, title, phone, email, address
 - Converts scanned data to VCard format
 - Immediate data deletion after processing for privacy
 
@@ -231,7 +233,7 @@ Always check the "特許リスク回避開発ガイドライン.md" document and
 
 Detailed risk assessment available in "特許リスク評価レポート\_TapForge_20250921.md"
 
-## Recent Updates (October 2025)
+## Recent Updates (October 2025) — Promo Code & Plan System
 
 ### 🎯 Promo Code System & Plan Management
 
