@@ -5,7 +5,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getAnalyticsSummary } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { ExternalLink, Eye, Globe, LogOut, Crown } from "lucide-react";
+import {
+  Crown,
+  ExternalLink,
+  Eye,
+  Globe,
+  LogOut,
+  Palette,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -292,28 +300,31 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* プロフィール編集 */}
+          {/* プロフィール基本情報編集 */}
           <Link
-            href="/dashboard/edit/design"
+            href="/dashboard/edit"
             className="block w-full p-4 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
           >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500 bg-opacity-30 rounded-lg">
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
+                <User className="w-5 h-5 text-white" />
               </div>
               <span className="font-medium">{t("editProfile")}</span>
+            </div>
+          </Link>
+
+          {/* デザイン編集 */}
+          <Link
+            href="/dashboard/edit/design"
+            className="block w-full p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Palette className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="font-medium text-gray-900">
+                {t("designCustomization")}
+              </span>
             </div>
           </Link>
 
