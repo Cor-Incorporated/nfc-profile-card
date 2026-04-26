@@ -312,7 +312,7 @@ describe("AuthContext", () => {
       expect(firestore.setDoc).toHaveBeenCalledWith(
         { id: "test-doc" },
         expect.objectContaining({
-          username: expect.stringMatching(/^user_[a-f0-9]{16}$/),
+          username: expect.stringMatching(/^[1-9][0-9]{11}$/),
         }),
       );
       expect(firestore.setDoc).not.toHaveBeenCalledWith(

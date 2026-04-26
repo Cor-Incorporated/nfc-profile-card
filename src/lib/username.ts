@@ -1,4 +1,4 @@
-const USERNAME_RANDOM_BYTES = 8;
+const USERNAME_RANDOM_DIGITS = 12;
 
 function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length);
@@ -16,14 +16,12 @@ function randomBytes(length: number): Uint8Array {
   return bytes;
 }
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
-}
-
 export function generateDefaultUsername(): string {
-  return `user_${toHex(randomBytes(USERNAME_RANDOM_BYTES))}`;
+  const bytes = randomBytes(USERNAME_RANDOM_DIGITS);
+  return Array.from(bytes, (byte, index) => {
+    const digit = byte % 10;
+    return index === 0 && digit === 0 ? "1" : String(digit);
+  }).join("");
 }
 
 export function getUidFallbackUsername(uid: string): string {

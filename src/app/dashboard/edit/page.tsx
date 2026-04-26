@@ -18,7 +18,7 @@ import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
 import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { Loader2, Palette, Save } from "lucide-react";
+import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,11 +35,12 @@ interface ProfileData {
 }
 
 export default function EditProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, getIdToken } = useAuth();
   const router = useRouter();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRotatingUsername, setIsRotatingUsername] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     username: "",
@@ -148,6 +149,48 @@ export default function EditProfilePage() {
     }
   };
 
+  const handleRotateUsername = async () => {
+    if (!user || isRotatingUsername) return;
+
+    const confirmed = window.confirm(t("randomUsernameConfirm"));
+    if (!confirmed) return;
+
+    setIsRotatingUsername(true);
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error("Missing ID token");
+      }
+
+      const response = await fetch("/api/users/me/rotate-username", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to rotate username");
+      }
+
+      setProfile((prev) => ({ ...prev, username: data.username }));
+      toast({
+        title: t("success"),
+        description: t("randomUsernameUpdated"),
+      });
+    } catch (error) {
+      console.error("Error rotating username:", error);
+      toast({
+        title: t("error"),
+        description: t("randomUsernameUpdateError"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRotatingUsername(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -187,14 +230,34 @@ export default function EditProfilePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="username">{t("username")} *</Label>
-                <Input
-                  id="username"
-                  value={profile.username}
-                  onChange={(e) =>
-                    handleInputChange("username", e.target.value)
-                  }
-                  placeholder={t("usernamePlaceholder")}
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    id="username"
+                    value={profile.username}
+                    onChange={(e) =>
+                      handleInputChange("username", e.target.value)
+                    }
+                    placeholder={t("usernamePlaceholder")}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRotateUsername}
+                    disabled={isRotatingUsername || isSaving}
+                    className="w-full sm:w-auto"
+                  >
+                    {isRotatingUsername ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {t("useRandomUsername")}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("randomUsernameHelp")}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {t("profileUrlPrefix")}: /p/{profile.username || "username"}
                 </p>
