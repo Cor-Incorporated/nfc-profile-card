@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "./ImageUploader";
-import { Palette, Sparkles, Image } from "lucide-react";
+import { Palette, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BackgroundCustomizerProps {
@@ -70,7 +70,7 @@ export function BackgroundCustomizer({
             {t("gradientShort")}
           </TabsTrigger>
           <TabsTrigger value="image" className="text-xs">
-            <Image className="w-4 h-4 mr-1" />
+            <ImageIcon className="w-4 h-4 mr-1" />
             {t("backgroundImageTab")}
           </TabsTrigger>
         </TabsList>
