@@ -145,6 +145,11 @@ const translations = {
       "プロフィールページのデザインをカスタマイズできます",
     openDesignEditor: "デザインエディターを開く",
     usernameRequired: "ユーザー名は必須です",
+    usernameInvalid:
+      "ユーザー名は3〜32文字の英小文字・数字・ハイフン・アンダースコアで入力してください",
+    usernameUnavailable:
+      "このユーザー名は既に使われています。別のユーザー名を選択してください",
+    usernameSuggestions: "代わりに使える候補",
     useRandomUsername: "ランダムIDに変更",
     randomUsernameHelp:
       "メール由来のURLを公開したくない場合は、ランダムな数字IDに変更できます。",
@@ -487,6 +492,11 @@ const translations = {
     designCustomizationDescription: "Customize your profile page design",
     openDesignEditor: "Open Design Editor",
     usernameRequired: "Username is required",
+    usernameInvalid:
+      "Use 3-32 lowercase letters, numbers, hyphens, or underscores",
+    usernameUnavailable:
+      "This username is already taken. Choose a different username",
+    usernameSuggestions: "Available alternatives",
     useRandomUsername: "Use random ID",
     randomUsernameHelp:
       "Use a random numeric ID if you do not want an email-derived URL to remain public.",
