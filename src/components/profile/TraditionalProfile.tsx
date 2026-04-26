@@ -46,6 +46,7 @@ export function TraditionalProfile({
 }: TraditionalProfileProps) {
   const { t } = useLanguage();
   const [showQRCode, setShowQRCode] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -181,7 +182,10 @@ export function TraditionalProfile({
               className="flex-1"
             />
             <button
-              onClick={() => setShowQRCode(true)}
+              onClick={() => {
+                setOrigin(window.location.origin);
+                setShowQRCode(true);
+              }}
               className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
               aria-label={t("showQRCode")}
             >
@@ -231,7 +235,7 @@ export function TraditionalProfile({
       <QRCodeModal
         isOpen={showQRCode}
         onClose={() => setShowQRCode(false)}
-        url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${username}`}
+        url={`${origin}/p/${username}`}
         username={user.username}
         logoUrl={user.photoURL}
       />

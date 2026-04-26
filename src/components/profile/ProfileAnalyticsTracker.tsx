@@ -17,8 +17,6 @@ export function ProfileAnalyticsTracker({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username,
-        referrer: document.referrer || "direct",
-        userAgent: navigator.userAgent,
       }),
     }).catch(() => {});
   }, [username]);

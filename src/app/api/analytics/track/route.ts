@@ -2,6 +2,9 @@ import { adminDb } from "@/lib/firebase-admin";
 import { standardRateLimit } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const rateLimitResult = await standardRateLimit(request);
@@ -14,21 +17,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const { username, referrer, userAgent } = body;
+    const { username } = body;
 
     if (!username || typeof username !== "string") {
       return NextResponse.json(
         { error: "Username is required" },
-        { status: 400 },
-      );
-    }
-
-    if (referrer && typeof referrer !== "string") {
-      return NextResponse.json({ error: "Invalid referrer" }, { status: 400 });
-    }
-    if (userAgent && typeof userAgent !== "string") {
-      return NextResponse.json(
-        { error: "Invalid user agent" },
         { status: 400 },
       );
     }
@@ -44,9 +37,9 @@ export async function POST(request: NextRequest) {
     }
 
     const safeReferrer =
-      typeof referrer === "string" ? referrer.slice(0, 500) : "direct";
+      request.headers.get("referer")?.slice(0, 500) || "direct";
     const safeUserAgent =
-      typeof userAgent === "string" ? userAgent.slice(0, 500) : "unknown";
+      request.headers.get("user-agent")?.slice(0, 500) || "unknown";
 
     const userRef = snapshot.docs[0].ref;
     const now = new Date();

@@ -24,6 +24,7 @@ export function ProfileFloatingActions({
   const { language, setLanguage, t } = useLanguage();
   const [showQRCode, setShowQRCode] = useState(false);
   const [showLangSelector, setShowLangSelector] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   const handleCameraClick = () => {
     if (!authUser) {
@@ -34,6 +35,11 @@ export function ProfileFloatingActions({
     } else {
       router.push(ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN);
     }
+  };
+
+  const handleOpenQR = () => {
+    setOrigin(window.location.origin);
+    setShowQRCode(true);
   };
 
   return (
@@ -93,7 +99,7 @@ export function ProfileFloatingActions({
 
         {variant === "full" && (
           <button
-            onClick={() => setShowQRCode(true)}
+            onClick={() => handleOpenQR()}
             className="p-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
             aria-label={t("showQRCode")}
             title={t("showQRCode")}
@@ -106,7 +112,7 @@ export function ProfileFloatingActions({
       <QRCodeModal
         isOpen={showQRCode}
         onClose={() => setShowQRCode(false)}
-        url={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${username}`}
+        url={`${origin}/p/${username}`}
         username={username}
         logoUrl={photoURL}
       />
