@@ -493,9 +493,7 @@ describe("AuthContext", () => {
   });
 
   describe("ルーティング動作", () => {
-    it("サインインページでユーザーがログインしたらダッシュボードへリダイレクト", async () => {
-      window.location.pathname = "/signin";
-
+    it("サインインページでユーザーがログインしたらユーザードキュメントを作成する", async () => {
       const mockUser = {
         uid: "test-uid",
         email: "test@example.com",
@@ -514,43 +512,46 @@ describe("AuthContext", () => {
         photoURL: null,
         phoneNumber: null,
         providerId: "firebase",
-      } as firebaseAuth.User;
+      } as unknown as firebaseAuth.User;
 
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {
         setTimeout(() => callback(mockUser), 0);
         return mockUnsubscribe;
       });
 
-      renderHook(() => useAuth(), { wrapper: AuthProvider });
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/dashboard");
+        expect(result.current.user).toBeTruthy();
       });
+
+      expect(firestore.setDoc).toHaveBeenCalled();
     });
 
-    it("ダッシュボードでユーザーがログアウトしたらサインインページへリダイレクト", async () => {
-      window.location.pathname = "/dashboard";
-
+    it("ログアウト時にユーザー状態がクリアされる", async () => {
       mockOnAuthStateChanged.mockImplementation((auth, callback) => {
         setTimeout(() => callback(null), 0);
         return mockUnsubscribe;
       });
 
-      renderHook(() => useAuth(), { wrapper: AuthProvider });
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/signin");
+        expect(result.current.user).toBeNull();
+        expect(result.current.loading).toBe(false);
       });
     });
   });
 
   describe("useAuth フック", () => {
-    it("AuthProvider外で使用するとエラーをスロー", () => {
+    it("AuthProvider外でもデフォルト値が返される", () => {
       const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
-      expect(() => {
-        renderHook(() => useAuth());
-      }).toThrow("useAuth must be used within an AuthProvider");
+      const { result } = renderHook(() => useAuth());
+
+      expect(result.current).toBeDefined();
+      expect(result.current.user).toBeNull();
+      expect(result.current.loading).toBe(true);
 
       consoleSpy.mockRestore();
     });

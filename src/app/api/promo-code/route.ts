@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const userRef = adminDb.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
-  if (userSnap.exists) {
+    if (userSnap.exists) {
       const userData = userSnap.data() as UserDocSchema;
 
       // Check if already Pro
