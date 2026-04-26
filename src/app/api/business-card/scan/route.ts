@@ -1,12 +1,18 @@
-import { API_ERROR_CODES, ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import {
+  API_ERROR_CODES,
+  ERROR_MESSAGES,
+} from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
-import { canScan, recordScan } from "@/services/business-card/scanQuotaService.server";
 import {
-    ApiErrorResponse,
-    BusinessCardScanRequest,
-    BusinessCardScanResponse,
+  canScan,
+  recordScan,
+} from "@/services/business-card/scanQuotaService.server";
+import {
+  ApiErrorResponse,
+  BusinessCardScanRequest,
+  BusinessCardScanResponse,
 } from "@/types/api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -92,7 +98,10 @@ export async function POST(request: NextRequest) {
       const errorResponse: ApiErrorResponse = {
         success: false,
         error: ERROR_MESSAGES.IMAGE_PROCESSING_FAILED,
-        details: quotaError instanceof Error ? quotaError.message : "Quota check failed",
+        details:
+          quotaError instanceof Error
+            ? quotaError.message
+            : "Quota check failed",
       };
       return NextResponse.json(errorResponse, { status: 500 });
     }

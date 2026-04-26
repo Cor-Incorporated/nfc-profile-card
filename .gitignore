@@ -146,3 +146,6 @@ public/robots.txt
 
 # Storybook
 storybook-static/
+
+# OpenCode
+.opencode/

@@ -7,11 +7,15 @@ import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { GenerateContentResult, Part } from "@google/generative-ai";
 
 // Initialize Gemini AI with API key from environment
 // Use empty string as fallback to avoid build-time errors
 // Actual validation happens at runtime in processBusinessCardImage
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
@@ -46,6 +50,12 @@ const OCR_PROMPT = `
 - ロゴマークと文字の区別
 - 姓と名の区切り位置（スペースがなくても文脈で判断）
 
+【抽出原則】
+- 画像上に明確に表示されている情報のみ抽出してください
+- メールアドレスのローカル部やドメイン名から、氏名・会社名・部署名・役職を推測してはいけません
+- 推測できそうでも、画像上に文字として存在しない項目は空文字列にしてください
+- 会社ロゴやメールドメインは、会社名の根拠として使わないでください
+
 【電話番号の自動分類ルール】
 - 携帯/Mobile: 070, 080, 090, 050で始まる
 - FAX: FAX, Fax, ファックスの記載がある、または03等で始まり2番目の番号
@@ -54,7 +64,7 @@ const OCR_PROMPT = `
 【メールアドレスの検証】
 - @マークの前後を慎重に確認
 - よくあるドメイン: gmail.com, yahoo.co.jp, outlook.jp等
-- 企業ドメインは会社名と照合
+- 企業ドメインから会社名を補完しない
 
 【出力形式】
 必ず以下のキーを持つJSONオブジェクトを返してください：
@@ -87,6 +97,50 @@ export interface OcrResult {
   contactInfo?: ContactInfo;
   processingTime: number;
   error?: string;
+}
+
+function getPrimaryGeminiModel() {
+  return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+}
+
+function getFallbackGeminiModel(primaryModel: string) {
+  const fallbackModel =
+    process.env.GEMINI_FALLBACK_MODEL?.trim() || DEFAULT_GEMINI_FALLBACK_MODEL;
+  return fallbackModel === primaryModel ? null : fallbackModel;
+}
+
+function isModelAvailabilityError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message;
+  const referencesModel = /\bmodels\/[\w.-]+/i.test(message);
+  const modelNotFound =
+    /\[404[^\]]*\]/i.test(message) && /\bnot found\b/i.test(message);
+  const modelMethodUnsupported = /\bis not supported for\b/i.test(message);
+
+  return referencesModel && (modelNotFound || modelMethodUnsupported);
+}
+
+async function generateOcrContent(modelName: string, imagePart: Part) {
+  const model = genAI.getGenerativeModel({ model: modelName });
+
+  return model.generateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [imagePart, { text: OCR_PROMPT }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.1,
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 2048,
+    },
+  });
 }
 
 /**
@@ -154,7 +208,7 @@ export async function processBusinessCardImage(
   // Log HEIC format detection for monitoring
   if (mimeType === "image/heic" || mimeType === "image/heif") {
     ocrLogger.info("📱 HEIC format detected from mobile device");
-    ocrLogger.debug("Gemini Flash Latest should support HEIC format");
+    ocrLogger.debug("Configured Gemini model should support HEIC format");
     ocrLogger.debug("HEIC image size:", Math.round(image.length / 1024), "KB");
   }
 
@@ -172,9 +226,6 @@ export async function processBusinessCardImage(
     }
     ocrLogger.debug("✅ Starting OCR processing");
 
-    // Get the generative model (Gemini Flash Latest for maximum compatibility)
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-
     // Remove data URL prefix if present
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
     ocrLogger.debug(
@@ -182,9 +233,6 @@ export async function processBusinessCardImage(
       base64Image.length,
       "characters",
     );
-
-    // Generate content with Gemini (no timeout - let it complete naturally)
-    ocrLogger.debug("Calling Gemini API...");
 
     // Use more robust API call format with explicit content structure
     const imagePart = {
@@ -194,21 +242,30 @@ export async function processBusinessCardImage(
       },
     };
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [imagePart, { text: OCR_PROMPT }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: 2048,
-      },
-    });
+    const primaryModelName = getPrimaryGeminiModel();
+    const fallbackModelName = getFallbackGeminiModel(primaryModelName);
+    let result: GenerateContentResult;
+
+    try {
+      ocrLogger.info("Calling Gemini API with model:", primaryModelName);
+      result = await generateOcrContent(primaryModelName, imagePart);
+    } catch (primaryError) {
+      if (!fallbackModelName || !isModelAvailabilityError(primaryError)) {
+        throw primaryError;
+      }
+
+      ocrLogger.warn(
+        "Primary Gemini model failed; retrying with fallback model:",
+        fallbackModelName,
+      );
+      ocrLogger.warn(
+        "Primary Gemini error:",
+        primaryError instanceof Error
+          ? primaryError.message
+          : String(primaryError),
+      );
+      result = await generateOcrContent(fallbackModelName, imagePart);
+    }
 
     if (!result || !result.response) {
       ocrLogger.error("❌ No response from Gemini API");
@@ -330,7 +387,10 @@ export async function processBusinessCardImage(
         }
       }
 
-      ocrLogger.debug("📝 Final JSON text:", jsonText.substring(0, 200) + "...");
+      ocrLogger.debug(
+        "📝 Final JSON text:",
+        jsonText.substring(0, 200) + "...",
+      );
 
       // Parse JSON with detailed error handling
       let parsedJson;

@@ -23,7 +23,9 @@ if (!getApps().length) {
       initializeApp({
         credential: cert(serviceAccount),
       });
-      console.log("[firebase-admin] Initialized successfully with environment variables");
+      console.log(
+        "[firebase-admin] Initialized successfully with environment variables",
+      );
     } else if (process.env.NODE_ENV === "development") {
       // Only try to load service account file in development
       try {
@@ -32,7 +34,9 @@ if (!getApps().length) {
         initializeApp({
           credential: cert(serviceAccount),
         });
-        console.log("[firebase-admin] Initialized successfully with service account file");
+        console.log(
+          "[firebase-admin] Initialized successfully with service account file",
+        );
       } catch (e) {
         console.warn(
           "[firebase-admin] Service account file not found. Using default config.",
@@ -41,7 +45,9 @@ if (!getApps().length) {
       }
     } else {
       // Production without environment variables - use default
-      console.warn("[firebase-admin] Credentials not configured properly, using default");
+      console.warn(
+        "[firebase-admin] Credentials not configured properly, using default",
+      );
       initializeApp();
     }
   } catch (error) {

@@ -1,4 +1,7 @@
-import { API_ERROR_CODES, ERROR_MESSAGES } from "@/lib/constants/error-messages";
+import {
+  API_ERROR_CODES,
+  ERROR_MESSAGES,
+} from "@/lib/constants/error-messages";
 import { VALID_PROMO_CODES, type UserPlan } from "@/lib/constants/plans";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
     const userRef = adminDb.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
-  if (userSnap.exists) {
+    if (userSnap.exists) {
       const userData = userSnap.data() as UserDocSchema;
 
       // Check if already Pro

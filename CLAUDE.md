@@ -49,22 +49,26 @@ The project follows Next.js 14 App Router conventions with the following planned
 ### 🔧 Bug Fixes & Improvements
 
 #### Authentication & Security
+
 - **Fixed Google OAuth login issues**: Resolved popup blocking and redirect flow problems in development environment
 - **Enhanced error handling**: Improved authentication error messages and fallback mechanisms
 - **Firestore rules optimization**: Updated security rules to prevent permission errors while maintaining data security
 
 #### Promo Code System
+
 - **Admin SDK integration**: Migrated `/api/promo-code` to use Firebase Admin SDK for reliable server-side operations
 - **Type safety improvements**: Replaced `as any` with proper TypeScript interfaces
 - **Data structure optimization**: Removed redundant subscription fields, streamlined plan management
 - **Rate limiting**: Implemented proper rate limiting for promo code attempts
 
 #### Performance & UX
+
 - **Language context optimization**: Eliminated initial loading spinner, improved first render performance
 - **Font loading optimization**: Disabled font preloading to reduce initial page load warnings
 - **Debug log cleanup**: Removed unnecessary console logs for production readiness
 
 #### Business Card Scanning
+
 - **OCR integration**: Successfully implemented Google Cloud Vision API for business card text extraction
 - **Quota management**: Added monthly scan limits (Free: 10 scans, Pro: unlimited)
 - **Scan history**: Implemented proper storage and retrieval of scanned business cards
@@ -73,11 +77,13 @@ The project follows Next.js 14 App Router conventions with the following planned
 ### 🚀 New Features Implemented
 
 #### Pro Plan System
+
 - **Promo code functionality**: Users can upgrade to Pro plan using promo codes
 - **Plan-based quotas**: Different scan limits based on user plan
 - **Dashboard integration**: Plan status and upgrade options in user dashboard
 
 #### Enhanced Profile Management
+
 - **Visual editor improvements**: Better drag-and-drop experience with Craft.js
 - **Background customization**: Advanced background options including gradients and images
 - **Component management**: Improved text, image, and link component editing
@@ -232,6 +238,7 @@ Detailed risk assessment available in "特許リスク評価レポート\_TapFor
 **Implementation Date**: October 6, 2025
 
 #### Overview
+
 Implemented a comprehensive promo code system with Free/Pro plan differentiation to control business card scanning quotas and prepare for future monetization.
 
 #### Key Features
@@ -266,10 +273,12 @@ Implemented a comprehensive promo code system with Free/Pro plan differentiation
 #### Technical Implementation
 
 **New Files:**
+
 - `src/lib/constants/plans.ts` - Plan constants and limits
 - `src/app/api/promo-code/route.ts` - Promo code validation API
 
 **Modified Files:**
+
 - `src/services/business-card/scanQuotaService.ts` - Plan-based quota logic
 - `src/app/api/business-card/scan/route.ts` - Server-side quota check
 - `src/app/dashboard/page.tsx` - Promo code input UI
@@ -277,6 +286,7 @@ Implemented a comprehensive promo code system with Free/Pro plan differentiation
 - `src/contexts/LanguageContext.tsx` - New translations
 
 **Key Functions:**
+
 ```typescript
 // Plan limits configuration
 export const PLAN_LIMITS = {
@@ -285,13 +295,14 @@ export const PLAN_LIMITS = {
 };
 
 // Quota checking
-export async function canScan(userId: string): Promise<boolean>
-export async function getScanQuota(userId: string): Promise<ScanQuota>
+export async function canScan(userId: string): Promise<boolean>;
+export async function getScanQuota(userId: string): Promise<ScanQuota>;
 ```
 
 #### Database Schema Updates
 
 **users/{userId}:**
+
 ```typescript
 {
   plan: "free" | "pro",
@@ -301,12 +312,14 @@ export async function getScanQuota(userId: string): Promise<ScanQuota>
 ```
 
 #### Security Considerations
+
 - All plan checks performed server-side
 - Firebase Admin SDK for token verification
 - Rate limiting on promo code endpoint
 - Promo codes stored as constants (easy to rotate)
 
 #### Future Enhancements
+
 - Stripe integration for paid Pro upgrades
 - Multiple promo code tiers
 - Usage analytics per plan
@@ -316,10 +329,12 @@ export async function getScanQuota(userId: string): Promise<ScanQuota>
 ### 🎨 UI/UX Improvements
 
 **Preview Modal Responsiveness**
+
 - Fixed component width overflow in preview modal
 - Changed from fixed widths to `max-w-[600px]` for better mobile support
 - Ensures consistent display across all device preview sizes
 
 **Files Updated:**
+
 - `src/components/profile/SimpleRenderer.tsx`
 - `src/components/profile/ReadOnlyProfileInfo.tsx`

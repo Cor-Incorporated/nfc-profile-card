@@ -15,11 +15,140 @@ import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
+export type PageBackground =
+  | { type?: "solid" | "color"; color?: string }
+  | {
+      type: "gradient";
+      from?: string;
+      to?: string;
+      gradient?: { from?: string; to?: string };
+    }
+  | { type: "image"; url?: string; opacity?: number }
+  | { type: "pattern"; pattern?: string };
+
 interface ReadOnlyProfileInfoProps {
   component: ProfileComponent;
+  pageBackground?: PageBackground | null;
 }
 
-export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
+function getCardBackgroundStyle(
+  color?: string,
+  opacity?: number,
+): React.CSSProperties | undefined {
+  if (!color) return undefined;
+
+  const { red, green, blue } = getRgbColor(color);
+  if (red === null || green === null || blue === null) {
+    return { backgroundColor: color };
+  }
+
+  const alpha = getAlpha(opacity);
+
+  return { backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha})` };
+}
+
+function getAlpha(opacity?: number) {
+  return typeof opacity === "number"
+    ? Math.min(100, Math.max(0, opacity)) / 100
+    : 1;
+}
+
+function blendRgb(
+  foreground: RgbColor,
+  alpha: number,
+  background: RgbColor,
+): RgbColor {
+  return {
+    red: Math.round(foreground.red * alpha + background.red * (1 - alpha)),
+    green: Math.round(
+      foreground.green * alpha + background.green * (1 - alpha),
+    ),
+    blue: Math.round(foreground.blue * alpha + background.blue * (1 - alpha)),
+  };
+}
+
+type RgbColor = { red: number; green: number; blue: number };
+
+function getLuminance(color: RgbColor) {
+  return 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue;
+}
+
+function getPageBackgroundRgb(
+  pageBackground?: PageBackground | null,
+): RgbColor {
+  if (pageBackground?.type === "solid" || pageBackground?.type === "color") {
+    const solid = getRgbColor(pageBackground.color || "#ffffff");
+    if (solid.red !== null && solid.green !== null && solid.blue !== null) {
+      return solid;
+    }
+  }
+
+  if (pageBackground?.type === "gradient") {
+    const from = getRgbColor(
+      pageBackground.from || pageBackground.gradient?.from || "#ffffff",
+    );
+    const to = getRgbColor(
+      pageBackground.to || pageBackground.gradient?.to || "#ffffff",
+    );
+    if (
+      from.red !== null &&
+      from.green !== null &&
+      from.blue !== null &&
+      to.red !== null &&
+      to.green !== null &&
+      to.blue !== null
+    ) {
+      return getLuminance(from) < getLuminance(to) ? from : to;
+    }
+  }
+
+  return { red: 255, green: 255, blue: 255 };
+}
+
+function getRgbColor(color: string) {
+  const hex = color.replace("#", "");
+
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+    return { red: null, green: null, blue: null };
+  }
+
+  return {
+    red: parseInt(hex.slice(0, 2), 16),
+    green: parseInt(hex.slice(2, 4), 16),
+    blue: parseInt(hex.slice(4, 6), 16),
+  };
+}
+
+function isDarkBackground(
+  color?: string,
+  opacity?: number,
+  pageBackground?: PageBackground | null,
+) {
+  if (!color) return false;
+
+  const foreground = getRgbColor(color);
+  if (
+    foreground.red === null ||
+    foreground.green === null ||
+    foreground.blue === null
+  ) {
+    return false;
+  }
+
+  const effective = blendRgb(
+    foreground,
+    getAlpha(opacity),
+    getPageBackgroundRgb(pageBackground),
+  );
+  const luminance = getLuminance(effective);
+
+  return luminance < 140;
+}
+
+export function ReadOnlyProfileInfo({
+  component,
+  pageBackground,
+}: ReadOnlyProfileInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const content = (component.content as any) || {};
@@ -41,7 +170,32 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
     website,
     bio,
     photoURL,
+    cardBackgroundColor,
+    cardBackgroundOpacity,
   } = content;
+  const cardStyle = getCardBackgroundStyle(
+    cardBackgroundColor,
+    cardBackgroundOpacity,
+  );
+  const useLightText = isDarkBackground(
+    cardBackgroundColor,
+    cardBackgroundOpacity,
+    pageBackground,
+  );
+  const primaryTextClass = useLightText ? "text-white" : "text-gray-800";
+  const secondaryTextClass = useLightText ? "text-gray-100" : "text-gray-600";
+  const bodyTextClass = useLightText ? "text-gray-100" : "text-gray-700";
+  const borderClass = useLightText ? "border-white/30" : "border-gray-200";
+  const iconClass = useLightText ? "text-gray-100" : "text-gray-400";
+  const linkClass = useLightText
+    ? "text-blue-100 hover:underline"
+    : "text-blue-600 hover:underline";
+  const detailButtonClass = useLightText
+    ? "text-gray-100 hover:text-white hover:bg-white/10"
+    : "text-gray-600 hover:text-gray-900";
+  const vCardButtonClass = useLightText
+    ? "w-full max-w-xs border-white/50 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+    : "w-full max-w-xs";
 
   // 表示名の決定
   const displayName =
@@ -106,30 +260,32 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
       </div>
 
       {/* プロフィール情報カード */}
-      <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="bg-white rounded-lg shadow-md p-4" style={cardStyle}>
         {/* 名前・役職・会社 */}
         <div className="text-center mb-3">
-          <h2 className="text-base sm:text-lg font-bold text-gray-800">
+          <h2 className={`text-base sm:text-lg font-bold ${primaryTextClass}`}>
             {displayName}
           </h2>
           {position && (
-            <p className="text-sm text-gray-600 mt-0.5">{position}</p>
+            <p className={`text-sm mt-0.5 ${secondaryTextClass}`}>{position}</p>
           )}
-          {company && <p className="text-sm text-gray-600">{company}</p>}
+          {company && (
+            <p className={`text-sm ${secondaryTextClass}`}>{company}</p>
+          )}
         </div>
 
         {/* 自己紹介（3行制限と展開機能） */}
         {bio && (
-          <div className="pb-3 border-b border-gray-200">
+          <div className={`pb-3 border-b ${borderClass}`}>
             <p
-              className={`text-gray-700 text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
+              className={`${bodyTextClass} text-sm ${!isProfileExpanded ? "line-clamp-3" : ""}`}
             >
               {bio}
             </p>
             {bio.length > 150 && (
               <button
                 onClick={() => setIsProfileExpanded(!isProfileExpanded)}
-                className="text-blue-600 hover:text-blue-700 text-sm mt-1"
+                className={`${linkClass} text-sm mt-1`}
               >
                 {isProfileExpanded ? "閉じる" : "...続きを読む"}
               </button>
@@ -142,8 +298,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           <VCardButton
             username={displayName}
             profileData={vCardData}
-            className="w-full max-w-xs"
-            variant="default"
+            className={vCardButtonClass}
+            variant={useLightText ? "outline" : "default"}
             size="lg"
           />
         </div>
@@ -153,13 +309,13 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
           <Button
             variant="ghost"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full h-8 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
+            className={`w-full h-8 flex items-center justify-center gap-2 text-sm ${detailButtonClass}`}
           >
             <span>詳細情報を{isExpanded ? "非表示" : "表示"}</span>
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className={`h-4 w-4 ${iconClass}`} />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={`h-4 w-4 ${iconClass}`} />
             )}
           </Button>
         )}
@@ -172,11 +328,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
         >
           {email && (
             <div className="flex items-center space-x-3">
-              <Mail className="w-5 h-5 text-gray-400" />
-              <a
-                href={`mailto:${email}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Mail className={`w-5 h-5 ${iconClass}`} />
+              <a href={`mailto:${email}`} className={linkClass}>
                 {email}
               </a>
             </div>
@@ -184,11 +337,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {phone && (
             <div className="flex items-center space-x-3">
-              <Phone className="w-5 h-5 text-gray-400" />
-              <a
-                href={`tel:${phone}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Phone className={`w-5 h-5 ${iconClass}`} />
+              <a href={`tel:${phone}`} className={linkClass}>
                 {phone}
               </a>
             </div>
@@ -196,11 +346,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {cellPhone && (
             <div className="flex items-center space-x-3">
-              <Smartphone className="w-5 h-5 text-gray-400" />
-              <a
-                href={`tel:${cellPhone}`}
-                className="text-blue-600 hover:underline"
-              >
+              <Smartphone className={`w-5 h-5 ${iconClass}`} />
+              <a href={`tel:${cellPhone}`} className={linkClass}>
                 {cellPhone}
               </a>
             </div>
@@ -208,12 +355,12 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {website && (
             <div className="flex items-center space-x-3">
-              <Globe className="w-5 h-5 text-gray-400" />
+              <Globe className={`w-5 h-5 ${iconClass}`} />
               <a
                 href={website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className={linkClass}
               >
                 {website}
               </a>
@@ -222,8 +369,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {(company || department) && (
             <div className="flex items-center space-x-3">
-              <Building className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-700">
+              <Building className={`w-5 h-5 ${iconClass}`} />
+              <span className={bodyTextClass}>
                 {company}
                 {department && ` - ${department}`}
               </span>
@@ -232,8 +379,8 @@ export function ReadOnlyProfileInfo({ component }: ReadOnlyProfileInfoProps) {
 
           {(address || city || postalCode) && (
             <div className="flex items-center space-x-3">
-              <MapPin className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-700">
+              <MapPin className={`w-5 h-5 ${iconClass}`} />
+              <span className={bodyTextClass}>
                 {postalCode && `〒${postalCode} `}
                 {city} {address}
               </span>

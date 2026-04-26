@@ -171,7 +171,10 @@ export default function BusinessCardScanPage() {
             }
           } else {
             // Translate error message if it's a translation key
-            const errorMessage = t(result.error) || result.error || "Failed to extract information";
+            const errorMessage =
+              t(result.error) ||
+              result.error ||
+              "Failed to extract information";
             throw new Error(errorMessage);
           }
         } catch (e) {

@@ -474,7 +474,7 @@ function SignInForm() {
                       rel="noopener noreferrer"
                     >
                       {t("terms")}
-                    </Link>
+                    </Link>,
                   );
                   lastIndex = termsIndex + 7; // "{terms}".length
                 }
@@ -496,7 +496,7 @@ function SignInForm() {
                       rel="noopener noreferrer"
                     >
                       {t("privacyPolicy")}
-                    </Link>
+                    </Link>,
                   );
                   lastIndex = privacyIndex + 9; // "{privacy}".length
                 }
