@@ -34,7 +34,10 @@ function pickString(value: unknown, maxLength = 200) {
 
 async function isUsernameAvailable(username: string, uid: string) {
   const usernameKey = username.toLowerCase();
-  const reservation = await adminDb.collection("usernames").doc(usernameKey).get();
+  const reservation = await adminDb
+    .collection("usernames")
+    .doc(usernameKey)
+    .get();
   if (reservation.exists && reservation.data()?.uid !== uid) {
     return false;
   }
@@ -59,7 +62,10 @@ async function buildUsernameSuggestions(username: string, uid: string) {
 
   const available: string[] = [];
   for (const candidate of candidates) {
-    if (isValidUsername(candidate) && (await isUsernameAvailable(candidate, uid))) {
+    if (
+      isValidUsername(candidate) &&
+      (await isUsernameAvailable(candidate, uid))
+    ) {
       available.push(candidate);
     }
     if (available.length >= 3) break;
@@ -87,24 +93,20 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const requestedUsername = normalizeUsername(body.username);
     if (!requestedUsername) {
-      return NextResponse.json(
-        { error: "username_required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "username_required" }, { status: 400 });
     }
 
     const userRef = adminDb.collection("users").doc(verification.uid);
     const userDoc = await userRef.get();
     const currentUsernameRaw =
-      typeof userDoc.data()?.username === "string" ? userDoc.data()?.username : "";
+      typeof userDoc.data()?.username === "string"
+        ? userDoc.data()?.username
+        : "";
     const currentUsername = normalizeUsername(currentUsernameRaw);
     const isUsernameChanging = requestedUsername !== currentUsername;
 
     if (isUsernameChanging && !isValidUsername(requestedUsername)) {
-      return NextResponse.json(
-        { error: "username_invalid" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "username_invalid" }, { status: 400 });
     }
 
     if (
@@ -173,13 +175,18 @@ export async function PATCH(request: NextRequest) {
         throw new Error("USERNAME_TAKEN");
       }
 
-      const previousUsername = normalizeUsername(latestUserDoc.data()?.username);
+      const previousUsername = normalizeUsername(
+        latestUserDoc.data()?.username,
+      );
       if (previousUsername && previousUsername !== requestedUsername) {
         const previousRef = adminDb
           .collection("usernames")
           .doc(previousUsername.toLowerCase());
         const previousDoc = await transaction.get(previousRef);
-        if (previousDoc.exists && previousDoc.data()?.uid === verification.uid) {
+        if (
+          previousDoc.exists &&
+          previousDoc.data()?.uid === verification.uid
+        ) {
           transaction.delete(previousRef);
         }
         profileUpdates.previousUsernames =

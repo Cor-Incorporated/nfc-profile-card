@@ -142,7 +142,9 @@ export default function EditProfilePage() {
 
       const data = await response.json();
       if (response.status === 409 && data.error === "username_taken") {
-        setUsernameSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        setUsernameSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
         toast({
           title: t("error"),
           description: t("usernameUnavailable"),
@@ -312,7 +314,9 @@ export default function EditProfilePage() {
                           variant="outline"
                           size="sm"
                           className="h-8 bg-white"
-                          onClick={() => handleInputChange("username", suggestion)}
+                          onClick={() =>
+                            handleInputChange("username", suggestion)
+                          }
                         >
                           {suggestion}
                         </Button>
