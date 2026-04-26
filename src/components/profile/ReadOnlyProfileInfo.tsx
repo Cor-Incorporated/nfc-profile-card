@@ -73,7 +73,9 @@ function getLuminance(color: RgbColor) {
   return 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue;
 }
 
-function getPageBackgroundRgb(pageBackground?: PageBackground | null): RgbColor {
+function getPageBackgroundRgb(
+  pageBackground?: PageBackground | null,
+): RgbColor {
   if (pageBackground?.type === "solid" || pageBackground?.type === "color") {
     const solid = getRgbColor(pageBackground.color || "#ffffff");
     if (solid.red !== null && solid.green !== null && solid.blue !== null) {

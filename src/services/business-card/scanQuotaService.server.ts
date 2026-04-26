@@ -34,7 +34,10 @@ function getDaysRemaining(): number {
 // 今月のスキャン数を取得（Admin SDK版）
 export async function getMonthlyScansCount(userId: string): Promise<number> {
   try {
-    console.log("[scanQuotaService.server] Getting monthly scans count for user:", userId);
+    console.log(
+      "[scanQuotaService.server] Getting monthly scans count for user:",
+      userId,
+    );
     const monthStart = getMonthStart();
     console.log("[scanQuotaService.server] Month start:", monthStart);
 
@@ -47,10 +50,16 @@ export async function getMonthlyScansCount(userId: string): Promise<number> {
       .where("scannedAt", ">=", monthStart)
       .get();
 
-    console.log("[scanQuotaService.server] Monthly scans count:", snapshot.size);
+    console.log(
+      "[scanQuotaService.server] Monthly scans count:",
+      snapshot.size,
+    );
     return snapshot.size;
   } catch (error) {
-    console.error("[scanQuotaService.server] Error getting monthly scans count:", error);
+    console.error(
+      "[scanQuotaService.server] Error getting monthly scans count:",
+      error,
+    );
     throw error;
   }
 }
@@ -69,7 +78,9 @@ async function getUserPlan(userId: string): Promise<UserPlan> {
       return plan;
     }
 
-    console.log("[scanQuotaService.server] User document not found, defaulting to free");
+    console.log(
+      "[scanQuotaService.server] User document not found, defaulting to free",
+    );
     return "free";
   } catch (error) {
     console.error("[scanQuotaService.server] Error fetching user plan:", error);
@@ -108,10 +119,17 @@ export async function canScan(userId: string): Promise<boolean> {
     console.log("[scanQuotaService.server] Checking if user can scan:", userId);
     const quota = await getScanQuota(userId);
     const canPerformScan = quota.used < quota.limit;
-    console.log("[scanQuotaService.server] Can scan:", canPerformScan, `(used: ${quota.used}, limit: ${quota.limit})`);
+    console.log(
+      "[scanQuotaService.server] Can scan:",
+      canPerformScan,
+      `(used: ${quota.used}, limit: ${quota.limit})`,
+    );
     return canPerformScan;
   } catch (error) {
-    console.error("[scanQuotaService.server] Error checking if user can scan:", error);
+    console.error(
+      "[scanQuotaService.server] Error checking if user can scan:",
+      error,
+    );
     throw error;
   }
 }
@@ -122,7 +140,7 @@ export async function recordScan(
   contactInfo: any,
 ): Promise<{ success: boolean; error?: string; docId?: string }> {
   console.log("[scanQuotaService.server] Recording scan for user:", userId);
-  
+
   // 上限チェック
   const canPerformScan = await canScan(userId);
   if (!canPerformScan) {
@@ -136,7 +154,9 @@ export async function recordScan(
 
   // Firestoreに保存（Admin SDK使用）
   try {
-    console.log("[scanQuotaService.server] Saving business card to Firestore...");
+    console.log(
+      "[scanQuotaService.server] Saving business card to Firestore...",
+    );
     const businessCardsRef = adminDb
       .collection("users")
       .doc(userId)
@@ -148,13 +168,19 @@ export async function recordScan(
       userId,
     });
 
-    console.log("[scanQuotaService.server] Business card saved successfully, docId:", docRef.id);
+    console.log(
+      "[scanQuotaService.server] Business card saved successfully, docId:",
+      docRef.id,
+    );
     return {
       success: true,
       docId: docRef.id,
     };
   } catch (error) {
-    console.error("[scanQuotaService.server] Error saving business card:", error);
+    console.error(
+      "[scanQuotaService.server] Error saving business card:",
+      error,
+    );
     return {
       success: false,
       error:
@@ -162,5 +188,3 @@ export async function recordScan(
     };
   }
 }
-
-

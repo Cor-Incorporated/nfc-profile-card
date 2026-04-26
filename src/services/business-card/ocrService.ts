@@ -260,7 +260,9 @@ export async function processBusinessCardImage(
       );
       ocrLogger.warn(
         "Primary Gemini error:",
-        primaryError instanceof Error ? primaryError.message : String(primaryError),
+        primaryError instanceof Error
+          ? primaryError.message
+          : String(primaryError),
       );
       result = await generateOcrContent(fallbackModelName, imagePart);
     }

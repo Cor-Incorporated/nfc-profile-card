@@ -173,7 +173,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // 認証状態の監視
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-
       if (user) {
         await createOrUpdateUserDocument(user);
         setUser(user);

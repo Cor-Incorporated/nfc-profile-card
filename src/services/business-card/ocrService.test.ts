@@ -134,20 +134,26 @@ describe("processBusinessCardImage Gemini model selection", () => {
     "[401 Unauthorized] API key not valid. Please pass a valid API key.",
     "DEADLINE_EXCEEDED",
     "Invalid or unsupported image data",
-  ])("does not fall back for non-model-availability errors: %s", async (message) => {
-    process.env.GEMINI_MODEL = "primary-model";
-    process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
-    const { processBusinessCardImage } = await loadOcrService();
-    generateContentMock.mockRejectedValueOnce(new Error(message));
+  ])(
+    "does not fall back for non-model-availability errors: %s",
+    async (message) => {
+      process.env.GEMINI_MODEL = "primary-model";
+      process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
+      const { processBusinessCardImage } = await loadOcrService();
+      generateContentMock.mockRejectedValueOnce(new Error(message));
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+      const result = await processBusinessCardImage(
+        "base64-image",
+        "image/png",
+      );
 
-    expect(result.success).toBe(false);
-    expect(getGenerativeModelMock).toHaveBeenCalledTimes(1);
-    expect(getGenerativeModelMock).toHaveBeenCalledWith({
-      model: "primary-model",
-    });
-  });
+      expect(result.success).toBe(false);
+      expect(getGenerativeModelMock).toHaveBeenCalledTimes(1);
+      expect(getGenerativeModelMock).toHaveBeenCalledWith({
+        model: "primary-model",
+      });
+    },
+  );
 
   it("does not fall back when the fallback matches the primary model", async () => {
     process.env.GEMINI_MODEL = "same-model";

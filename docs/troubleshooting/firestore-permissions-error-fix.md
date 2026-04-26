@@ -43,20 +43,20 @@
 
 ```javascript
 // コンソールエラー
-117-bab865bd5094514b.js:1 Error fetching user profile: 
+117-bab865bd5094514b.js:1 Error fetching user profile:
   FirebaseError: Missing or insufficient permissions.
 
-117-bab865bd5094514b.js:1 Error creating/updating user document: 
+117-bab865bd5094514b.js:1 Error creating/updating user document:
   FirebaseError: Missing or insufficient permissions.
 
-117-bab865bd5094514b.js:1 Analytics tracking error: 
+117-bab865bd5094514b.js:1 Analytics tracking error:
   FirebaseError: Missing or insufficient permissions.
 
-117-bab865bd5094514b.js:1 [SimplePageEditor] Error saving profile: 
+117-bab865bd5094514b.js:1 [SimplePageEditor] Error saving profile:
   FirebaseError: Missing or insufficient permissions.
 
 // API エラー
-/api/business-card/scan:1 Failed to load resource: 
+/api/business-card/scan:1 Failed to load resource:
   the server responded with a status of 500 ()
 
 Server error response: {
@@ -98,12 +98,12 @@ match /users/{userId} {
   allow read: if true;
   allow create: if isOwner(userId);
   allow update: if isOwner(userId) && isValidProfile();  // ← 問題1
-  
+
   // サブコレクションの定義が不足 ← 問題2
   match /contacts/{contactId} {
     allow read, write: if isOwner(userId);
   }
-  
+
   match /analytics/{analyticsId} {
     allow read: if isOwner(userId);
     allow write: if false;
@@ -125,6 +125,7 @@ function isValidProfile() {
 ### Phase 3: アーキテクチャの確認
 
 **データ構造**:
+
 ```
 users/{userId}/
   ├── (ユーザードキュメント)
@@ -144,18 +145,19 @@ users/{userId}/
 
 ```typescript
 // 問題のあるコード
-import { db } from "@/lib/firebase";  // ← クライアント側SDK！
+import { db } from "@/lib/firebase"; // ← クライアント側SDK！
 
 // サーバーサイドAPIから呼ばれているのに
 // クライアント側のFirebase SDKを使用
 export async function getMonthlyScansCount(userId: string) {
   const businessCardsRef = collection(db, "users", userId, "businessCards");
-  const snapshot = await getDocs(q);  // ← 権限エラー発生
+  const snapshot = await getDocs(q); // ← 権限エラー発生
   return snapshot.size;
 }
 ```
 
-**根本的な問題**: 
+**根本的な問題**:
+
 - APIルート（サーバーサイド）からクライアント側Firebase SDKを使用
 - Firebase Admin SDKを使うべき箇所で通常SDKを使用
 
@@ -166,23 +168,26 @@ export async function getMonthlyScansCount(userId: string) {
 ### 原因1: Firestoreセキュリティルールの不足
 
 **問題点**:
+
 ```javascript
 // profileサブコレクションのルールが存在しない
 match /users/{userId} {
   // ここにprofileサブコレクションのmatchが無い
-  
+
   match /contacts/{contactId} { ... }
   match /analytics/{analyticsId} { ... }
 }
 ```
 
 **影響**:
+
 - `users/{userId}/profile/data`への読み書きが全て拒否される
 - プロフィール表示・編集機能が完全に停止
 
 ### 原因2: isValidProfile()関数の前提条件
 
 **問題点**:
+
 ```javascript
 function isValidProfile() {
   // profile.linksが存在しない場合、エラーで停止
@@ -191,21 +196,24 @@ function isValidProfile() {
 ```
 
 **影響**:
+
 - 認証時のユーザードキュメント更新（`profile`フィールドを含まない）が失敗
 - ログイン後の基本的な情報更新が不可能
 
 ### 原因3: クライアントSDKとサーバーSDKの混在
 
 **問題点**:
+
 ```typescript
 // サーバーサイドAPIルート
 export async function POST(request: NextRequest) {
   // ...
-  const canPerformScan = await canScan(userId);  // ← クライアントSDK使用
+  const canPerformScan = await canScan(userId); // ← クライアントSDK使用
 }
 ```
 
 **影響**:
+
 - サーバーサイドから実行されるため、Firestoreルールの権限チェックが厳格
 - Firebase Admin SDKなら管理者権限で実行されるが、クライアントSDKでは通常ユーザー権限
 
@@ -223,7 +231,7 @@ match /users/{userId} {
   allow create: if isOwner(userId);
   allow update: if isOwner(userId) && isValidProfile();
   allow delete: if isOwner(userId);
-  
+
   // ✅ 追加: プロフィールサブコレクション
   match /profile/{docId} {
     // 誰でも読める（公開プロフィール表示用）
@@ -231,17 +239,17 @@ match /users/{userId} {
     // 本人のみ作成・更新可能
     allow write: if isOwner(userId);
   }
-  
+
   // ✅ 追加: スキャン済み名刺サブコレクション
   match /businessCards/{cardId} {
     allow read, write: if isOwner(userId);
   }
-  
+
   // 既存のサブコレクション
   match /contacts/{contactId} {
     allow read, write: if isOwner(userId);
   }
-  
+
   match /analytics/{analyticsId} {
     allow read: if isOwner(userId);
     allow write: if false;
@@ -250,6 +258,7 @@ match /users/{userId} {
 ```
 
 **変更内容**:
+
 - ✅ `profile`サブコレクションに公開読み取り、所有者書き込み権限を付与
 - ✅ `businessCards`サブコレクションに所有者のみ読み書き権限を付与
 
@@ -260,18 +269,22 @@ match /users/{userId} {
 ```javascript
 function isValidProfile() {
   // ✅ profile.linksが存在する場合のみ検証
-  return !('profile' in request.resource.data) || 
-         !('links' in request.resource.data.profile) || 
-         request.resource.data.profile.links.size() <= 10;
+  return (
+    !("profile" in request.resource.data) ||
+    !("links" in request.resource.data.profile) ||
+    request.resource.data.profile.links.size() <= 10
+  );
 }
 ```
 
 **変更内容**:
+
 - ✅ `profile`フィールドが存在しない場合は許可
 - ✅ `profile.links`が存在しない場合は許可
 - ✅ `profile.links`が存在する場合のみ10個以下をチェック
 
 **効果**:
+
 - 認証時のユーザードキュメント更新（emailVerified, updatedAtなど）が成功
 - プロフィール情報の段階的な更新が可能
 
@@ -280,13 +293,16 @@ function isValidProfile() {
 **新規ファイル**: `src/services/business-card/scanQuotaService.server.ts`
 
 ```typescript
-import { adminDb } from "@/lib/firebase-admin";  // ✅ Admin SDK
+import { adminDb } from "@/lib/firebase-admin"; // ✅ Admin SDK
 import { FieldValue } from "firebase-admin/firestore";
 
 // ✅ Admin SDKを使用した実装
 export async function getMonthlyScansCount(userId: string): Promise<number> {
   try {
-    console.log("[scanQuotaService.server] Getting monthly scans count for user:", userId);
+    console.log(
+      "[scanQuotaService.server] Getting monthly scans count for user:",
+      userId,
+    );
     const monthStart = getMonthStart();
 
     // ✅ Admin SDKでFirestoreにアクセス（管理者権限）
@@ -299,10 +315,16 @@ export async function getMonthlyScansCount(userId: string): Promise<number> {
       .where("scannedAt", ">=", monthStart)
       .get();
 
-    console.log("[scanQuotaService.server] Monthly scans count:", snapshot.size);
+    console.log(
+      "[scanQuotaService.server] Monthly scans count:",
+      snapshot.size,
+    );
     return snapshot.size;
   } catch (error) {
-    console.error("[scanQuotaService.server] Error getting monthly scans count:", error);
+    console.error(
+      "[scanQuotaService.server] Error getting monthly scans count:",
+      error,
+    );
     throw error;
   }
 }
@@ -312,7 +334,7 @@ export async function recordScan(
   contactInfo: any,
 ): Promise<{ success: boolean; error?: string; docId?: string }> {
   console.log("[scanQuotaService.server] Recording scan for user:", userId);
-  
+
   const canPerformScan = await canScan(userId);
   if (!canPerformScan) {
     const quota = await getScanQuota(userId);
@@ -324,7 +346,9 @@ export async function recordScan(
   }
 
   try {
-    console.log("[scanQuotaService.server] Saving business card to Firestore...");
+    console.log(
+      "[scanQuotaService.server] Saving business card to Firestore...",
+    );
     const businessCardsRef = adminDb
       .collection("users")
       .doc(userId)
@@ -337,22 +361,30 @@ export async function recordScan(
       userId,
     });
 
-    console.log("[scanQuotaService.server] Business card saved successfully, docId:", docRef.id);
+    console.log(
+      "[scanQuotaService.server] Business card saved successfully, docId:",
+      docRef.id,
+    );
     return {
       success: true,
       docId: docRef.id,
     };
   } catch (error) {
-    console.error("[scanQuotaService.server] Error saving business card:", error);
+    console.error(
+      "[scanQuotaService.server] Error saving business card:",
+      error,
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : "保存中にエラーが発生しました",
+      error:
+        error instanceof Error ? error.message : "保存中にエラーが発生しました",
     };
   }
 }
 ```
 
 **変更内容**:
+
 - ✅ Firebase Admin SDKを使用（`firebase-admin/firestore`）
 - ✅ 管理者権限でFirestoreにアクセス（セキュリティルールをバイパス）
 - ✅ 詳細なデバッグログの追加
@@ -364,11 +396,14 @@ export async function recordScan(
 
 ```typescript
 // ✅ サーバーサイドサービスをインポート
-import { canScan, recordScan } from "@/services/business-card/scanQuotaService.server";
+import {
+  canScan,
+  recordScan,
+} from "@/services/business-card/scanQuotaService.server";
 
 export async function POST(request: NextRequest) {
   // ...
-  
+
   // ✅ Quota チェックにtry-catchを追加
   try {
     const canPerformScan = await canScan(userId);
@@ -382,16 +417,18 @@ export async function POST(request: NextRequest) {
     const errorResponse: ApiErrorResponse = {
       success: false,
       error: ERROR_MESSAGES.IMAGE_PROCESSING_FAILED,
-      details: quotaError instanceof Error ? quotaError.message : "Quota check failed",
+      details:
+        quotaError instanceof Error ? quotaError.message : "Quota check failed",
     };
     return NextResponse.json(errorResponse, { status: 500 });
   }
-  
+
   // ...
 }
 ```
 
 **変更内容**:
+
 - ✅ クライアントSDK版から.server版に切り替え
 - ✅ エラーハンドリングの追加
 - ✅ デバッグログの追加
@@ -412,13 +449,18 @@ if (!getApps().length) {
       const serviceAccount = {
         projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "nfc-profile-card",
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, "\n"),
+        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(
+          /\\n/g,
+          "\n",
+        ),
       };
 
       initializeApp({
         credential: cert(serviceAccount),
       });
-      console.log("[firebase-admin] Initialized successfully with environment variables");
+      console.log(
+        "[firebase-admin] Initialized successfully with environment variables",
+      );
     } else if (process.env.NODE_ENV === "development") {
       // ...
     }
@@ -432,6 +474,7 @@ if (!getApps().length) {
 ```
 
 **変更内容**:
+
 - ✅ 初期化ログの追加
 - ✅ 成功/失敗の明確な表示
 - ✅ デバッグの容易化
@@ -468,12 +511,14 @@ gh pr merge <PR番号> --squash
 ### 1. セキュリティルールの設計原則
 
 **チェックリスト**:
+
 - [ ] すべてのサブコレクションに明示的なルールを定義
 - [ ] 検証関数でフィールドの存在確認を行う
 - [ ] 公開データと非公開データを明確に区別
 - [ ] テストケースでルールを検証
 
 **推奨ルールテンプレート**:
+
 ```javascript
 match /users/{userId} {
   // ベースドキュメント
@@ -481,20 +526,20 @@ match /users/{userId} {
   allow create: if isOwner(userId);
   allow update: if isOwner(userId) && isValidUpdate();
   allow delete: if isOwner(userId);
-  
+
   // サブコレクション（パターン別）
-  
+
   // パターン1: 公開サブコレクション
   match /publicData/{docId} {
     allow read: if true;
     allow write: if isOwner(userId);
   }
-  
+
   // パターン2: プライベートサブコレクション
   match /privateData/{docId} {
     allow read, write: if isOwner(userId);
   }
-  
+
   // パターン3: 読み取り専用（Cloud Functions専用）
   match /systemData/{docId} {
     allow read: if isOwner(userId);
@@ -514,16 +559,18 @@ function isValidUpdate() {
 
 **ルール**:
 
-| 環境   | SDK              | 権限       | 使用箇所                   |
-|--------|------------------|----------|----------------------------|
-| クライアント | `firebase`       | ユーザー権限   | React コンポーネント、フック          |
-| サーバー   | `firebase-admin` | 管理者権限 | API Routes、Cloud Functions |
+| 環境         | SDK              | 権限         | 使用箇所                     |
+| ------------ | ---------------- | ------------ | ---------------------------- |
+| クライアント | `firebase`       | ユーザー権限 | React コンポーネント、フック |
+| サーバー     | `firebase-admin` | 管理者権限   | API Routes、Cloud Functions  |
 
 **ファイル命名規則**:
+
 - クライアント側: `serviceName.ts`
 - サーバー側: `serviceName.server.ts`
 
 **例**:
+
 ```
 src/services/
 ├── business-card/
@@ -534,11 +581,12 @@ src/services/
 ### 3. デバッグログの活用
 
 **推奨パターン**:
+
 ```typescript
 // サービス関数
 export async function criticalOperation(params) {
   console.log(`[serviceName] Starting operation with params:`, params);
-  
+
   try {
     const result = await performOperation(params);
     console.log(`[serviceName] Operation succeeded:`, result);
@@ -551,6 +599,7 @@ export async function criticalOperation(params) {
 ```
 
 **タグ形式**:
+
 - `[firebase-admin]` - Admin SDK関連
 - `[serviceName.server]` - サーバーサイドサービス
 - `[ComponentName]` - Reactコンポーネント
@@ -559,6 +608,7 @@ export async function criticalOperation(params) {
 ### 4. 環境変数の管理
 
 **Vercel環境変数の確認方法**:
+
 ```bash
 # 1. Vercelにログイン
 vercel login
@@ -574,6 +624,7 @@ vercel env pull .env.vercel
 ```
 
 **必須環境変数**:
+
 ```bash
 # Firebase Admin SDK
 FIREBASE_ADMIN_PROJECT_ID=your-project-id
@@ -610,22 +661,26 @@ describe("Firestore Security Rules", () => {
 ### 6. デプロイ前チェックリスト
 
 **Firebase関連**:
+
 - [ ] Firestoreルールの変更を確認
 - [ ] ルール変更をデプロイ (`firebase deploy --only firestore:rules`)
 - [ ] ローカルでルールのテスト実行
 
 **コード関連**:
+
 - [ ] TypeScriptのコンパイルエラーがない
 - [ ] リンターエラーがない
 - [ ] 単体テストが通る
 - [ ] E2Eテストが通る（該当する場合）
 
 **環境変数関連**:
+
 - [ ] 必要な環境変数がVercelに設定されている
 - [ ] 環境変数の値が正しい
 - [ ] Production/Preview/Development すべてに設定
 
 **デプロイ関連**:
+
 - [ ] 変更内容をdevブランチにコミット
 - [ ] mainブランチへのPRを作成
 - [ ] PRレビューを実施
@@ -671,15 +726,18 @@ firebase emulators:start
 ### 解決した問題
 
 ✅ **Firestoreセキュリティルールの不足**
+
 - `profile`サブコレクションへのアクセス権限を追加
 - `businessCards`サブコレクションへのアクセス権限を追加
 - `isValidProfile()`関数の改善
 
 ✅ **クライアントSDKとサーバーSDKの混在**
+
 - サーバーサイド用の`.server.ts`ファイルを作成
 - Firebase Admin SDKを使用した実装に切り替え
 
 ✅ **デバッグログの追加**
+
 - Admin SDK初期化ログ
 - スキャンサービスのデバッグログ
 - APIルートのエラーハンドリング改善
@@ -705,4 +763,3 @@ firebase emulators:start
 **作成者**: Claude (AI Assistant)  
 **最終更新**: 2025年10月16日  
 **ステータス**: ✅ 解決済み
-

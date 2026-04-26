@@ -22,12 +22,16 @@ jest.mock("@/contexts/LanguageContext", () => ({
       return map[key] || key;
     },
   }),
-  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 jest.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: null, loading: false }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 global.fetch = jest.fn();

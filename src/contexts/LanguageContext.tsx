@@ -339,8 +339,10 @@ const translations = {
     proPlan: "Proプラン",
     scanLimitReached: "今月のスキャン上限に達しました",
     upgradeForUnlimited: "Proプランで無制限スキャン",
-    scanSaveFailed: "スキャン結果の保存に失敗しました。もう一度お試しください。",
-    quotaExceeded: "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
+    scanSaveFailed:
+      "スキャン結果の保存に失敗しました。もう一度お試しください。",
+    quotaExceeded:
+      "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
   },
   en: {
     // Dashboard
@@ -620,7 +622,8 @@ const translations = {
     creatingAccount: "Creating account...",
     passwordMismatch: "Passwords do not match.",
     passwordTooShort: "Password must be at least 6 characters.",
-    accountCreated: "Account created. Please check your email for verification.",
+    accountCreated:
+      "Account created. Please check your email for verification.",
     enterEmail: "Please enter your email address.",
     resetEmailSent: "Password reset email sent to {email}.",
     verificationEmailResent: "Verification email resent.",
@@ -631,8 +634,7 @@ const translations = {
     verificationEmailInfo:
       "After creating an account, you need to verify your email address. Please click the link in the verification email.",
     tagline: "Start new networking with digital business cards",
-    termsAgreement:
-      "By continuing, you agree to our {terms} and {privacy}.",
+    termsAgreement: "By continuing, you agree to our {terms} and {privacy}.",
     terms: "Terms of Service",
     privacyPolicy: "Privacy Policy",
     namePlaceholderJa: "John Smith",
@@ -657,7 +659,8 @@ const translations = {
     scanLimitReached: "Monthly scan limit reached",
     upgradeForUnlimited: "Upgrade to Pro for unlimited scans",
     scanSaveFailed: "Failed to save scan result. Please try again.",
-    quotaExceeded: "Monthly scan limit reached. Upgrade to Pro with a promo code for unlimited scans.",
+    quotaExceeded:
+      "Monthly scan limit reached. Upgrade to Pro with a promo code for unlimited scans.",
   },
 };
 
