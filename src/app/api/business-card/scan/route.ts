@@ -5,10 +5,7 @@ import {
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
-import {
-  canScan,
-  recordScan,
-} from "@/services/business-card/scanQuotaService.server";
+import { canScan } from "@/services/business-card/scanQuotaService.server";
 import {
   ApiErrorResponse,
   BusinessCardScanRequest,
@@ -140,22 +137,6 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ OCR processing succeeded");
     console.log("Processing time:", ocrResult.processingTime, "ms");
-
-    // Record the scan to Firestore and update quota
-    console.log("Recording scan to database...");
-    const recordResult = await recordScan(userId, ocrResult.contactInfo);
-    if (!recordResult.success) {
-      console.error("❌ Failed to record scan:", recordResult.error);
-      // DB保存失敗時は上限カウントされないため、エラーを返す
-      // これにより無限スキャンの抜け穴を防ぐ
-      const errorResponse: ApiErrorResponse = {
-        success: false,
-        error: API_ERROR_CODES.SCAN_SAVE_FAILED,
-        details: recordResult.error,
-      };
-      return NextResponse.json(errorResponse, { status: 500 });
-    }
-    console.log("✅ Scan recorded successfully, docId:", recordResult.docId);
 
     const successResponse: BusinessCardScanResponse = {
       success: true,
