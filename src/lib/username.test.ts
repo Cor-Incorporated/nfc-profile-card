@@ -1,10 +1,10 @@
 import { generateDefaultUsername, getUidFallbackUsername } from "./username";
 
 describe("generateDefaultUsername", () => {
-  it("メールアドレス由来ではない公開ユーザー名を生成する", () => {
+  it("メールアドレス由来ではないランダム数字IDを生成する", () => {
     const username = generateDefaultUsername();
 
-    expect(username).toMatch(/^user_[a-f0-9]{16}$/);
+    expect(username).toMatch(/^[1-9][0-9]{11}$/);
     expect(username).not.toContain("@");
   });
 });

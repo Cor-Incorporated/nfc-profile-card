@@ -145,6 +145,13 @@ const translations = {
       "プロフィールページのデザインをカスタマイズできます",
     openDesignEditor: "デザインエディターを開く",
     usernameRequired: "ユーザー名は必須です",
+    useRandomUsername: "ランダムIDに変更",
+    randomUsernameHelp:
+      "メール由来のURLを公開したくない場合は、ランダムな数字IDに変更できます。",
+    randomUsernameConfirm:
+      "プロフィールURLをランダムな数字IDに変更します。現在のURLは使えなくなります。続行しますか？",
+    randomUsernameUpdated: "プロフィールURLをランダムIDに変更しました",
+    randomUsernameUpdateError: "プロフィールURLの変更に失敗しました",
     profileSaved: "プロフィールを保存しました",
     profileLoadError: "プロフィールの読み込みに失敗しました",
     profileSaveError: "プロフィールの保存に失敗しました",
@@ -156,7 +163,7 @@ const translations = {
 
     // Placeholders
     namePlaceholder: "山田 太郎",
-    usernamePlaceholder: "yamada_taro",
+    usernamePlaceholder: "123456789012",
     companyPlaceholder: "株式会社Example",
     positionPlaceholder: "営業部長",
     emailPlaceholder: "example@email.com",
@@ -480,6 +487,13 @@ const translations = {
     designCustomizationDescription: "Customize your profile page design",
     openDesignEditor: "Open Design Editor",
     usernameRequired: "Username is required",
+    useRandomUsername: "Use random ID",
+    randomUsernameHelp:
+      "Use a random numeric ID if you do not want an email-derived URL to remain public.",
+    randomUsernameConfirm:
+      "Change your profile URL to a random numeric ID? Your current URL will stop working.",
+    randomUsernameUpdated: "Profile URL changed to a random ID",
+    randomUsernameUpdateError: "Failed to change profile URL",
     profileSaved: "Profile saved successfully",
     profileLoadError: "Failed to load profile",
     profileSaveError: "Failed to save profile",
@@ -491,7 +505,7 @@ const translations = {
 
     // Placeholders
     namePlaceholder: "John Smith",
-    usernamePlaceholder: "john_smith",
+    usernamePlaceholder: "123456789012",
     companyPlaceholder: "Example Inc.",
     positionPlaceholder: "Sales Manager",
     emailPlaceholder: "example@email.com",
