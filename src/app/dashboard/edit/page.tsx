@@ -17,7 +17,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
 import { getUidFallbackUsername } from "@/lib/username";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -41,6 +41,7 @@ export default function EditProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRotatingUsername, setIsRotatingUsername] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     username: "",
@@ -101,6 +102,10 @@ export default function EditProfilePage() {
   }, [user, loading, router, loadProfile]);
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
+    if (field === "username") {
+      setUsernameSuggestions([]);
+    }
+
     setProfile((prev) => ({
       ...prev,
       [field]: value,
@@ -121,15 +126,49 @@ export default function EditProfilePage() {
 
     setIsSaving(true);
     try {
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          ...profile,
-          uid: user.uid,
-          updatedAt: serverTimestamp(),
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error("Missing ID token");
+      }
+
+      const response = await fetch("/api/users/me/profile", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        { merge: true },
-      );
+        body: JSON.stringify(profile),
+      });
+
+      const data = await response.json();
+      if (response.status === 409 && data.error === "username_taken") {
+        setUsernameSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+        toast({
+          title: t("error"),
+          description: t("usernameUnavailable"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (response.status === 400 && data.error === "username_invalid") {
+        toast({
+          title: t("error"),
+          description: t("usernameInvalid"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save profile");
+      }
+
+      if (data.profile?.username) {
+        setProfile((prev) => ({ ...prev, username: data.profile.username }));
+      }
 
       toast({
         title: t("success"),
@@ -175,6 +214,7 @@ export default function EditProfilePage() {
       }
 
       setProfile((prev) => ({ ...prev, username: data.username }));
+      setUsernameSuggestions([]);
       toast({
         title: t("success"),
         description: t("randomUsernameUpdated"),
@@ -261,6 +301,29 @@ export default function EditProfilePage() {
                 <p className="text-xs text-muted-foreground">
                   {t("profileUrlPrefix")}: /p/{profile.username || "username"}
                 </p>
+                {usernameSuggestions.length > 0 && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs font-medium text-amber-900">
+                      {t("usernameSuggestions")}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {usernameSuggestions.map((suggestion) => (
+                        <Button
+                          key={suggestion}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 bg-white"
+                          onClick={() =>
+                            handleInputChange("username", suggestion)
+                          }
+                        >
+                          {suggestion}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
