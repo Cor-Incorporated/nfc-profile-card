@@ -35,16 +35,16 @@ export default function BusinessCardScanPage() {
   const [scanQuota, setScanQuota] = useState<ScanQuota | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // スキャン上限情報を取得
-  useEffect(() => {
-    const fetchQuota = async () => {
-      if (user?.uid) {
-        const quota = await getScanQuota(user.uid);
-        setScanQuota(quota);
-      }
-    };
-    fetchQuota();
+  const refreshQuota = useCallback(async () => {
+    if (user?.uid) {
+      const quota = await getScanQuota(user.uid);
+      setScanQuota(quota);
+    }
   }, [user]);
+
+  useEffect(() => {
+    refreshQuota();
+  }, [refreshQuota]);
 
   // ユーザープロファイルを取得
   useEffect(() => {
@@ -224,7 +224,7 @@ export default function BusinessCardScanPage() {
         description: SUCCESS_MESSAGES.VCARD_DOWNLOAD_SUCCESS,
       });
 
-      // Reset to initial state
+      await refreshQuota();
       handleReset();
     } catch (e) {
       console.error(e);
