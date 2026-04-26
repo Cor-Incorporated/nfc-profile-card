@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import vCardsJS from "vcards-js";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { standardRateLimit } from "@/lib/rateLimit";
 
 export interface VCardData {
@@ -178,12 +185,20 @@ export async function GET(request: NextRequest) {
     const q = query(usersRef, where("username", "==", username));
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
+    let profile = snapshot.docs[0]?.data();
+
+    if (!profile && username.startsWith("u_")) {
+      const userDoc = await getDoc(doc(db, "users", username.slice(2)));
+      if (userDoc.exists()) {
+        profile = userDoc.data();
+      }
+    }
+
+    if (!profile) {
       console.error("Profile not found for username:", username);
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const profile = snapshot.docs[0].data();
     console.log("Profile data:", profile);
 
     // シンプルなVCardフォーマットで直接生成

@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { ContactInfo, PhoneNumber, Address } from "@/types/business-card";
 import { generateVCard } from "@/services/business-card/vcardService";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,15 +15,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ContactFormProps {
   initialData: ContactInfo;
-  onSave: (data: ContactInfo) => void;
+  onSave: (
+    data: ContactInfo,
+    selectedImageBase64?: string | null,
+    selectedImageMimeType?: string | null,
+  ) => void;
   onCancel: () => void;
   imageBase64?: string | null;
   imageMimeType?: string | null;
+  enhancedImageBase64?: string | null;
+  enhancedImageMimeType?: string | null;
+  imageQualityWarnings?: string[];
 }
 
 const ContactForm: React.FC<ContactFormProps> = ({
@@ -31,11 +45,26 @@ const ContactForm: React.FC<ContactFormProps> = ({
   onCancel,
   imageBase64,
   imageMimeType,
+  enhancedImageBase64,
+  enhancedImageMimeType,
+  imageQualityWarnings = [],
 }) => {
   const [formData, setFormData] = useState<ContactInfo>(initialData);
   const [vcardPreview, setVcardPreview] = useState("");
   const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(true);
+  const [imageVariant, setImageVariant] = useState<"enhanced" | "original">(
+    enhancedImageBase64 ? "enhanced" : "original",
+  );
   const { t } = useLanguage();
+
+  const selectedImageBase64 =
+    imageVariant === "enhanced" && enhancedImageBase64
+      ? enhancedImageBase64
+      : imageBase64;
+  const selectedImageMimeType =
+    imageVariant === "enhanced" && enhancedImageMimeType
+      ? enhancedImageMimeType
+      : imageMimeType;
 
   useEffect(() => {
     setFormData(initialData);
@@ -45,12 +74,18 @@ const ContactForm: React.FC<ContactFormProps> = ({
     if (formData) {
       const vcardString = generateVCard(
         formData,
-        imageBase64 || null,
-        imageMimeType || null,
+        selectedImageBase64 || null,
+        selectedImageMimeType || null,
       );
       setVcardPreview(vcardString);
     }
-  }, [formData, imageBase64, imageMimeType]);
+  }, [formData, selectedImageBase64, selectedImageMimeType]);
+
+  useEffect(() => {
+    if (!enhancedImageBase64) {
+      setImageVariant("original");
+    }
+  }, [enhancedImageBase64]);
 
   const handleChange = useCallback(
     (field: keyof Omit<ContactInfo, "phoneNumbers" | "addresses">) =>
@@ -117,6 +152,69 @@ const ContactForm: React.FC<ContactFormProps> = ({
         </h2>
 
         <div className="space-y-6">
+          {imageQualityWarnings.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <div className="space-y-1 text-sm">
+                  {imageQualityWarnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {imageBase64 && enhancedImageBase64 && (
+            <div className="space-y-3">
+              <Label>{t("vcardImageChoice")}</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setImageVariant("enhanced")}
+                  className={`rounded-md border p-2 text-left transition ${
+                    imageVariant === "enhanced"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <Image
+                    src={`data:${enhancedImageMimeType};base64,${enhancedImageBase64}`}
+                    alt=""
+                    width={320}
+                    height={200}
+                    unoptimized
+                    className="mb-2 aspect-[1.6] w-full rounded object-cover"
+                  />
+                  <span className="text-sm font-medium">
+                    {t("enhancedImage")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageVariant("original")}
+                  className={`rounded-md border p-2 text-left transition ${
+                    imageVariant === "original"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <Image
+                    src={`data:${imageMimeType};base64,${imageBase64}`}
+                    alt=""
+                    width={320}
+                    height={200}
+                    unoptimized
+                    className="mb-2 aspect-[1.6] w-full rounded object-cover"
+                  />
+                  <span className="text-sm font-medium">
+                    {t("originalImage")}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* 名前 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -125,7 +223,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 id="lastName"
                 value={formData.lastName}
                 onChange={handleChange("lastName")}
-                placeholder="山田"
+                placeholder={t("lastNamePlaceholder")}
               />
             </div>
             <div className="space-y-2">
@@ -134,7 +232,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 id="firstName"
                 value={formData.firstName}
                 onChange={handleChange("firstName")}
-                placeholder="太郎"
+                placeholder={t("firstNamePlaceholder")}
               />
             </div>
           </div>
@@ -152,7 +250,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 id="phoneticLastName"
                 value={formData.phoneticLastName}
                 onChange={handleChange("phoneticLastName")}
-                placeholder="やまだ"
+                placeholder={t("phoneticLastNamePlaceholder")}
               />
             </div>
             <div className="space-y-2">
@@ -166,7 +264,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 id="phoneticFirstName"
                 value={formData.phoneticFirstName}
                 onChange={handleChange("phoneticFirstName")}
-                placeholder="たろう"
+                placeholder={t("phoneticFirstNamePlaceholder")}
               />
             </div>
           </div>
@@ -346,7 +444,9 @@ const ContactForm: React.FC<ContactFormProps> = ({
           {/* アクションボタン */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
             <Button
-              onClick={() => onSave(formData)}
+              onClick={() =>
+                onSave(formData, selectedImageBase64, selectedImageMimeType)
+              }
               className="flex-1 h-12 text-base touch-manipulation"
             >
               💾 {t("saveVCard")}

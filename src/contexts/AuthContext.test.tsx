@@ -309,6 +309,16 @@ describe("AuthContext", () => {
         displayName: "New User",
       });
       expect(firebaseAuth.sendEmailVerification).toHaveBeenCalledWith(mockUser);
+      expect(firestore.setDoc).toHaveBeenCalledWith(
+        { id: "test-doc" },
+        expect.objectContaining({
+          username: expect.stringMatching(/^user_[a-f0-9]{16}$/),
+        }),
+      );
+      expect(firestore.setDoc).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ username: "newuser" }),
+      );
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
     });
 

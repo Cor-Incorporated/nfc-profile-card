@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Camera, Upload } from "lucide-react";
-import React, { useRef } from "react";
+import { inspectBusinessCardImage } from "@/services/business-card/imageEnhancement";
+import { AlertTriangle, Camera, Upload } from "lucide-react";
+import React, { useRef, useState } from "react";
 // heic2any is imported dynamically to avoid SSR issues
 
 interface ImageSelectorProps {
-  onImageSelected: (file: File) => void;
+  onImageSelected: (file: File, warnings: string[]) => void;
   error: string | null;
 }
 
@@ -156,6 +157,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
+  const [qualityWarnings, setQualityWarnings] = useState<string[]>([]);
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -231,13 +233,18 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         return;
       }
 
+      const qualityResult = await inspectBusinessCardImage(file, t);
+      const warnings = qualityResult.warnings;
+      setQualityWarnings(warnings);
+
       console.log("📁 File selected:", {
         name: file.name,
         type: file.type,
         size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        dimensions: `${qualityResult.width}x${qualityResult.height}`,
       });
 
-      onImageSelected(file);
+      onImageSelected(file, warnings);
     } else {
       alert(t("selectImageFile"));
     }
@@ -290,6 +297,19 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           </div>
         )}
 
+        {qualityWarnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div className="text-sm space-y-1">
+                {qualityWarnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* カメラ用のinput */}
         <input
           ref={cameraInputRef}
@@ -315,6 +335,10 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
             <p>• {t("photoTipBrightArea")}</p>
             <p>• {t("photoTipCaptureEntire")}</p>
             <p>• {t("photoTipFocus")}</p>
+            <p>• {t("photoTipSmallCard")}</p>
+            <p>• {t("photoTipRoundedCorners")}</p>
+            <p>• {t("photoTipHighResolution")}</p>
+            <p>• {t("photoTipCardService")}</p>
           </div>
         </div>
       </div>

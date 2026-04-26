@@ -6,7 +6,7 @@ import {
   ChevronUp,
   User,
   FileText,
-  Image,
+  Image as ImageIcon,
   Link,
 } from "lucide-react";
 import { ProfileComponent } from "./utils/dataStructure";
@@ -140,7 +140,7 @@ export function CollapsibleComponentList({
       {groupedComponents.image.length > 0 && (
         <CollapsibleSection
           title={`${t("imageSection")} (${groupedComponents.image.length})`}
-          icon={<Image className="h-5 w-5 text-gray-600" />}
+          icon={<ImageIcon className="h-5 w-5 text-gray-600" />}
           defaultExpanded={false}
         >
           <div className="space-y-2">

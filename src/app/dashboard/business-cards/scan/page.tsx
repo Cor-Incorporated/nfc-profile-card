@@ -17,6 +17,10 @@ import {
   recordScan,
   type ScanQuota,
 } from "@/services/business-card/scanQuotaService";
+import {
+  enhanceBusinessCardImage,
+  type EnhancedImageResult,
+} from "@/services/business-card/imageEnhancement";
 import { downloadVCard } from "@/services/business-card/vcardService";
 import { AppStatus, ContactInfo } from "@/types/business-card";
 import { doc, getDoc } from "firebase/firestore";
@@ -32,6 +36,11 @@ export default function BusinessCardScanPage() {
   const [error, setError] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);
+  const [enhancedImage, setEnhancedImage] =
+    useState<EnhancedImageResult | null>(null);
+  const [imageQualityWarnings, setImageQualityWarnings] = useState<string[]>(
+    [],
+  );
   const [scanQuota, setScanQuota] = useState<ScanQuota | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -65,10 +74,12 @@ export default function BusinessCardScanPage() {
   }, [user]);
 
   const handleImageSelected = useCallback(
-    async (file: File) => {
+    async (file: File, warnings: string[]) => {
       setAppStatus(AppStatus.PROCESSING);
       setError(null);
       setContactInfo(null);
+      setEnhancedImage(null);
+      setImageQualityWarnings(warnings);
 
       // Log HEIC format detection for monitoring
       if (file.type === "image/heic" || file.type === "image/heif") {
@@ -91,6 +102,18 @@ export default function BusinessCardScanPage() {
         setImageMimeType(file.type);
 
         try {
+          let imageForOcr = base64Data;
+          let mimeTypeForOcr = file.type;
+
+          try {
+            const enhanced = await enhanceBusinessCardImage(base64Data);
+            setEnhancedImage(enhanced);
+            imageForOcr = enhanced.dataUrl;
+            mimeTypeForOcr = enhanced.mimeType;
+          } catch (enhanceError) {
+            console.warn("Image enhancement skipped:", enhanceError);
+          }
+
           // Get ID token for authentication
           const idToken = await getIdToken();
           if (!idToken) {
@@ -105,8 +128,8 @@ export default function BusinessCardScanPage() {
               Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify({
-              image: base64Data,
-              mimeType: file.type,
+              image: imageForOcr,
+              mimeType: mimeTypeForOcr,
             }),
           });
 
@@ -200,10 +223,18 @@ export default function BusinessCardScanPage() {
     [getIdToken, t],
   );
 
-  const handleSaveContact = async (updatedContactInfo: ContactInfo) => {
+  const handleSaveContact = async (
+    updatedContactInfo: ContactInfo,
+    selectedImageBase64?: string | null,
+    selectedImageMimeType?: string | null,
+  ) => {
     try {
       // Download vCard
-      downloadVCard(updatedContactInfo, imageBase64, imageMimeType);
+      downloadVCard(
+        updatedContactInfo,
+        selectedImageBase64 ?? imageBase64,
+        selectedImageMimeType ?? imageMimeType,
+      );
 
       // Save to Firestore with quota check
       if (user?.uid) {
@@ -243,6 +274,8 @@ export default function BusinessCardScanPage() {
     setError(null);
     setImageBase64(null);
     setImageMimeType(null);
+    setEnhancedImage(null);
+    setImageQualityWarnings([]);
   };
 
   const renderContent = () => {
@@ -258,6 +291,9 @@ export default function BusinessCardScanPage() {
               onCancel={handleReset}
               imageBase64={imageBase64}
               imageMimeType={imageMimeType}
+              enhancedImageBase64={enhancedImage?.base64 || null}
+              enhancedImageMimeType={enhancedImage?.mimeType || null}
+              imageQualityWarnings={imageQualityWarnings}
             />
           );
         }
