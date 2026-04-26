@@ -2,6 +2,10 @@
 
 import { auth, db } from "@/lib/firebase";
 import {
+  generateDefaultUsername,
+  getUidFallbackUsername,
+} from "@/lib/username";
+import {
   AuthError,
   GoogleAuthProvider,
   User,
@@ -129,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // 新規ユーザーの場合
         await setDoc(userRef, {
           ...userData,
-          username: user.email?.split("@")[0] || `user_${user.uid.slice(0, 8)}`,
+          username: generateDefaultUsername(),
           createdAt: serverTimestamp(),
           name: user.displayName || "",
           bio: "",
@@ -148,7 +152,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // New user document created
       } else {
         // 既存ユーザーの場合は更新
-        await setDoc(userRef, userData, { merge: true });
+        const existingData = userSnap.data();
+        await setDoc(
+          userRef,
+          {
+            ...userData,
+            ...(!existingData.username
+              ? { username: getUidFallbackUsername(user.uid) }
+              : {}),
+          },
+          { merge: true },
+        );
         // User document updated
       }
     } catch (error) {

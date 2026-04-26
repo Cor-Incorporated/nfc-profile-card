@@ -35,9 +35,17 @@ export async function trackPageView(username: string) {
     const usersRef = collection(db, "users");
     const q = query(usersRef, where("username", "==", username));
     const snapshot = await getDocs(q);
+    let userId = snapshot.docs[0]?.id;
 
-    if (!snapshot.empty) {
-      const userId = snapshot.docs[0].id;
+    if (!userId && username.startsWith("u_")) {
+      const uid = username.slice(2);
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        userId = uid;
+      }
+    }
+
+    if (userId) {
       const today = new Date().toISOString().split("T")[0]; // "2025-09-19"
 
       const userDoc = await getDoc(doc(db, "users", userId));

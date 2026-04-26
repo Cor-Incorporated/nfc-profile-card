@@ -6,6 +6,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import type { DocumentSnapshot } from "firebase-admin/firestore";
 import { cache } from "react";
 
 export const revalidate = 300;
@@ -46,12 +47,22 @@ const fetchUserData = cache(async (username: string) => {
       .limit(1)
       .get();
 
-    if (snapshot.empty) {
+    let userDoc: DocumentSnapshot | undefined = snapshot.docs[0];
+
+    if (!userDoc && username.startsWith("u_")) {
+      const uid = username.slice(2);
+      const uidDoc = await adminDb.collection("users").doc(uid).get();
+      if (uidDoc.exists) {
+        userDoc = uidDoc;
+      }
+    }
+
+    if (!userDoc) {
       return { user: null, profileData: null };
     }
 
-    const userData = snapshot.docs[0].data() as UserProfile;
-    const userId = snapshot.docs[0].id;
+    const userData = userDoc.data() as UserProfile;
+    const userId = userDoc.id;
 
     let profileData = null;
     try {

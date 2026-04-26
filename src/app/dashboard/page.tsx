@@ -132,8 +132,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t("welcome")},{" "}
-                {user?.displayName || user?.email?.split("@")[0]}
+                {t("welcome")}, {user?.displayName || t("profile")}
               </p>
             </div>
 

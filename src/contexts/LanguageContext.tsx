@@ -107,6 +107,15 @@ const translations = {
     photoTipBrightArea: "明るい場所で撮影",
     photoTipCaptureEntire: "名刺全体を画面に収める",
     photoTipFocus: "ピントを合わせて撮影",
+    photoTipSmallCard: "小さいカードは読み取り精度が下がる場合があります",
+    photoTipRoundedCorners: "角丸カードは四隅が欠けないよう余白を入れて撮影",
+    photoTipHighResolution: "高解像度の画像（推奨: 1000px以上）を使用",
+    photoTipCardService:
+      "名刺サービスのミニカードは大きく、正面から撮影してください",
+    imageQualityLowResolution:
+      "画像の解像度が低めです。1000px以上の画像を推奨します。",
+    imageQualityAspectRatio:
+      "名刺らしい縦横比から外れています。余白や傾きを確認してください。",
     confirmAndEdit: "情報の確認・編集",
     phoneticReading: "ふりがな",
     labelExample: "ラベル (例: 本社)",
@@ -117,6 +126,9 @@ const translations = {
     other: "その他",
     addPhoneNumber: "電話番号を追加",
     vcardPreview: "vCard プレビュー",
+    vcardImageChoice: "連絡先に保存する画像",
+    enhancedImage: "補正画像",
+    originalImage: "元画像",
     saveVCard: "vCardを保存",
     failedToAnalyzeCard: "名刺の解析に失敗しました",
 
@@ -152,6 +164,11 @@ const translations = {
     websitePlaceholder: "https://example.com",
     addressPlaceholder: "東京都渋谷区...",
     bioPlaceholder: "あなたについて教えてください...",
+    bioLimitWarning: "文字数上限に近づいています",
+    lastNamePlaceholder: "山田",
+    firstNamePlaceholder: "太郎",
+    phoneticLastNamePlaceholder: "やまだ",
+    phoneticFirstNamePlaceholder: "たろう",
 
     // SimplePageEditor
     profileEditor: "プロフィール編集",
@@ -427,6 +444,14 @@ const translations = {
     photoTipBrightArea: "Take photo in bright area",
     photoTipCaptureEntire: "Capture entire business card",
     photoTipFocus: "Take photo with focus",
+    photoTipSmallCard: "Small cards may reduce OCR accuracy",
+    photoTipRoundedCorners: "Leave margin around rounded card corners",
+    photoTipHighResolution: "Use a high-resolution image (1000px+ recommended)",
+    photoTipCardService: "For mini cards, shoot close-up and straight on",
+    imageQualityLowResolution:
+      "This image looks low resolution. Use 1000px or larger when possible.",
+    imageQualityAspectRatio:
+      "The aspect ratio is unusual for a business card. Check margins and tilt.",
     confirmAndEdit: "Confirm and Edit Information",
     phoneticReading: "phonetic",
     labelExample: "Label (e.g. Head Office)",
@@ -437,6 +462,9 @@ const translations = {
     other: "Other",
     addPhoneNumber: "Add Phone Number",
     vcardPreview: "vCard Preview",
+    vcardImageChoice: "Image saved to contact",
+    enhancedImage: "Enhanced",
+    originalImage: "Original",
     saveVCard: "Save vCard",
     failedToAnalyzeCard: "Failed to analyze business card",
 
@@ -471,6 +499,11 @@ const translations = {
     websitePlaceholder: "https://example.com",
     addressPlaceholder: "123 Main St, New York...",
     bioPlaceholder: "Tell us about yourself...",
+    bioLimitWarning: "Approaching the character limit",
+    lastNamePlaceholder: "Smith",
+    firstNamePlaceholder: "John",
+    phoneticLastNamePlaceholder: "smith",
+    phoneticFirstNamePlaceholder: "john",
 
     // SimplePageEditor
     profileEditor: "Profile Editor",

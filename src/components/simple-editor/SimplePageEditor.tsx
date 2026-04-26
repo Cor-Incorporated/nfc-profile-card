@@ -48,6 +48,7 @@ import { ComponentEditor } from "./ComponentEditor";
 import { BackgroundCustomizer } from "./BackgroundCustomizer";
 import { DevicePreview } from "./DevicePreview";
 import { cleanupProfileData } from "@/utils/cleanupProfileData";
+import { getUidFallbackUsername } from "@/lib/username";
 
 // ドラッグ可能なコンポーネントアイテム
 function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
@@ -666,7 +667,7 @@ export function SimplePageEditor({
           {/* デバイスプレビューモーダル */}
           {showDevicePreview && (
             <DevicePreview
-              profileUrl={`/p/${user?.username || user?.email?.split("@")[0] || "preview"}`}
+              profileUrl={`/p/${user?.username || getUidFallbackUsername(userId)}`}
               components={components}
               background={background}
               onClose={() => setShowDevicePreview(false)}

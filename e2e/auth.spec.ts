@@ -7,20 +7,20 @@ test.describe("認証フロー", () => {
 
   test("ランディングページから認証ページへ遷移", async ({ page }) => {
     // ランディングページの確認
-    await expect(page).toHaveTitle(/NFC Profile Card/);
+    await expect(page).toHaveTitle(/TapForge/);
 
     // サインインボタンをクリック
-    const signInButton =
-      page.getByRole("link", { name: /sign in/i }) ||
-      page.getByRole("button", { name: /sign in/i }) ||
-      page.locator("text=サインイン").first();
+    const signInButton = page
+      .getByRole("link", { name: /ログイン|sign in/i })
+      .first();
     await signInButton.click();
 
     // サインインページへの遷移を確認
-    await expect(page).toHaveURL("/signin");
-    await expect(page.locator("h1, h2").first()).toContainText(
-      /サインイン|Sign In/i,
-    );
+    await expect(page).toHaveURL(/\/signin/);
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
+    await expect(
+      page.getByRole("tab", { name: /ログイン|sign in/i }),
+    ).toBeVisible();
   });
 
   test("メールアドレスでの新規登録フロー", async ({ page }) => {

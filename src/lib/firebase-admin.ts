@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { generateDefaultUsername } from "./username";
 
 // Initialize Firebase Admin
 if (!getApps().length) {
@@ -74,13 +75,11 @@ export async function createUserDocument(userData: {
   const userDoc = {
     uid: userData.uid,
     email: userData.email,
-    username: userData.username || userData.email.split("@")[0],
+    username: userData.username || generateDefaultUsername(),
     createdAt: new Date(),
     updatedAt: new Date(),
     profile: {
-      name:
-        `${userData.firstName || ""} ${userData.lastName || ""}`.trim() ||
-        userData.email.split("@")[0],
+      name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim(),
       links: [],
     },
     cards: [],
