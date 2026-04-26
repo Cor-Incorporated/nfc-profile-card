@@ -61,10 +61,15 @@
 - ✅ **Craft.jsコンテンツ表示** - エディターで作成したカスタムレイアウトの表示
 - ✅ **フォールバック機能** - 従来の静的テンプレートとの互換性
 - ✅ **Vercel Analytics** - ページビューとユーザー行動の追跡
+- ✅ **Server Component + ISR** - サーバーサイドレンダリングとオンデマンド再検証（revalidate=300）
+- ✅ **サーバー側アナリティクス** - `/api/analytics/track`によるPV追跡（referrer/userAgentをヘッダーから安全に取得）
+- ✅ **フローティングアクション** - QR・VCard等のアクションボタンをフローティングUI化
 
 ### 📸 名刺スキャン機能
 
 - ✅ 名刺OCR機能（カメラで撮影するだけで連絡先を自動保存）
+- ✅ **Geminiモデルフォールバック** - primary: gemini-3.1-flash-lite-preview → fallback: gemini-2.5-flash
+- ✅ **ミドルネーム対応** - OCR抽出データにmiddleNameフィールドを追加
 - ✅ 月間スキャン上限管理（Free: 10回、Pro: 無制限）
 - ✅ プロモーションコードによるProプランアップグレード
 - ✅ スキャン履歴の保存と管理
@@ -189,8 +194,8 @@ src/
 - **DnD**: @dnd-kit (ドラッグ&ドロップライブラリ)
 - **QRCode**: qr-code-styling (QRコード生成)
 - **Color Picker**: react-colorful
-- **OCR**: Google Cloud Vision API
-- **Analytics**: Vercel Analytics (ユーザー行動追跡)
+- **OCR**: Google Gemini API (gemini-3.1-flash-lite-preview + gemini-2.5-flash フォールバック)
+- **Analytics**: Vercel Analytics + カスタムサーバー側PV追跡API
 - **Hosting**: Vercel
 
 ## 📝 開発コマンド
