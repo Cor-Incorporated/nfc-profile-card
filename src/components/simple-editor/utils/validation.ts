@@ -1,6 +1,7 @@
 // src/components/simple-editor/utils/validation.ts
 import { z } from "zod";
 import DOMPurify from "isomorphic-dompurify";
+import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 
 // Configure DOMPurify to remove all HTML tags and keep only text
 const sanitizeString = (str: string): string => {
@@ -79,7 +80,7 @@ export const ProfileContentSchema = z.object({
   address: z.string().max(500).transform(sanitizeString).optional(),
   city: z.string().max(200).transform(sanitizeString).optional(),
   postalCode: z.string().max(20).transform(sanitizeString).optional(),
-  bio: z.string().max(1000).transform(sanitizeString).optional(),
+  bio: z.string().max(BIO_MAX_LENGTH).transform(sanitizeString).optional(),
   photoURL: z
     .string()
     .refine(

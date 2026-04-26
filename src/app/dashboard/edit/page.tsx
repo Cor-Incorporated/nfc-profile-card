@@ -14,7 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
+import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Loader2, Palette, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -60,7 +62,7 @@ export default function EditProfilePage() {
         const data = userDoc.data();
         setProfile({
           name: data.name || user.displayName || "",
-          username: data.username || user.email?.split("@")[0] || "",
+          username: data.username || getUidFallbackUsername(user.uid),
           bio: data.bio || "",
           company: data.company || "",
           position: data.position || "",
@@ -73,7 +75,7 @@ export default function EditProfilePage() {
         setProfile((prev) => ({
           ...prev,
           name: user.displayName || "",
-          username: user.email?.split("@")[0] || "",
+          username: getUidFallbackUsername(user.uid),
           email: user.email || "",
         }));
       }
@@ -269,8 +271,25 @@ export default function EditProfilePage() {
                 value={profile.bio}
                 onChange={(e) => handleInputChange("bio", e.target.value)}
                 placeholder={t("bioPlaceholder")}
+                maxLength={BIO_MAX_LENGTH}
                 rows={4}
               />
+              <div className="flex items-center justify-between text-xs">
+                <span
+                  className={
+                    profile.bio.length >= BIO_WARNING_THRESHOLD
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {profile.bio.length >= BIO_WARNING_THRESHOLD
+                    ? t("bioLimitWarning")
+                    : ""}
+                </span>
+                <span className="text-muted-foreground">
+                  {profile.bio.length} / {BIO_MAX_LENGTH}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>

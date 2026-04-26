@@ -12,6 +12,7 @@ import { ImageUploader } from "./ImageUploader";
 import { getSocialServiceInfo } from "@/utils/socialLinks";
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 
 interface ComponentEditorProps {
   component: ProfileComponent;
@@ -483,7 +484,7 @@ function ProfileEditor({
                 onChange={(e) =>
                   setProfileData({ ...profileData, lastName: e.target.value })
                 }
-                placeholder="山田"
+                placeholder={t("lastNamePlaceholder")}
                 className="mt-1"
               />
             </div>
@@ -497,7 +498,7 @@ function ProfileEditor({
                 onChange={(e) =>
                   setProfileData({ ...profileData, firstName: e.target.value })
                 }
-                placeholder="太郎"
+                placeholder={t("firstNamePlaceholder")}
                 className="mt-1"
               />
             </div>
@@ -517,7 +518,7 @@ function ProfileEditor({
                     phoneticLastName: e.target.value,
                   })
                 }
-                placeholder="yamada"
+                placeholder={t("phoneticLastNamePlaceholder")}
                 className="mt-1"
               />
             </div>
@@ -534,7 +535,7 @@ function ProfileEditor({
                     phoneticFirstName: e.target.value,
                   })
                 }
-                placeholder="taro"
+                placeholder={t("phoneticFirstNamePlaceholder")}
                 className="mt-1"
               />
             </div>
@@ -550,10 +551,27 @@ function ProfileEditor({
               onChange={(e) =>
                 setProfileData({ ...profileData, bio: e.target.value })
               }
+              maxLength={BIO_MAX_LENGTH}
               rows={3}
               placeholder={t("briefIntroduction")}
               className="mt-1"
             />
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span
+                className={
+                  (profileData.bio || "").length >= BIO_WARNING_THRESHOLD
+                    ? "text-amber-600"
+                    : "text-gray-500"
+                }
+              >
+                {(profileData.bio || "").length >= BIO_WARNING_THRESHOLD
+                  ? t("bioLimitWarning")
+                  : ""}
+              </span>
+              <span className="text-gray-500">
+                {(profileData.bio || "").length} / {BIO_MAX_LENGTH}
+              </span>
+            </div>
           </div>
 
           {/* 写真アップロード */}

@@ -32,7 +32,16 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .get();
 
-    if (snapshot.empty) {
+    let userRef = snapshot.docs[0]?.ref;
+
+    if (!userRef && username.startsWith("u_")) {
+      const uidDoc = await usersRef.doc(username.slice(2)).get();
+      if (uidDoc.exists) {
+        userRef = uidDoc.ref;
+      }
+    }
+
+    if (!userRef) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -41,7 +50,6 @@ export async function POST(request: NextRequest) {
     const safeUserAgent =
       request.headers.get("user-agent")?.slice(0, 500) || "unknown";
 
-    const userRef = snapshot.docs[0].ref;
     const now = new Date();
     const today = now.toISOString().split("T")[0];
 
