@@ -374,14 +374,17 @@ const ContactForm: React.FC<ContactFormProps> = ({
           <div className="space-y-3">
             <Label>{t("phone")}</Label>
             {(formData.phoneNumbers || []).map((phone, index) => (
-              <div key={index} className="flex items-center gap-2">
+              <div
+                key={index}
+                className="flex items-center gap-2 flex-wrap sm:flex-nowrap"
+              >
                 <Select
                   value={phone.type}
                   onValueChange={(value) =>
                     handlePhoneChange(index, "type")(value as any)
                   }
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-[100px] sm:w-[120px] flex-shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

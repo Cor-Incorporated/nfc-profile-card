@@ -80,7 +80,7 @@ export function DevicePreview({
 
         {/* プレビューエリア */}
         <div
-          className="p-8 bg-gray-100 flex items-center justify-center overflow-auto"
+          className="p-2 sm:p-8 bg-gray-100 flex items-center justify-center overflow-auto"
           style={{ height: "calc(100% - 80px)" }}
         >
           <div className="relative">
