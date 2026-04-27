@@ -428,9 +428,7 @@ export default function EditProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>{t("profilePhoto")}</CardTitle>
-            <CardDescription>
-              {t("profilePhotoField")}
-            </CardDescription>
+            <CardDescription>{t("profilePhotoField")}</CardDescription>
           </CardHeader>
           <CardContent>
             {user && (

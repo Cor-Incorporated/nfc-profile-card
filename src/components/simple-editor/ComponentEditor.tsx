@@ -453,7 +453,9 @@ function ProfileEditor({
       </div>
 
       <div className="space-y-3">
-        <Label className="text-xs font-medium">{t("profileCardBackground")}</Label>
+        <Label className="text-xs font-medium">
+          {t("profileCardBackground")}
+        </Label>
         <div className="grid grid-cols-4 gap-2">
           {COLOR_PRESETS.map((preset) => (
             <button
