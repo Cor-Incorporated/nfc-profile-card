@@ -21,6 +21,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ImageUploader } from "@/components/simple-editor/ImageUploader";
 
 interface ProfileData {
   name: string;
@@ -32,6 +33,7 @@ interface ProfileData {
   phone: string;
   website: string;
   address: string;
+  photoURL: string;
 }
 
 export default function EditProfilePage() {
@@ -52,6 +54,7 @@ export default function EditProfilePage() {
     phone: "",
     website: "",
     address: "",
+    photoURL: "",
   });
 
   const loadProfile = useCallback(async () => {
@@ -72,6 +75,7 @@ export default function EditProfilePage() {
           phone: data.phone || "",
           website: data.website || "",
           address: data.address || "",
+          photoURL: data.photoURL || "",
         });
       } else {
         setProfile((prev) => ({
@@ -79,6 +83,7 @@ export default function EditProfilePage() {
           name: user.displayName || "",
           username: getUidFallbackUsername(user.uid),
           email: user.email || "",
+          photoURL: "",
         }));
       }
     } catch (error) {
@@ -417,6 +422,23 @@ export default function EditProfilePage() {
                 </span>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("profilePhoto")}</CardTitle>
+            <CardDescription>{t("profilePhotoField")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {user && (
+              <ImageUploader
+                userId={user.uid}
+                onImageUploaded={(url) => handleInputChange("photoURL", url)}
+                currentImageUrl={profile.photoURL}
+                isCircular={true}
+              />
+            )}
           </CardContent>
         </Card>
 

@@ -234,6 +234,9 @@ const translations = {
     phoneticFirstNameDetailed: "ふりがな（名）",
     briefIntroduction: "簡単な自己紹介",
     profilePhotoField: "プロフィール写真",
+    profileInfoEditMessage:
+      "プロフィール情報（名前、会社、連絡先など）はプロフィール編集ページで設定できます",
+    goToProfileEdit: "プロフィール編集を開く",
     workPhone: "電話番号（会社）",
     cellPhone: "携帯電話",
     departmentField: "部署",
@@ -580,6 +583,9 @@ const translations = {
     phoneticFirstNameDetailed: "Phonetic (First)",
     briefIntroduction: "Brief introduction",
     profilePhotoField: "Profile Photo",
+    profileInfoEditMessage:
+      "Profile information (name, company, contact, etc.) can be configured on the Profile Edit page",
+    goToProfileEdit: "Open Profile Edit",
     workPhone: "Work Phone",
     cellPhone: "Cell Phone",
     departmentField: "Department",
