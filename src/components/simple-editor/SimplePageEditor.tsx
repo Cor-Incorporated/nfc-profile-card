@@ -116,7 +116,7 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
 
               case "link":
                 return content?.label || content?.url ? (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 mt-1 truncate">
                     {content.label || content.url}
                   </p>
                 ) : (

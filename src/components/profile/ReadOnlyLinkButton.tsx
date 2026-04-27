@@ -84,7 +84,7 @@ export const ReadOnlyLinkButton = ({
       href={sanitizedUrl}
       target={target}
       rel={target === "_blank" ? "noopener noreferrer" : undefined}
-      className="inline-flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+      className="inline-flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg max-w-full"
       style={{
         backgroundColor: finalBackgroundColor,
         color: textColor,
@@ -101,10 +101,11 @@ export const ReadOnlyLinkButton = ({
         alignItems: "center",
         justifyContent: "center",
         gap: "8px",
+        overflow: "hidden",
       }}
     >
-      <IconComponent className="w-4 h-4" />
-      <span>{sanitizedText}</span>
+      <IconComponent className="w-4 h-4 flex-shrink-0" />
+      <span className="truncate">{sanitizedText}</span>
     </a>
   );
 };

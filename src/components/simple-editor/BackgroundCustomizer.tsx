@@ -116,7 +116,7 @@ export function BackgroundCustomizer({
                 onChange={(e) =>
                   handleChange({ type: "solid", color: e.target.value })
                 }
-                className="flex-1 px-2 border rounded"
+                className="flex-1 px-2 border rounded text-base"
                 placeholder="#ffffff"
               />
             </div>
