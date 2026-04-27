@@ -17,7 +17,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
 import { getUidFallbackUsername } from "@/lib/username";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -63,29 +69,67 @@ export default function EditProfilePage() {
     setIsLoading(true);
     try {
       const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setProfile({
-          name: data.name || user.displayName || "",
-          username: data.username || getUidFallbackUsername(user.uid),
-          bio: data.bio || "",
-          company: data.company || "",
-          position: data.position || "",
-          email: data.email || user.email || "",
-          phone: data.phone || "",
-          website: data.website || "",
-          address: data.address || "",
-          photoURL: data.photoURL || "",
-        });
-      } else {
-        setProfile((prev) => ({
-          ...prev,
-          name: user.displayName || "",
-          username: getUidFallbackUsername(user.uid),
-          email: user.email || "",
-          photoURL: "",
-        }));
-      }
+      const userData = userDoc.exists() ? userDoc.data() : null;
+      const username = userData?.username || getUidFallbackUsername(user.uid);
+
+      let fromComponent: Record<string, string> = {};
+      try {
+        const profileDoc = await getDoc(
+          doc(db, "users", user.uid, "profile", "data"),
+        );
+        if (profileDoc.exists()) {
+          const pd = profileDoc.data();
+          const comps: any[] = Array.isArray(pd?.components)
+            ? pd.components
+            : [];
+          const pc = comps.find((c: any) => c.type === "profile");
+          if (pc?.content) {
+            const c = pc.content;
+            fromComponent = {
+              name: c.name || `${c.lastName || ""} ${c.firstName || ""}`.trim(),
+              bio: c.bio || "",
+              company: c.company || "",
+              position: c.position || "",
+              email: c.email || "",
+              phone: c.phone || c.cellPhone || "",
+              website: c.website || "",
+              address:
+                [c.postalCode, c.city, c.address].filter(Boolean).join(" ") ||
+                "",
+              photoURL: c.photoURL || "",
+            };
+          }
+        }
+      } catch {}
+
+      const hasComponentData = Object.values(fromComponent).some(
+        (v) => v !== "",
+      );
+      const fallback = {
+        name: userData?.name || user.displayName || "",
+        bio: userData?.bio || "",
+        company: userData?.company || "",
+        position: userData?.position || "",
+        email: userData?.email || user.email || "",
+        phone: userData?.phone || "",
+        website: userData?.website || "",
+        address: userData?.address || "",
+        photoURL: userData?.photoURL || "",
+      };
+      const src = hasComponentData ? fromComponent : fallback;
+
+      setProfile({
+        name: src.name || user.displayName || "",
+        username,
+        bio: src.bio || "",
+        company: src.company || "",
+        position: src.position || "",
+        email: src.email || user.email || "",
+        phone: src.phone || "",
+        website: src.website || "",
+        address: src.address || "",
+        photoURL: src.photoURL || "",
+      });
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
@@ -174,6 +218,44 @@ export default function EditProfilePage() {
       if (data.profile?.username) {
         setProfile((prev) => ({ ...prev, username: data.profile.username }));
       }
+
+      try {
+        const profileDocRef = doc(db, "users", user.uid, "profile", "data");
+        const profileDoc = await getDoc(profileDocRef);
+        const nameParts = profile.name.split(" ");
+        const firstName =
+          nameParts.length > 1
+            ? nameParts.slice(1).join(" ")
+            : nameParts[0] || "";
+        const lastName = nameParts.length > 1 ? nameParts[0] : "";
+
+        if (profileDoc.exists()) {
+          const pd = profileDoc.data();
+          const components: any[] = Array.isArray(pd?.components)
+            ? pd.components
+            : [];
+          const updated = components.map((comp: any) => {
+            if (comp.type !== "profile") return comp;
+            return {
+              ...comp,
+              content: {
+                ...(comp.content || {}),
+                ...(profile.name
+                  ? { name: profile.name, firstName, lastName }
+                  : {}),
+                ...(profile.bio ? { bio: profile.bio } : {}),
+                ...(profile.company ? { company: profile.company } : {}),
+                ...(profile.position ? { position: profile.position } : {}),
+                ...(profile.email ? { email: profile.email } : {}),
+                ...(profile.phone ? { phone: profile.phone } : {}),
+                ...(profile.website ? { website: profile.website } : {}),
+                ...(profile.photoURL ? { photoURL: profile.photoURL } : {}),
+              },
+            };
+          });
+          await updateDoc(profileDocRef, { components: updated });
+        }
+      } catch {}
 
       toast({
         title: t("success"),
