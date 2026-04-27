@@ -188,8 +188,8 @@ export function ReadOnlyProfileInfo({
   const borderClass = useLightText ? "border-white/30" : "border-gray-200";
   const iconClass = useLightText ? "text-gray-100" : "text-gray-400";
   const linkClass = useLightText
-    ? "text-blue-100 hover:underline"
-    : "text-blue-600 hover:underline";
+    ? "text-blue-100 hover:underline break-all"
+    : "text-blue-600 hover:underline break-all";
   const detailButtonClass = useLightText
     ? "text-gray-100 hover:text-white hover:bg-white/10"
     : "text-gray-600 hover:text-gray-900";

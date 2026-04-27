@@ -497,7 +497,7 @@ function ProfileEditor({
                 cardBackgroundColor: e.target.value,
               })
             }
-            className="flex-1 px-2 border rounded text-sm"
+            className="flex-1 px-2 border rounded text-base"
             placeholder="#3b82f6"
           />
         </div>

@@ -139,7 +139,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t("title")}</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1 truncate max-w-[200px]">
                 {t("welcome")}, {user?.displayName || t("profile")}
               </p>
             </div>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       placeholder={t("promoCodePlaceholder")}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                       disabled={promoCodeLoading}
                     />
                     <button

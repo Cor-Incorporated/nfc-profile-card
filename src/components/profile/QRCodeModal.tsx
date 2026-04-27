@@ -110,7 +110,7 @@ export function QRCodeModal({
         </DialogHeader>
 
         <div className="flex flex-col items-center space-y-4">
-          <div className="bg-white p-4 rounded-lg shadow-lg min-h-[300px] min-w-[300px] flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg shadow-lg min-h-[250px] sm:min-h-[300px] w-full max-w-[300px] flex items-center justify-center">
             {isGenerating ? (
               <div className="text-gray-400 animate-pulse">
                 {t("generatingQRCode") || "Generating QR code..."}
@@ -121,7 +121,7 @@ export function QRCodeModal({
                 alt="QR Code"
                 width={300}
                 height={300}
-                className="w-[300px] h-[300px]"
+                className="w-full h-auto max-w-[300px]"
               />
             ) : null}
           </div>
