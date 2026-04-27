@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { X } from "lucide-react";
 import { ProfileComponent } from "./utils/dataStructure";
 import { ImageUploader } from "./ImageUploader";
 import { getSocialServiceInfo } from "@/utils/socialLinks";
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
+import { useRouter } from "next/navigation";
 
 interface ComponentEditorProps {
   component: ProfileComponent;
@@ -63,7 +62,7 @@ export function ComponentEditor({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] sm:max-h-96 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[85vh] overflow-y-auto">
         <div className="flex justify-between items-center p-3 sm:p-4 border-b">
           <h3 className="text-base sm:text-lg font-semibold">
             {component.type === "text" && t("editText")}
@@ -379,9 +378,9 @@ function ProfileEditor({
   onClose,
   userId,
 }: ComponentEditorProps) {
-  // Type guard to ensure we have profile content
-  const content = component.content as any; // Temporary solution for complex type
+  const content = component.content as any;
   const { t } = useLanguage();
+  const router = useRouter();
 
   const [profileData, setProfileData] = useState<ProfileContent>({
     firstName: content?.firstName || "",
@@ -405,17 +404,11 @@ function ProfileEditor({
     cardBackgroundOpacity: content?.cardBackgroundOpacity || 95,
   });
 
-  const [activeTab, setActiveTab] = useState<
-    "basic" | "contact" | "company" | "address" | "design"
-  >("basic");
-
   const handleSave = () => {
-    // フルネームの自動生成
     const fullName =
       profileData.name ||
       `${profileData.lastName || ""} ${profileData.firstName || ""}`.trim();
 
-    // 空文字列フィールドを除外して、有効なデータのみを送信
     const cleanContent = Object.fromEntries(
       Object.entries({
         ...profileData,
@@ -425,8 +418,6 @@ function ProfileEditor({
       ),
     );
 
-    console.log("[ProfileEditor] Saving clean content:", cleanContent);
-
     onSave({
       ...component,
       content: cleanContent,
@@ -434,7 +425,6 @@ function ProfileEditor({
     onClose();
   };
 
-  // カラープリセット
   const COLOR_PRESETS = [
     { color: "#3b82f6", name: t("blue") },
     { color: "#10b981", name: t("green") },
@@ -448,387 +438,92 @@ function ProfileEditor({
 
   return (
     <div className="space-y-4">
-      {/* タブナビゲーション */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as any)}
-      >
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="basic" className="text-xs">
-            {t("basic")}
-          </TabsTrigger>
-          <TabsTrigger value="contact" className="text-xs">
-            {t("contact")}
-          </TabsTrigger>
-          <TabsTrigger value="company" className="text-xs">
-            {t("companyInfo")}
-          </TabsTrigger>
-          <TabsTrigger value="address" className="text-xs">
-            {t("addressTab")}
-          </TabsTrigger>
-          <TabsTrigger value="design" className="text-xs">
-            {t("design")}
-          </TabsTrigger>
-        </TabsList>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+        <p className="text-sm text-blue-800 mb-2">
+          {t("profileInfoEditMessage")}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/dashboard/edit")}
+          className="w-full"
+        >
+          {t("goToProfileEdit")}
+        </Button>
+      </div>
 
-        {/* 基本情報タブ */}
-        <TabsContent value="basic" className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="lastName" className="text-xs">
-                {t("lastNameField")}
-              </Label>
-              <Input
-                id="lastName"
-                value={profileData.lastName}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, lastName: e.target.value })
-                }
-                placeholder={t("lastNamePlaceholder")}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="firstName" className="text-xs">
-                {t("firstNameField")}
-              </Label>
-              <Input
-                id="firstName"
-                value={profileData.firstName}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, firstName: e.target.value })
-                }
-                placeholder={t("firstNamePlaceholder")}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="phoneticLastName" className="text-xs">
-                {t("phoneticLastNameDetailed")}
-              </Label>
-              <Input
-                id="phoneticLastName"
-                value={profileData.phoneticLastName}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    phoneticLastName: e.target.value,
-                  })
-                }
-                placeholder={t("phoneticLastNamePlaceholder")}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="phoneticFirstName" className="text-xs">
-                {t("phoneticFirstNameDetailed")}
-              </Label>
-              <Input
-                id="phoneticFirstName"
-                value={profileData.phoneticFirstName}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    phoneticFirstName: e.target.value,
-                  })
-                }
-                placeholder={t("phoneticFirstNamePlaceholder")}
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="bio" className="text-xs">
-              {t("bio")}
-            </Label>
-            <Textarea
-              id="bio"
-              value={profileData.bio}
-              onChange={(e) =>
-                setProfileData({ ...profileData, bio: e.target.value })
-              }
-              maxLength={BIO_MAX_LENGTH}
-              rows={3}
-              placeholder={t("briefIntroduction")}
-              className="mt-1"
-            />
-            <div className="mt-1 flex items-center justify-between text-xs">
-              <span
-                className={
-                  (profileData.bio || "").length >= BIO_WARNING_THRESHOLD
-                    ? "text-amber-600"
-                    : "text-gray-500"
-                }
-              >
-                {(profileData.bio || "").length >= BIO_WARNING_THRESHOLD
-                  ? t("bioLimitWarning")
-                  : ""}
-              </span>
-              <span className="text-gray-500">
-                {(profileData.bio || "").length} / {BIO_MAX_LENGTH}
-              </span>
-            </div>
-          </div>
-
-          {/* 写真アップロード */}
-          <div>
-            <Label className="text-xs">{t("profilePhotoField")}</Label>
-            <ImageUploader
-              userId={userId || ""}
-              onImageUploaded={(url) =>
-                setProfileData({ ...profileData, photoURL: url })
-              }
-              currentImageUrl={profileData.photoURL}
-              isCircular={true}
-            />
-          </div>
-        </TabsContent>
-
-        {/* 連絡先タブ */}
-        <TabsContent value="contact" className="space-y-3">
-          <div>
-            <Label htmlFor="email" className="text-xs">
-              {t("email")}
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={profileData.email}
-              onChange={(e) =>
-                setProfileData({ ...profileData, email: e.target.value })
-              }
-              placeholder="example@email.com"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="phone" className="text-xs">
-              {t("workPhone")}
-            </Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={profileData.phone}
-              onChange={(e) =>
-                setProfileData({ ...profileData, phone: e.target.value })
-              }
-              placeholder="03-1234-5678"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="cellPhone" className="text-xs">
-              {t("cellPhone")}
-            </Label>
-            <Input
-              id="cellPhone"
-              type="tel"
-              value={profileData.cellPhone}
-              onChange={(e) =>
-                setProfileData({ ...profileData, cellPhone: e.target.value })
-              }
-              placeholder="090-1234-5678"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="website" className="text-xs">
-              {t("website")}
-            </Label>
-            <Input
-              id="website"
-              type="url"
-              value={profileData.website}
-              onChange={(e) =>
-                setProfileData({ ...profileData, website: e.target.value })
-              }
-              placeholder="https://example.com"
-              className="mt-1"
-            />
-          </div>
-        </TabsContent>
-
-        {/* 会社情報タブ */}
-        <TabsContent value="company" className="space-y-3">
-          <div>
-            <Label htmlFor="company" className="text-xs">
-              {t("company")}
-            </Label>
-            <Input
-              id="company"
-              value={profileData.company}
-              onChange={(e) =>
-                setProfileData({ ...profileData, company: e.target.value })
-              }
-              placeholder={t("companyPlaceholder")}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="department" className="text-xs">
-              {t("departmentField")}
-            </Label>
-            <Input
-              id="department"
-              value={profileData.department}
-              onChange={(e) =>
-                setProfileData({ ...profileData, department: e.target.value })
-              }
-              placeholder="Sales"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="position" className="text-xs">
-              {t("position")}
-            </Label>
-            <Input
-              id="position"
-              value={profileData.position}
-              onChange={(e) =>
-                setProfileData({ ...profileData, position: e.target.value })
-              }
-              placeholder={t("positionPlaceholder")}
-              className="mt-1"
-            />
-          </div>
-        </TabsContent>
-
-        {/* 住所タブ */}
-        <TabsContent value="address" className="space-y-3">
-          <div>
-            <Label htmlFor="postalCode" className="text-xs">
-              {t("postalCodeField")}
-            </Label>
-            <Input
-              id="postalCode"
-              value={profileData.postalCode}
-              onChange={(e) =>
-                setProfileData({ ...profileData, postalCode: e.target.value })
-              }
-              placeholder="100-0001"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="city" className="text-xs">
-              {t("cityField")}
-            </Label>
-            <Input
-              id="city"
-              value={profileData.city}
-              onChange={(e) =>
-                setProfileData({ ...profileData, city: e.target.value })
-              }
-              placeholder={t("cityField")}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="address" className="text-xs">
-              {t("addressTab")}
-            </Label>
-            <Input
-              id="address"
-              value={profileData.address}
-              onChange={(e) =>
-                setProfileData({ ...profileData, address: e.target.value })
-              }
-              placeholder={t("addressPlaceholder")}
-              className="mt-1"
-            />
-          </div>
-        </TabsContent>
-
-        {/* デザインタブ */}
-        <TabsContent value="design" className="space-y-3">
-          <div>
-            <Label className="text-xs">{t("profileCardBackground")}</Label>
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {COLOR_PRESETS.map((preset) => (
-                <button
-                  key={preset.color}
-                  onClick={() =>
-                    setProfileData({
-                      ...profileData,
-                      cardBackgroundColor: preset.color,
-                    })
-                  }
-                  className={`h-10 rounded border-2 ${
-                    profileData.cardBackgroundColor === preset.color
-                      ? "border-blue-500"
-                      : "border-gray-300"
-                  }`}
-                  style={{ backgroundColor: preset.color }}
-                  title={preset.name}
-                />
-              ))}
-            </div>
-            <div className="flex gap-2 mt-2">
-              <input
-                type="color"
-                value={profileData.cardBackgroundColor || "#3b82f6"}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    cardBackgroundColor: e.target.value,
-                  })
-                }
-                className="h-10 w-20"
-              />
-              <input
-                type="text"
-                value={profileData.cardBackgroundColor || "#3b82f6"}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    cardBackgroundColor: e.target.value,
-                  })
-                }
-                className="flex-1 px-2 border rounded text-sm"
-                placeholder="#3b82f6"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="card-opacity" className="text-xs">
-              {t("cardTransparency")}: {profileData.cardBackgroundOpacity || 95}
-              %
-            </Label>
-            <input
-              id="card-opacity"
-              type="range"
-              min="0"
-              max="100"
-              value={profileData.cardBackgroundOpacity || 95}
-              onChange={(e) =>
+      <div className="space-y-3">
+        <Label className="text-xs font-medium">{t("profileCardBackground")}</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {COLOR_PRESETS.map((preset) => (
+            <button
+              key={preset.color}
+              onClick={() =>
                 setProfileData({
                   ...profileData,
-                  cardBackgroundOpacity: parseInt(e.target.value),
+                  cardBackgroundColor: preset.color,
                 })
               }
-              className="w-full mt-1"
+              className={`h-10 rounded border-2 ${
+                profileData.cardBackgroundColor === preset.color
+                  ? "border-blue-500"
+                  : "border-gray-300"
+              }`}
+              style={{ backgroundColor: preset.color }}
+              title={preset.name}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              {t("transparencyDescription")}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="color"
+            value={profileData.cardBackgroundColor || "#3b82f6"}
+            onChange={(e) =>
+              setProfileData({
+                ...profileData,
+                cardBackgroundColor: e.target.value,
+              })
+            }
+            className="h-10 w-20"
+          />
+          <input
+            type="text"
+            value={profileData.cardBackgroundColor || "#3b82f6"}
+            onChange={(e) =>
+              setProfileData({
+                ...profileData,
+                cardBackgroundColor: e.target.value,
+              })
+            }
+            className="flex-1 px-2 border rounded text-sm"
+            placeholder="#3b82f6"
+          />
+        </div>
+      </div>
 
-      {/* 保存・キャンセルボタン */}
+      <div>
+        <Label htmlFor="card-opacity" className="text-xs">
+          {t("cardTransparency")}: {profileData.cardBackgroundOpacity || 95}%
+        </Label>
+        <input
+          id="card-opacity"
+          type="range"
+          min="0"
+          max="100"
+          value={profileData.cardBackgroundOpacity || 95}
+          onChange={(e) =>
+            setProfileData({
+              ...profileData,
+              cardBackgroundOpacity: parseInt(e.target.value),
+            })
+          }
+          className="w-full mt-1"
+        />
+        <div className="text-xs text-gray-500 mt-1">
+          {t("transparencyDescription")}
+        </div>
+      </div>
+
       <div className="flex gap-2 pt-2">
         <Button onClick={handleSave} className="flex-1">
           {t("save")}

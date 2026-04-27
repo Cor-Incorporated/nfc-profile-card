@@ -514,7 +514,7 @@ export function SimplePageEditor({
 
       {/* メインコンテンツ（ヘッダー分の余白を追加） */}
       <div className="pt-24 sm:pt-20 py-8">
-        <div className="max-w-md mx-auto px-4">
+        <div className="max-w-lg mx-auto px-4 w-full">
           {/* コンポーネントリスト */}
           <DndContext
             sensors={sensors}
