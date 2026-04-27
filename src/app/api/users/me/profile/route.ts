@@ -209,6 +209,68 @@ export async function PATCH(request: NextRequest) {
       );
     });
 
+    const syncFields = [
+      "name",
+      "bio",
+      "company",
+      "position",
+      "email",
+      "phone",
+      "website",
+      "address",
+      "photoURL",
+    ] as const;
+
+    try {
+      const profileDocRef = adminDb
+        .collection("users")
+        .doc(verification.uid)
+        .collection("profile")
+        .doc("data");
+      const profileDoc = await profileDocRef.get();
+
+      if (profileDoc.exists) {
+        const profileData = profileDoc.data();
+        const components: any[] = profileData?.components || [];
+
+        const updatedComponents = components.map((comp: any) => {
+          if (comp.type !== "profile") return comp;
+
+          const existing = { ...(comp.content || {}) };
+          const nameParts = String(profileUpdates.name || "").split(" ");
+          const firstName =
+            nameParts.length > 1
+              ? nameParts.slice(1).join(" ")
+              : nameParts[0] || "";
+          const lastName = nameParts.length > 1 ? nameParts[0] : "";
+
+          const updated: Record<string, unknown> = { ...existing };
+
+          for (const field of syncFields) {
+            const value = profileUpdates[field];
+            if (typeof value === "string" && value !== "") {
+              updated[field] = value;
+            }
+          }
+
+          if (profileUpdates.name) {
+            updated.firstName = firstName;
+            updated.lastName = lastName;
+            updated.name = profileUpdates.name;
+          }
+
+          return { ...comp, content: updated };
+        });
+
+        await profileDocRef.update({
+          components: updatedComponents,
+          updatedAt: new Date(),
+        });
+      }
+    } catch (syncError) {
+      console.error("Profile component sync failed:", syncError);
+    }
+
     return NextResponse.json({
       profile: {
         ...Object.fromEntries(
