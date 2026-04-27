@@ -14,6 +14,7 @@ const PROFILE_STRING_FIELDS = [
   "phone",
   "website",
   "address",
+  "photoURL",
 ] as const;
 
 function normalizeUsername(value: unknown) {
