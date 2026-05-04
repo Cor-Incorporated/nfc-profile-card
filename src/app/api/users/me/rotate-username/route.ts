@@ -3,6 +3,10 @@ import { generateDefaultUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
+function normalizeLegacyUrlAction(value: unknown) {
+  return value === "redirect" ? "redirect" : "disable";
+}
+
 async function generateUniqueUsername() {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const username = generateDefaultUsername();
@@ -44,6 +48,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    let body: Record<string, unknown> = {};
+    try {
+      body = await request.json();
+    } catch {}
+    const legacyUrlAction = normalizeLegacyUrlAction(body.legacyUrlAction);
+
     const userRef = adminDb.collection("users").doc(verification.uid);
     const username = await generateUniqueUsername();
     const result = await adminDb.runTransaction(async (transaction) => {
@@ -78,7 +88,28 @@ export async function POST(request: NextRequest) {
         ) {
           transaction.delete(previousRef);
         }
+
+        const previousAliasRef = adminDb
+          .collection("usernameAliases")
+          .doc(String(previousUsername).toLowerCase());
+        if (legacyUrlAction === "redirect") {
+          transaction.set(previousAliasRef, {
+            uid: verification.uid,
+            username: previousUsername,
+            targetUsername: username,
+            status: "redirect",
+            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        } else {
+          transaction.delete(previousAliasRef);
+        }
       }
+
+      const requestedAliasRef = adminDb
+        .collection("usernameAliases")
+        .doc(username.toLowerCase());
+      transaction.delete(requestedAliasRef);
 
       transaction.set(usernameRef, {
         uid: verification.uid,
