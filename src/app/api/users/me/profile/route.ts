@@ -41,6 +41,10 @@ function pickString(value: unknown, maxLength = 200) {
   return typeof value === "string" ? value.slice(0, maxLength) : "";
 }
 
+function normalizeLegacyUrlAction(value: unknown) {
+  return value === "redirect" ? "redirect" : "disable";
+}
+
 async function isUsernameAvailable(username: string, uid: string) {
   const usernameKey = username.toLowerCase();
   const reservation = await adminDb
@@ -48,6 +52,18 @@ async function isUsernameAvailable(username: string, uid: string) {
     .doc(usernameKey)
     .get();
   if (reservation.exists && reservation.data()?.uid !== uid) {
+    return false;
+  }
+
+  const alias = await adminDb
+    .collection("usernameAliases")
+    .doc(usernameKey)
+    .get();
+  if (
+    alias.exists &&
+    alias.data()?.status === "redirect" &&
+    alias.data()?.uid !== uid
+  ) {
     return false;
   }
 
@@ -111,6 +127,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
+    const legacyUrlAction = normalizeLegacyUrlAction(body.legacyUrlAction);
     const usernameMode =
       typeof body.usernameMode === "string" ? body.usernameMode : "custom";
     const requestedUsername =
@@ -221,9 +238,31 @@ export async function PATCH(request: NextRequest) {
         ) {
           transaction.delete(previousRef);
         }
+
+        const previousAliasRef = adminDb
+          .collection("usernameAliases")
+          .doc(previousUsername.toLowerCase());
+        if (legacyUrlAction === "redirect") {
+          transaction.set(previousAliasRef, {
+            uid: verification.uid,
+            username: previousUsername,
+            targetUsername: requestedUsername,
+            status: "redirect",
+            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        } else {
+          transaction.delete(previousAliasRef);
+        }
+
         profileUpdates.previousUsernames =
           FieldValue.arrayUnion(previousUsername);
       }
+
+      const requestedAliasRef = adminDb
+        .collection("usernameAliases")
+        .doc(requestedUsername.toLowerCase());
+      transaction.delete(requestedAliasRef);
 
       transaction.set(usernameRef, {
         uid: verification.uid,

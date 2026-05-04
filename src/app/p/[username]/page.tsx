@@ -4,7 +4,7 @@ import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { TraditionalProfile } from "@/components/profile/TraditionalProfile";
 import { adminDb } from "@/lib/firebase-admin";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import {
   FieldPath,
@@ -54,6 +54,11 @@ const PUBLIC_USER_FIELDS = [
 
 type UserProfileDoc = QueryDocumentSnapshot<DocumentData>;
 
+interface ResolvedUserDoc {
+  userDoc: UserProfileDoc;
+  redirectUsername?: string;
+}
+
 function normalizeUsername(value: string) {
   return value.trim().toLowerCase();
 }
@@ -102,7 +107,7 @@ async function fetchUserByUsername(
 
 async function resolveUserDoc(
   username: string,
-): Promise<UserProfileDoc | null> {
+): Promise<ResolvedUserDoc | null> {
   const normalizedUsername = normalizeUsername(username);
   const usernameDoc = await adminDb
     .collection("usernames")
@@ -112,20 +117,40 @@ async function resolveUserDoc(
 
   if (typeof reservedUid === "string" && reservedUid) {
     const reservedUserDoc = await fetchUserByUid(reservedUid);
-    if (reservedUserDoc) return reservedUserDoc;
+    if (reservedUserDoc) return { userDoc: reservedUserDoc };
   }
 
   const normalizedUserDoc = await fetchUserByUsername(normalizedUsername);
-  if (normalizedUserDoc) return normalizedUserDoc;
+  if (normalizedUserDoc) return { userDoc: normalizedUserDoc };
 
   if (username !== normalizedUsername) {
     const exactUserDoc = await fetchUserByUsername(username);
-    if (exactUserDoc) return exactUserDoc;
+    if (exactUserDoc) return { userDoc: exactUserDoc };
+  }
+
+  const aliasDoc = await adminDb
+    .collection("usernameAliases")
+    .doc(normalizedUsername)
+    .get();
+  const aliasData = aliasDoc.exists ? aliasDoc.data() : null;
+  const aliasUid = aliasData?.status === "redirect" ? aliasData?.uid : null;
+  if (typeof aliasUid === "string" && aliasUid) {
+    const aliasUserDoc = await fetchUserByUid(aliasUid);
+    if (aliasUserDoc) {
+      const currentUsername = normalizeUsername(aliasUserDoc.data().username);
+      return {
+        userDoc: aliasUserDoc,
+        redirectUsername:
+          currentUsername && currentUsername !== normalizedUsername
+            ? currentUsername
+            : undefined,
+      };
+    }
   }
 
   if (username.startsWith("u_")) {
     const uidUserDoc = await fetchUserByUid(username.slice(2));
-    if (uidUserDoc) return uidUserDoc;
+    if (uidUserDoc) return { userDoc: uidUserDoc };
   }
 
   return null;
@@ -146,12 +171,13 @@ async function fetchProfileData(userId: string) {
 
 const fetchUserData = cache(async (username: string) => {
   try {
-    const userDoc = await resolveUserDoc(username);
+    const resolved = await resolveUserDoc(username);
 
-    if (!userDoc) {
-      return { user: null, profileData: null };
+    if (!resolved) {
+      return { user: null, profileData: null, redirectUsername: null };
     }
 
+    const { userDoc, redirectUsername } = resolved;
     const userData = toPublicUserProfile(userDoc.data());
     const userId = userDoc.id;
 
@@ -166,7 +192,7 @@ const fetchUserData = cache(async (username: string) => {
       );
     }
 
-    return { user: userData, profileData };
+    return { user: userData, profileData, redirectUsername };
   } catch (error) {
     console.error("Failed to fetch user data for username:", username, error);
     throw error;
@@ -226,12 +252,19 @@ function Footer() {
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const { user, profileData } = await fetchUserData(params.username);
+  const { user, profileData, redirectUsername } = await fetchUserData(
+    params.username,
+  );
 
   if (!user) {
     notFound();
   }
 
+  if (redirectUsername) {
+    redirect(`/p/${redirectUsername}`);
+  }
+
+  const publicUsername = user.username || params.username;
   const nameParts = user.name?.split(" ") || [];
   const vcardFirstName = nameParts[0] || "";
   const vcardLastName =
@@ -256,11 +289,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           background={profileData.background}
         />
         <ProfileFloatingActions
-          username={params.username}
+          username={publicUsername}
           photoURL={user.photoURL}
           variant="full"
         />
-        <ProfileAnalyticsTracker username={params.username} />
+        <ProfileAnalyticsTracker username={publicUsername} />
         <Footer />
       </>
     );
@@ -271,14 +304,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <TraditionalProfile
         user={user}
         vcardData={vcardData}
-        username={params.username}
+        username={publicUsername}
       />
       <ProfileFloatingActions
-        username={params.username}
+        username={publicUsername}
         photoURL={user.photoURL}
         variant="minimal"
       />
-      <ProfileAnalyticsTracker username={params.username} />
+      <ProfileAnalyticsTracker username={publicUsername} />
       <Footer />
     </>
   );
