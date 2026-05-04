@@ -4,8 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getAnalyticsSummary } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
+import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc } from "firebase/firestore";
 import {
+  AlertCircle,
   Crown,
   ExternalLink,
   Eye,
@@ -35,6 +37,13 @@ export default function DashboardPage() {
   const [promoCodeLoading, setPromoCodeLoading] = useState(false);
   const [promoCodeError, setPromoCodeError] = useState("");
   const [promoCodeSuccess, setPromoCodeSuccess] = useState("");
+  const [idSetupMode, setIdSetupMode] = useState<"random" | "uid" | "custom">(
+    "random",
+  );
+  const [customUsername, setCustomUsername] = useState("");
+  const [idSetupLoading, setIdSetupLoading] = useState(false);
+  const [idSetupError, setIdSetupError] = useState("");
+  const [idSetupSuccess, setIdSetupSuccess] = useState("");
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -119,6 +128,69 @@ export default function DashboardPage() {
     }
   };
 
+  const handleProfileIdSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIdSetupError("");
+    setIdSetupSuccess("");
+
+    if (idSetupMode === "custom" && !customUsername.trim()) {
+      setIdSetupError(t("usernameRequired"));
+      return;
+    }
+
+    setIdSetupLoading(true);
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch("/api/users/me/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          usernameMode: idSetupMode,
+          username: customUsername,
+          name: userProfile?.name || user.displayName || "",
+          bio: userProfile?.bio || "",
+          company: userProfile?.company || "",
+          position: userProfile?.position || "",
+          email: userProfile?.email || user.email || "",
+          phone: userProfile?.phone || "",
+          website: userProfile?.website || "",
+          address: userProfile?.address || "",
+          photoURL: userProfile?.photoURL || "",
+        }),
+      });
+
+      const data = await response.json();
+      if (response.status === 409 && data.error === "username_taken") {
+        setIdSetupError(t("usernameUnavailable"));
+        return;
+      }
+
+      if (response.status === 400 && data.error === "username_invalid") {
+        setIdSetupError(t("usernameInvalid"));
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to set profile ID");
+      }
+
+      setIdSetupSuccess(t("profileIdSetupSuccess"));
+      setCustomUsername("");
+      await fetchUserProfile();
+    } catch (error) {
+      console.error("Error setting profile ID:", error);
+      setIdSetupError(t("profileSaveError"));
+    } finally {
+      setIdSetupLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -182,6 +254,107 @@ export default function DashboardPage() {
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">📝 {t("profileSetup")}</p>
           </div>
+        )}
+
+        {!profileLoading && userProfile?.usernameConfirmed !== true && (
+          <form
+            onSubmit={handleProfileIdSetup}
+            className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-blue-200"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">
+                  {t("profileIdSetupTitle")}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {t("profileIdSetupDescription")}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                {
+                  mode: "random" as const,
+                  title: t("profileIdRandomTitle"),
+                  description: t("profileIdRandomDescription"),
+                  badge: t("recommended"),
+                },
+                {
+                  mode: "custom" as const,
+                  title: t("profileIdCustomTitle"),
+                  description: t("profileIdCustomDescription"),
+                  badge: "",
+                },
+                {
+                  mode: "uid" as const,
+                  title: t("profileIdUidTitle"),
+                  description: `${t("profileIdUidDescription")} /p/${getUidFallbackUsername(user.uid).toLowerCase()}`,
+                  badge: "",
+                },
+              ].map((option) => (
+                <button
+                  key={option.mode}
+                  type="button"
+                  onClick={() => setIdSetupMode(option.mode)}
+                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                    idSetupMode === option.mode
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {option.title}
+                    </span>
+                    {option.badge && (
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">
+                        {option.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600">
+                    {option.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            {idSetupMode === "custom" && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={customUsername}
+                  onChange={(e) => setCustomUsername(e.target.value)}
+                  placeholder={t("usernamePlaceholder")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={idSetupLoading}
+                />
+              </div>
+            )}
+
+            <div className="mt-4 rounded-lg bg-gray-50 p-3">
+              <p className="text-xs text-gray-600">{t("profileIdHelpText")}</p>
+            </div>
+
+            {idSetupError && (
+              <p className="mt-3 text-xs text-red-600">{idSetupError}</p>
+            )}
+            {idSetupSuccess && (
+              <p className="mt-3 text-xs text-green-600">{idSetupSuccess}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={idSetupLoading}
+              className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {idSetupLoading ? t("loading") : t("profileIdSetupAction")}
+            </button>
+          </form>
         )}
 
         {/* Analytics Summary */}

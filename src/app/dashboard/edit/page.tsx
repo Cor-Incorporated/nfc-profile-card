@@ -50,6 +50,7 @@ export default function EditProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isRotatingUsername, setIsRotatingUsername] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [originalUsername, setOriginalUsername] = useState("");
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     username: "",
@@ -130,6 +131,7 @@ export default function EditProfilePage() {
         address: src.address || "",
         photoURL: src.photoURL || "",
       });
+      setOriginalUsername(username);
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
@@ -170,6 +172,14 @@ export default function EditProfilePage() {
         description: t("usernameRequired"),
         variant: "destructive",
       });
+      return;
+    }
+
+    const usernameChanged =
+      originalUsername &&
+      profile.username.trim().toLowerCase() !==
+        originalUsername.trim().toLowerCase();
+    if (usernameChanged && !window.confirm(t("profileUrlChangeConfirm"))) {
       return;
     }
 
@@ -217,6 +227,7 @@ export default function EditProfilePage() {
 
       if (data.profile?.username) {
         setProfile((prev) => ({ ...prev, username: data.profile.username }));
+        setOriginalUsername(data.profile.username);
       }
 
       try {
@@ -259,7 +270,9 @@ export default function EditProfilePage() {
 
       toast({
         title: t("success"),
-        description: t("profileSaved"),
+        description: usernameChanged
+          ? t("profileUrlChangedWarning")
+          : t("profileSaved"),
       });
 
       router.push("/dashboard");
@@ -278,7 +291,7 @@ export default function EditProfilePage() {
   const handleRotateUsername = async () => {
     if (!user || isRotatingUsername) return;
 
-    const confirmed = window.confirm(t("randomUsernameConfirm"));
+    const confirmed = window.confirm(t("profileUrlChangeConfirm"));
     if (!confirmed) return;
 
     setIsRotatingUsername(true);
@@ -301,10 +314,11 @@ export default function EditProfilePage() {
       }
 
       setProfile((prev) => ({ ...prev, username: data.username }));
+      setOriginalUsername(data.username);
       setUsernameSuggestions([]);
       toast({
         title: t("success"),
-        description: t("randomUsernameUpdated"),
+        description: t("profileUrlChangedWarning"),
       });
     } catch (error) {
       console.error("Error rotating username:", error);
@@ -385,6 +399,27 @@ export default function EditProfilePage() {
                 <p className="text-xs text-muted-foreground">
                   {t("randomUsernameHelp")}
                 </p>
+                {user && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50 p-3">
+                    <p className="text-xs text-blue-900">
+                      {t("profileIdEditHelp")}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 h-8 bg-white"
+                      onClick={() =>
+                        handleInputChange(
+                          "username",
+                          getUidFallbackUsername(user.uid).toLowerCase(),
+                        )
+                      }
+                    >
+                      {t("useUidUsername")}
+                    </Button>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {t("profileUrlPrefix")}: /p/{profile.username || "username"}
                 </p>

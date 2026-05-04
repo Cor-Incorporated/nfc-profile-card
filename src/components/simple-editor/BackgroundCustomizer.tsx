@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "./ImageUploader";
 import { Palette, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getBackgroundStyle } from "@/lib/profile/backgroundStyle";
 
 interface BackgroundCustomizerProps {
   currentBackground: any;
@@ -276,30 +277,4 @@ export function BackgroundCustomizer({
   );
 }
 
-// 背景スタイル生成関数（export して他のコンポーネントでも使用可能）
-export function getBackgroundStyle(background: any) {
-  if (!background) return {};
-
-  switch (background.type) {
-    case "solid":
-      return { backgroundColor: background.color };
-
-    case "gradient":
-      return {
-        background: `linear-gradient(135deg, ${background.from || "#667eea"}, ${background.to || "#764ba2"})`,
-      };
-
-    case "image":
-      // 不透明度を背景画像に適用するためにlinear-gradientを使用
-      const opacity = background.opacity ?? 0.5;
-      return {
-        backgroundImage: `linear-gradient(rgba(255, 255, 255, ${1 - opacity}), rgba(255, 255, 255, ${1 - opacity})), url(${background.url})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundBlendMode: "normal",
-      };
-
-    default:
-      return {};
-  }
-}
+export { getBackgroundStyle };

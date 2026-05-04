@@ -6,6 +6,14 @@ import { NextRequest, NextResponse } from "next/server";
 async function generateUniqueUsername() {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const username = generateDefaultUsername();
+    const usernameDoc = await adminDb
+      .collection("usernames")
+      .doc(username.toLowerCase())
+      .get();
+    if (usernameDoc.exists) {
+      continue;
+    }
+
     const snapshot = await adminDb
       .collection("users")
       .where("username", "==", username)
@@ -46,8 +54,12 @@ export async function POST(request: NextRequest) {
 
       const data = userDoc.data() || {};
       const previousUsername = data.username || "";
+      const usernameRef = adminDb
+        .collection("usernames")
+        .doc(username.toLowerCase());
       const updateData: Record<string, unknown> = {
         username,
+        usernameConfirmed: true,
         usernameRotatedAt: FieldValue.serverTimestamp(),
         usernameRotatedBy: verification.uid,
         usernameRotatedBySelf: true,
@@ -56,8 +68,23 @@ export async function POST(request: NextRequest) {
 
       if (previousUsername) {
         updateData.previousUsernames = FieldValue.arrayUnion(previousUsername);
+        const previousRef = adminDb
+          .collection("usernames")
+          .doc(String(previousUsername).toLowerCase());
+        const previousDoc = await transaction.get(previousRef);
+        if (
+          previousDoc.exists &&
+          previousDoc.data()?.uid === verification.uid
+        ) {
+          transaction.delete(previousRef);
+        }
       }
 
+      transaction.set(usernameRef, {
+        uid: verification.uid,
+        username,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
       transaction.update(userRef, updateData);
 
       return {
