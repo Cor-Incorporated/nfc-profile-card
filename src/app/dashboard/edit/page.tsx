@@ -42,6 +42,14 @@ interface ProfileData {
   photoURL: string;
 }
 
+type LegacyUrlAction = "redirect" | "disable";
+
+interface UsernameAlias {
+  username: string;
+  status: "redirect" | "disabled";
+  targetUsername: string;
+}
+
 export default function EditProfilePage() {
   const { user, loading, getIdToken } = useAuth();
   const router = useRouter();
@@ -49,8 +57,12 @@ export default function EditProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRotatingUsername, setIsRotatingUsername] = useState(false);
+  const [isUpdatingAlias, setIsUpdatingAlias] = useState<string | null>(null);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [originalUsername, setOriginalUsername] = useState("");
+  const [legacyUrlAction, setLegacyUrlAction] =
+    useState<LegacyUrlAction>("redirect");
+  const [usernameAliases, setUsernameAliases] = useState<UsernameAlias[]>([]);
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     username: "",
@@ -144,13 +156,35 @@ export default function EditProfilePage() {
     }
   }, [user, t]);
 
+  const loadUsernameAliases = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const token = await getIdToken();
+      if (!token) return;
+
+      const response = await fetch("/api/users/me/username-aliases", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) return;
+
+      const data = await response.json();
+      setUsernameAliases(Array.isArray(data.aliases) ? data.aliases : []);
+    } catch (error) {
+      console.error("Error loading username aliases:", error);
+    }
+  }, [user, getIdToken]);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push("/signin");
     } else if (user) {
       loadProfile();
+      loadUsernameAliases();
     }
-  }, [user, loading, router, loadProfile]);
+  }, [user, loading, router, loadProfile, loadUsernameAliases]);
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     if (field === "username") {
@@ -196,7 +230,10 @@ export default function EditProfilePage() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(profile),
+        body: JSON.stringify({
+          ...profile,
+          legacyUrlAction,
+        }),
       });
 
       const data = await response.json();
@@ -271,9 +308,12 @@ export default function EditProfilePage() {
       toast({
         title: t("success"),
         description: usernameChanged
-          ? t("profileUrlChangedWarning")
+          ? legacyUrlAction === "redirect"
+            ? t("profileUrlChangedRedirecting")
+            : t("profileUrlChangedWarning")
           : t("profileSaved"),
       });
+      await loadUsernameAliases();
 
       router.push("/dashboard");
     } catch (error) {
@@ -305,7 +345,9 @@ export default function EditProfilePage() {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ legacyUrlAction }),
       });
 
       const data = await response.json();
@@ -318,8 +360,12 @@ export default function EditProfilePage() {
       setUsernameSuggestions([]);
       toast({
         title: t("success"),
-        description: t("profileUrlChangedWarning"),
+        description:
+          legacyUrlAction === "redirect"
+            ? t("profileUrlChangedRedirecting")
+            : t("profileUrlChangedWarning"),
       });
+      await loadUsernameAliases();
     } catch (error) {
       console.error("Error rotating username:", error);
       toast({
@@ -329,6 +375,57 @@ export default function EditProfilePage() {
       });
     } finally {
       setIsRotatingUsername(false);
+    }
+  };
+
+  const handleAliasUpdate = async (
+    aliasUsername: string,
+    action: LegacyUrlAction,
+  ) => {
+    if (!user || isUpdatingAlias) return;
+
+    setIsUpdatingAlias(aliasUsername);
+    try {
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error("Missing ID token");
+      }
+
+      const response = await fetch("/api/users/me/username-aliases", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ aliasUsername, action }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update username alias");
+      }
+
+      setUsernameAliases((prev) =>
+        prev.map((alias) =>
+          alias.username === data.alias.username ? data.alias : alias,
+        ),
+      );
+      toast({
+        title: t("success"),
+        description:
+          action === "redirect"
+            ? t("legacyUrlRedirectEnabled")
+            : t("legacyUrlDisabled"),
+      });
+    } catch (error) {
+      console.error("Error updating username alias:", error);
+      toast({
+        title: t("error"),
+        description: t("legacyUrlUpdateError"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAlias(null);
     }
   };
 
@@ -420,6 +517,49 @@ export default function EditProfilePage() {
                     </Button>
                   </div>
                 )}
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-900">
+                    {t("legacyUrlHandlingTitle")}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex cursor-pointer gap-2 rounded-md bg-white p-2 text-xs text-gray-700">
+                      <input
+                        type="radio"
+                        name="legacy-url-action"
+                        value="redirect"
+                        checked={legacyUrlAction === "redirect"}
+                        onChange={() => setLegacyUrlAction("redirect")}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium text-gray-900">
+                          {t("legacyUrlRedirectChoice")}
+                        </span>
+                        <span className="block text-gray-600">
+                          {t("legacyUrlRedirectHelp")}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex cursor-pointer gap-2 rounded-md bg-white p-2 text-xs text-gray-700">
+                      <input
+                        type="radio"
+                        name="legacy-url-action"
+                        value="disable"
+                        checked={legacyUrlAction === "disable"}
+                        onChange={() => setLegacyUrlAction("disable")}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium text-gray-900">
+                          {t("legacyUrlDisableChoice")}
+                        </span>
+                        <span className="block text-gray-600">
+                          {t("legacyUrlDisableHelp")}
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {t("profileUrlPrefix")}: /p/{profile.username || "username"}
                 </p>
@@ -541,6 +681,72 @@ export default function EditProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {usernameAliases.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("legacyUrlManagementTitle")}</CardTitle>
+              <CardDescription>
+                {t("legacyUrlManagementDescription")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {usernameAliases.map((alias) => (
+                <div
+                  key={alias.username}
+                  className="rounded-lg border border-gray-200 p-3"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        /p/{alias.username}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {alias.status === "redirect"
+                          ? t("legacyUrlRedirectingTo").replace(
+                              "{username}",
+                              alias.targetUsername,
+                            )
+                          : t("legacyUrlCurrentlyDisabled")}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={
+                          alias.status === "redirect" ? "default" : "outline"
+                        }
+                        size="sm"
+                        disabled={isUpdatingAlias === alias.username}
+                        onClick={() =>
+                          handleAliasUpdate(alias.username, "redirect")
+                        }
+                      >
+                        {isUpdatingAlias === alias.username ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        {t("enableRedirect")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          alias.status === "disabled" ? "default" : "outline"
+                        }
+                        size="sm"
+                        disabled={isUpdatingAlias === alias.username}
+                        onClick={() =>
+                          handleAliasUpdate(alias.username, "disable")
+                        }
+                      >
+                        {t("disableRedirect")}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

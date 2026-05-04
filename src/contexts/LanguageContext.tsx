@@ -175,12 +175,31 @@ const translations = {
     randomUsernameUpdated: "プロフィールURLをランダムIDに変更しました",
     randomUsernameUpdateError: "プロフィールURLの変更に失敗しました",
     profileUrlChangeConfirm:
-      "公開プロフィールURLが変更されます。旧URLを書き込んだNFCカードやQRコードからは、このプロフィールを開けなくなります。続行しますか？",
+      "公開プロフィールURLが変更されます。選択した旧URLの扱いで続行しますか？",
     profileUrlChangedWarning:
       "公開プロフィールURLを変更しました。旧URLを書き込んだNFCカードやQRコードは更新が必要です。",
+    profileUrlChangedRedirecting:
+      "公開プロフィールURLを変更しました。旧URLは新しいURLへ転送されます。",
     profileIdEditHelp:
-      "任意IDを使った後でも、下のボタンでユーザーID由来の安定IDに戻せます。ID変更後は旧URLを書いたカードやQRコードの更新が必要です。",
+      "任意IDを使った後でも、下のボタンでユーザーID由来の安定IDに戻せます。ID変更時は旧URLを転送するか無効化するかを選べます。",
     useUidUsername: "安定IDに戻す",
+    legacyUrlHandlingTitle: "ID変更時の旧URLの扱い",
+    legacyUrlRedirectChoice: "旧URLを新しいURLへ転送する",
+    legacyUrlRedirectHelp:
+      "NFCカードやQRコードを更新せずに使い続けられます。旧URLを知っている人は新しいプロフィールへアクセスできます。",
+    legacyUrlDisableChoice: "旧URLを無効化する",
+    legacyUrlDisableHelp:
+      "メール由来IDなどを隠したい場合はこちらを選んでください。旧URLを書いたカードやQRコードは更新が必要です。",
+    legacyUrlManagementTitle: "過去のプロフィールURL",
+    legacyUrlManagementDescription:
+      "以前使っていたIDを、現在のプロフィールURLへ転送するか無効化するかを後から変更できます。",
+    legacyUrlRedirectingTo: "現在 /p/{username} へ転送中",
+    legacyUrlCurrentlyDisabled: "現在は無効です",
+    enableRedirect: "転送する",
+    disableRedirect: "無効化",
+    legacyUrlRedirectEnabled: "旧URLの転送を有効にしました",
+    legacyUrlDisabled: "旧URLを無効化しました",
+    legacyUrlUpdateError: "旧URL設定の更新に失敗しました",
     profileSaved: "プロフィールを保存しました",
     profileLoadError: "プロフィールの読み込みに失敗しました",
     profileSaveError: "プロフィールの保存に失敗しました",
@@ -549,12 +568,31 @@ const translations = {
     randomUsernameUpdated: "Profile URL changed to a random ID",
     randomUsernameUpdateError: "Failed to change profile URL",
     profileUrlChangeConfirm:
-      "Your public profile URL will change. NFC cards or QR codes containing the old URL will no longer open this profile. Continue?",
+      "Your public profile URL will change. Continue with the selected old URL handling?",
     profileUrlChangedWarning:
       "Public profile URL changed. NFC cards or QR codes containing the old URL need to be updated.",
+    profileUrlChangedRedirecting:
+      "Public profile URL changed. The old URL now redirects to the new URL.",
     profileIdEditHelp:
-      "After using a custom ID, you can return to the stable user-ID based ID with the button below. Changing the ID requires updating cards and QR codes that contain the old URL.",
+      "After using a custom ID, you can return to the stable user-ID based ID with the button below. When changing the ID, choose whether old URLs redirect or stay disabled.",
     useUidUsername: "Use stable ID",
+    legacyUrlHandlingTitle: "Old URL handling when ID changes",
+    legacyUrlRedirectChoice: "Redirect old URL to the new URL",
+    legacyUrlRedirectHelp:
+      "NFC cards and QR codes can keep working. Anyone who knows the old URL can still reach the new profile.",
+    legacyUrlDisableChoice: "Disable old URL",
+    legacyUrlDisableHelp:
+      "Choose this if you want to hide an email-derived ID. Cards and QR codes using the old URL need to be updated.",
+    legacyUrlManagementTitle: "Previous profile URLs",
+    legacyUrlManagementDescription:
+      "You can later change whether previous IDs redirect to the current profile URL or stay disabled.",
+    legacyUrlRedirectingTo: "Redirecting to /p/{username}",
+    legacyUrlCurrentlyDisabled: "Currently disabled",
+    enableRedirect: "Redirect",
+    disableRedirect: "Disable",
+    legacyUrlRedirectEnabled: "Old URL redirect enabled",
+    legacyUrlDisabled: "Old URL disabled",
+    legacyUrlUpdateError: "Failed to update old URL setting",
     profileSaved: "Profile saved successfully",
     profileLoadError: "Failed to load profile",
     profileSaveError: "Failed to save profile",
