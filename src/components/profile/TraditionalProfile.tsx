@@ -3,9 +3,9 @@
 import { VCardButton } from "@/components/profile/VCardButton";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { QrCode } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState } from "react";
-import { QRCodeModal } from "./QRCodeModal";
 
 interface TraditionalProfileProps {
   user: {
@@ -38,6 +38,11 @@ interface TraditionalProfileProps {
   };
   username: string;
 }
+
+const QRCodeModal = dynamic(
+  () => import("./QRCodeModal").then((mod) => mod.QRCodeModal),
+  { ssr: false },
+);
 
 export function TraditionalProfile({
   user,
@@ -232,13 +237,15 @@ export function TraditionalProfile({
         )}
       </div>
 
-      <QRCodeModal
-        isOpen={showQRCode}
-        onClose={() => setShowQRCode(false)}
-        url={`${origin}/p/${username}`}
-        username={user.username}
-        logoUrl={user.photoURL}
-      />
+      {showQRCode && (
+        <QRCodeModal
+          isOpen={showQRCode}
+          onClose={() => setShowQRCode(false)}
+          url={`${origin}/p/${username}`}
+          username={user.username}
+          logoUrl={user.photoURL}
+        />
+      )}
     </div>
   );
 }

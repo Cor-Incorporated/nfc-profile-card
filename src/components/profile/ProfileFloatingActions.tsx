@@ -1,10 +1,10 @@
 "use client";
 
-import { QRCodeModal } from "@/components/profile/QRCodeModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ROUTES, createAuthRedirectUrl } from "@/lib/constants/routes";
 import { Camera, Globe, QrCode } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -13,6 +13,12 @@ interface ProfileFloatingActionsProps {
   photoURL?: string;
   variant?: "full" | "minimal";
 }
+
+const QRCodeModal = dynamic(
+  () =>
+    import("@/components/profile/QRCodeModal").then((mod) => mod.QRCodeModal),
+  { ssr: false },
+);
 
 export function ProfileFloatingActions({
   username,
@@ -115,13 +121,15 @@ export function ProfileFloatingActions({
         )}
       </div>
 
-      <QRCodeModal
-        isOpen={showQRCode}
-        onClose={() => setShowQRCode(false)}
-        url={`${origin}/p/${username}`}
-        username={username}
-        logoUrl={photoURL}
-      />
+      {showQRCode && (
+        <QRCodeModal
+          isOpen={showQRCode}
+          onClose={() => setShowQRCode(false)}
+          url={`${origin}/p/${username}`}
+          username={username}
+          logoUrl={photoURL}
+        />
+      )}
     </>
   );
 }

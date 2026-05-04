@@ -6,7 +6,11 @@ import { adminDb } from "@/lib/firebase-admin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import type { DocumentSnapshot } from "firebase-admin/firestore";
+import {
+  FieldPath,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import { cache } from "react";
 
 export const revalidate = 300;
@@ -28,53 +32,132 @@ interface UserProfile {
     url: string;
     service?: string;
   }>;
-  profile?: {
-    editorContent?: any;
-    background?: any;
-    socialLinks?: any[];
-  };
 }
 
 interface ProfilePageProps {
   params: { username: string };
 }
 
+const PUBLIC_USER_FIELDS = [
+  "name",
+  "username",
+  "bio",
+  "company",
+  "position",
+  "email",
+  "phone",
+  "website",
+  "address",
+  "photoURL",
+  "links",
+] as const;
+
+type UserProfileDoc = QueryDocumentSnapshot<DocumentData>;
+
+function normalizeUsername(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function toPublicUserProfile(data: DocumentData): UserProfile {
+  return {
+    name: typeof data.name === "string" ? data.name : "",
+    username: typeof data.username === "string" ? data.username : "",
+    bio: typeof data.bio === "string" ? data.bio : "",
+    company: typeof data.company === "string" ? data.company : "",
+    position: typeof data.position === "string" ? data.position : "",
+    email: typeof data.email === "string" ? data.email : "",
+    phone: typeof data.phone === "string" ? data.phone : "",
+    website: typeof data.website === "string" ? data.website : "",
+    address: typeof data.address === "string" ? data.address : "",
+    photoURL: typeof data.photoURL === "string" ? data.photoURL : undefined,
+    links: Array.isArray(data.links) ? data.links : [],
+  };
+}
+
+async function fetchUserByUid(
+  uid: string,
+): Promise<UserProfileDoc | undefined> {
+  const snapshot = await adminDb
+    .collection("users")
+    .where(FieldPath.documentId(), "==", uid)
+    .select(...PUBLIC_USER_FIELDS)
+    .limit(1)
+    .get();
+
+  return snapshot.docs[0];
+}
+
+async function fetchUserByUsername(
+  username: string,
+): Promise<UserProfileDoc | undefined> {
+  const snapshot = await adminDb
+    .collection("users")
+    .where("username", "==", username)
+    .select(...PUBLIC_USER_FIELDS)
+    .limit(1)
+    .get();
+
+  return snapshot.docs[0];
+}
+
+async function resolveUserDoc(
+  username: string,
+): Promise<UserProfileDoc | null> {
+  const normalizedUsername = normalizeUsername(username);
+  const usernameDoc = await adminDb
+    .collection("usernames")
+    .doc(normalizedUsername)
+    .get();
+  const reservedUid = usernameDoc.exists ? usernameDoc.data()?.uid : null;
+
+  if (typeof reservedUid === "string" && reservedUid) {
+    const reservedUserDoc = await fetchUserByUid(reservedUid);
+    if (reservedUserDoc) return reservedUserDoc;
+  }
+
+  const normalizedUserDoc = await fetchUserByUsername(normalizedUsername);
+  if (normalizedUserDoc) return normalizedUserDoc;
+
+  if (username !== normalizedUsername) {
+    const exactUserDoc = await fetchUserByUsername(username);
+    if (exactUserDoc) return exactUserDoc;
+  }
+
+  if (username.startsWith("u_")) {
+    const uidUserDoc = await fetchUserByUid(username.slice(2));
+    if (uidUserDoc) return uidUserDoc;
+  }
+
+  return null;
+}
+
+async function fetchProfileData(userId: string) {
+  const snapshot = await adminDb
+    .collection("users")
+    .doc(userId)
+    .collection("profile")
+    .where(FieldPath.documentId(), "==", "data")
+    .select("components", "background")
+    .limit(1)
+    .get();
+
+  return snapshot.docs[0]?.data() || null;
+}
+
 const fetchUserData = cache(async (username: string) => {
   try {
-    const snapshot = await adminDb
-      .collection("users")
-      .where("username", "==", username)
-      .limit(1)
-      .get();
-
-    let userDoc: DocumentSnapshot | undefined = snapshot.docs[0];
-
-    if (!userDoc && username.startsWith("u_")) {
-      const uid = username.slice(2);
-      const uidDoc = await adminDb.collection("users").doc(uid).get();
-      if (uidDoc.exists) {
-        userDoc = uidDoc;
-      }
-    }
+    const userDoc = await resolveUserDoc(username);
 
     if (!userDoc) {
       return { user: null, profileData: null };
     }
 
-    const userData = userDoc.data() as UserProfile;
+    const userData = toPublicUserProfile(userDoc.data());
     const userId = userDoc.id;
 
     let profileData = null;
     try {
-      const profileDoc = await adminDb
-        .collection("users")
-        .doc(userId)
-        .collection("profile")
-        .doc("data")
-        .get();
-      if (profileDoc.exists) {
-        profileData = profileDoc.data();
-      }
+      profileData = await fetchProfileData(userId);
     } catch (error) {
       console.error(
         "Failed to read profile subdocument for username:",
