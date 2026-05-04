@@ -1,11 +1,11 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { SocialLinkButton } from "../simple-editor/SocialLinkButton";
 import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
 import type { PageBackground } from "./ReadOnlyProfileInfo";
-import { getBackgroundStyle } from "../simple-editor/BackgroundCustomizer";
+import { getBackgroundStyle } from "@/lib/profile/backgroundStyle";
 import Image from "next/image";
 
 // 各コンポーネントタイプの表示コンポーネント（memo化）
@@ -83,7 +83,13 @@ export const SimpleRenderer = memo(function SimpleRenderer({
   background?: PageBackground | null;
 }) {
   // componentsが配列でない場合の対応
-  const safeComponents = Array.isArray(components) ? components : [];
+  const safeComponents = useMemo(
+    () =>
+      Array.isArray(components)
+        ? [...components].sort((a, b) => (a.order || 0) - (b.order || 0))
+        : [],
+    [components],
+  );
 
   return (
     <div className="relative min-h-screen">
@@ -101,44 +107,39 @@ export const SimpleRenderer = memo(function SimpleRenderer({
               <p>プロフィールコンテンツがありません</p>
             </div>
           ) : (
-            safeComponents
-              .sort((a, b) => (a.order || 0) - (b.order || 0))
-              .map((component) => {
-                switch (component.type) {
-                  case "text":
-                    return (
-                      <TextComponent key={component.id} component={component} />
-                    );
-                  case "image":
-                    return (
-                      <ImageComponent
-                        key={component.id}
-                        component={component}
-                      />
-                    );
-                  case "link":
-                    return (
-                      <LinkComponent key={component.id} component={component} />
-                    );
-                  case "profile":
-                    return (
-                      <ProfileComponentView
-                        key={component.id}
-                        component={component}
-                        background={background}
-                      />
-                    );
-                  default:
-                    return (
-                      <div
-                        key={component.id}
-                        className="w-[90%] max-w-[600px] mx-auto bg-red-100 p-4 mb-4 rounded"
-                      >
-                        未対応のコンポーネントタイプ: {component.type}
-                      </div>
-                    );
-                }
-              })
+            safeComponents.map((component) => {
+              switch (component.type) {
+                case "text":
+                  return (
+                    <TextComponent key={component.id} component={component} />
+                  );
+                case "image":
+                  return (
+                    <ImageComponent key={component.id} component={component} />
+                  );
+                case "link":
+                  return (
+                    <LinkComponent key={component.id} component={component} />
+                  );
+                case "profile":
+                  return (
+                    <ProfileComponentView
+                      key={component.id}
+                      component={component}
+                      background={background}
+                    />
+                  );
+                default:
+                  return (
+                    <div
+                      key={component.id}
+                      className="w-[90%] max-w-[600px] mx-auto bg-red-100 p-4 mb-4 rounded"
+                    >
+                      未対応のコンポーネントタイプ: {component.type}
+                    </div>
+                  );
+              }
+            })
           )}
         </div>
       </div>

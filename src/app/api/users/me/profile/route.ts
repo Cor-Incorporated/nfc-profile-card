@@ -1,5 +1,9 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import {
+  generateDefaultUsername,
+  getUidFallbackUsername,
+} from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -25,8 +29,12 @@ function isReservedUsername(username: string) {
   return username.startsWith("u_");
 }
 
-function isValidUsername(username: string) {
-  return USERNAME_PATTERN.test(username) && !isReservedUsername(username);
+function isValidUsername(username: string, uid?: string) {
+  const ownUidUsername = uid ? getUidFallbackUsername(uid).toLowerCase() : "";
+  return (
+    USERNAME_PATTERN.test(username) &&
+    (!isReservedUsername(username) || username === ownUidUsername)
+  );
 }
 
 function pickString(value: unknown, maxLength = 200) {
@@ -64,7 +72,7 @@ async function buildUsernameSuggestions(username: string, uid: string) {
   const available: string[] = [];
   for (const candidate of candidates) {
     if (
-      isValidUsername(candidate) &&
+      isValidUsername(candidate, uid) &&
       (await isUsernameAvailable(candidate, uid))
     ) {
       available.push(candidate);
@@ -73,6 +81,17 @@ async function buildUsernameSuggestions(username: string, uid: string) {
   }
 
   return available;
+}
+
+async function generateUniqueUsername(uid: string) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const username = generateDefaultUsername();
+    if (await isUsernameAvailable(username, uid)) {
+      return username;
+    }
+  }
+
+  throw new Error("Failed to generate unique username");
 }
 
 export async function PATCH(request: NextRequest) {
@@ -92,7 +111,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const requestedUsername = normalizeUsername(body.username);
+    const usernameMode =
+      typeof body.usernameMode === "string" ? body.usernameMode : "custom";
+    const requestedUsername =
+      usernameMode === "random"
+        ? await generateUniqueUsername(verification.uid)
+        : usernameMode === "uid"
+          ? getUidFallbackUsername(verification.uid).toLowerCase()
+          : normalizeUsername(body.username);
+
     if (!requestedUsername) {
       return NextResponse.json({ error: "username_required" }, { status: 400 });
     }
@@ -106,7 +133,10 @@ export async function PATCH(request: NextRequest) {
     const currentUsername = normalizeUsername(currentUsernameRaw);
     const isUsernameChanging = requestedUsername !== currentUsername;
 
-    if (isUsernameChanging && !isValidUsername(requestedUsername)) {
+    if (
+      isUsernameChanging &&
+      !isValidUsername(requestedUsername, verification.uid)
+    ) {
       return NextResponse.json({ error: "username_invalid" }, { status: 400 });
     }
 
@@ -129,6 +159,7 @@ export async function PATCH(request: NextRequest) {
       username: isUsernameChanging
         ? requestedUsername
         : currentUsernameRaw || requestedUsername,
+      usernameConfirmed: true,
       updatedAt: FieldValue.serverTimestamp(),
     };
 

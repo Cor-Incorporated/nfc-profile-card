@@ -39,6 +39,23 @@ const translations = {
     todayViews: "今日",
     weekViews: "今週",
     language: "言語",
+    recommended: "推奨",
+    profileIdSetupTitle: "公開プロフィールIDを設定",
+    profileIdSetupDescription:
+      "NFCカードやQRコードを発行する前に、公開プロフィールURLに使うIDを決めてください。",
+    profileIdRandomTitle: "ランダムID",
+    profileIdRandomDescription:
+      "推測されにくい数字IDを使います。個人情報をURLに出しにくいため推奨です。",
+    profileIdCustomTitle: "任意ID",
+    profileIdCustomDescription:
+      "名前やブランド名など、覚えやすいIDを自分で設定します。",
+    profileIdUidTitle: "ユーザーID由来の安定ID",
+    profileIdUidDescription:
+      "アカウント固有のIDを使います。任意IDから後で戻すこともできます。",
+    profileIdHelpText:
+      "一度カードやQRコードへURLを書き込んだ後にIDを変えると、旧URLからは同じプロフィールを開けなくなります。",
+    profileIdSetupAction: "このIDで確定",
+    profileIdSetupSuccess: "公開プロフィールIDを設定しました",
 
     // Profile Edit
     profile: "プロフィール",
@@ -157,6 +174,13 @@ const translations = {
       "プロフィールURLをランダムな数字IDに変更します。現在のURLは使えなくなります。続行しますか？",
     randomUsernameUpdated: "プロフィールURLをランダムIDに変更しました",
     randomUsernameUpdateError: "プロフィールURLの変更に失敗しました",
+    profileUrlChangeConfirm:
+      "公開プロフィールURLが変更されます。旧URLを書き込んだNFCカードやQRコードからは、このプロフィールを開けなくなります。続行しますか？",
+    profileUrlChangedWarning:
+      "公開プロフィールURLを変更しました。旧URLを書き込んだNFCカードやQRコードは更新が必要です。",
+    profileIdEditHelp:
+      "任意IDを使った後でも、下のボタンでユーザーID由来の安定IDに戻せます。ID変更後は旧URLを書いたカードやQRコードの更新が必要です。",
+    useUidUsername: "安定IDに戻す",
     profileSaved: "プロフィールを保存しました",
     profileLoadError: "プロフィールの読み込みに失敗しました",
     profileSaveError: "プロフィールの保存に失敗しました",
@@ -390,6 +414,23 @@ const translations = {
     todayViews: "Today",
     weekViews: "This Week",
     language: "Language",
+    recommended: "Recommended",
+    profileIdSetupTitle: "Set Public Profile ID",
+    profileIdSetupDescription:
+      "Choose the ID used in your public profile URL before issuing NFC cards or QR codes.",
+    profileIdRandomTitle: "Random ID",
+    profileIdRandomDescription:
+      "Use a hard-to-guess numeric ID. Recommended because it avoids exposing personal information in the URL.",
+    profileIdCustomTitle: "Custom ID",
+    profileIdCustomDescription:
+      "Set a memorable ID such as your name, handle, or brand.",
+    profileIdUidTitle: "Stable user-ID based ID",
+    profileIdUidDescription:
+      "Use an account-specific stable ID. You can return to it later from a custom ID.",
+    profileIdHelpText:
+      "If you change this ID after writing the URL to a card or QR code, the old URL will no longer open the same profile.",
+    profileIdSetupAction: "Confirm this ID",
+    profileIdSetupSuccess: "Public profile ID has been set",
 
     // Profile Edit
     profile: "Profile",
@@ -507,6 +548,13 @@ const translations = {
       "Change your profile URL to a random numeric ID? Your current URL will stop working.",
     randomUsernameUpdated: "Profile URL changed to a random ID",
     randomUsernameUpdateError: "Failed to change profile URL",
+    profileUrlChangeConfirm:
+      "Your public profile URL will change. NFC cards or QR codes containing the old URL will no longer open this profile. Continue?",
+    profileUrlChangedWarning:
+      "Public profile URL changed. NFC cards or QR codes containing the old URL need to be updated.",
+    profileIdEditHelp:
+      "After using a custom ID, you can return to the stable user-ID based ID with the button below. Changing the ID requires updating cards and QR codes that contain the old URL.",
+    useUidUsername: "Use stable ID",
     profileSaved: "Profile saved successfully",
     profileLoadError: "Failed to load profile",
     profileSaveError: "Failed to save profile",
