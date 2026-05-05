@@ -161,7 +161,7 @@ export default function DashboardPage() {
           phone: userProfile?.phone || "",
           website: userProfile?.website || "",
           address: userProfile?.address || "",
-          photoURL: userProfile?.photoURL || "",
+          ...(userProfile?.photoURL ? { photoURL: userProfile.photoURL } : {}),
         }),
       });
 
