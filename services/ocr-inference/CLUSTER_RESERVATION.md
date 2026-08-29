@@ -43,5 +43,18 @@ Reservation issues already filed: `ai-cluster#184`, `Grift#2259`,
 
 - Dedicated `llama-server` for PaddleOCR-VL-1.6 — not the shared Ollama pool.
 - Dedicated native PP-OCRv6 process.
-- Both under a systemd/cgroup slice with an 8GB memory cap.
+- Both under `systemd/tapforge-ocr.slice` (`MemoryMax=8G`).
 - Next.js on Vercel calls these URLs through `OCR_VLM_URL` and `OCR_PPOCR_URL`.
+- Not Modal. Not RunPod. Not a Vercel function.
+
+Install on `thinkstationpgx-ab59` only:
+
+```bash
+sudo cp services/ocr-inference/systemd/tapforge-ocr.slice /etc/systemd/system/
+sudo cp services/ocr-inference/systemd/tapforge-ocr-vl.service /etc/systemd/system/
+sudo cp services/ocr-inference/systemd/tapforge-ocr-ppocr.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
+```
+
+Do not install these units on `evo-x2`, `evo-x2-2`, or `jetson-thor`.

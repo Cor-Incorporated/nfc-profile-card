@@ -1,6 +1,6 @@
 import type { InferenceMode, OcrProviderName, VlmEngine } from "./types";
 
-/** Production ThinkStation GB10. Do not default to :8090 (deck-forge). */
+/** Production ThinkStation GB10. Not Modal/RunPod. Do not default to :8090. */
 export const PRODUCTION_VLM_URL = "http://100.93.32.70:8092/v1";
 export const PRODUCTION_PPOCR_URL = "http://100.93.32.70:8093";
 export const PRODUCTION_VLM_LAN_URL = "http://192.168.11.26:8092/v1";

@@ -1,0 +1,13 @@
+[Unit]
+Description=TapForge card OCR reservation on thinkstationpgx-ab59
+Documentation=https://github.com/Cor-Incorporated/nfc-profile-card/blob/dev/services/ocr-inference/CLUSTER_RESERVATION.md
+
+[Slice]
+# Isolated from EVO keepwarm, jetson-thor, and the shared Ollama pool.
+MemoryMax=8G
+MemoryHigh=7G
+CPUWeight=100
+TasksMax=512
+
+[Install]
+WantedBy=multi-user.target

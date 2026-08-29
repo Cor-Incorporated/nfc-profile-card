@@ -1,0 +1,33 @@
+[Unit]
+Description=TapForge PaddleOCR-VL-1.6 llama-server (GGUF + mmproj)
+Documentation=https://github.com/Cor-Incorporated/nfc-profile-card/blob/dev/services/ocr-inference/CLUSTER_RESERVATION.md
+After=network-online.target
+Wants=network-online.target
+# Do not bind 11434 (shared Ollama), 8090 (deck-forge), 8080 (GPUStack),
+# or GB10 8091/8188/8190/50052.
+
+[Service]
+Type=simple
+Slice=tapforge-ocr.slice
+User=ocr
+Group=ocr
+WorkingDirectory=/opt/tapforge-ocr/vl
+Environment=LLAMA_ARG_HOST=0.0.0.0
+Environment=LLAMA_ARG_PORT=8092
+# Replace GGUF / mmproj paths on the host. Do not load this into Ollama.
+ExecStart=/usr/local/bin/llama-server \
+  --host 0.0.0.0 \
+  --port 8092 \
+  --model /opt/tapforge-ocr/models/PaddleOCR-VL-1.6.gguf \
+  --mmproj /opt/tapforge-ocr/models/PaddleOCR-VL-1.6.mmproj \
+  --ctx-size 8192 \
+  --n-gpu-layers 999
+Restart=on-failure
+RestartSec=5
+MemoryMax=6G
+
+# Bind only the reserved VL port.
+ExecStartPre=/bin/sh -c 'ss -lnt | grep -q ":8092 " && echo "8092 already bound" && exit 1 || true'
+
+[Install]
+WantedBy=multi-user.target

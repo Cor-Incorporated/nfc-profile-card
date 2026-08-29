@@ -1,0 +1,25 @@
+[Unit]
+Description=TapForge native PP-OCRv6_medium
+Documentation=https://github.com/Cor-Incorporated/nfc-profile-card/blob/dev/services/ocr-inference/CLUSTER_RESERVATION.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Slice=tapforge-ocr.slice
+User=ocr
+Group=ocr
+WorkingDirectory=/opt/tapforge-ocr/ppocr
+Environment=OCR_INFERENCE_MODE=live
+Environment=HOST=0.0.0.0
+Environment=PORT=8093
+# Native PP-OCR HTTP. Not Ollama. Not llama-server.
+ExecStart=/opt/tapforge-ocr/ppocr/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8093
+Restart=on-failure
+RestartSec=5
+MemoryMax=2G
+
+ExecStartPre=/bin/sh -c 'ss -lnt | grep -q ":8093 " && echo "8093 already bound" && exit 1 || true'
+
+[Install]
+WantedBy=multi-user.target
