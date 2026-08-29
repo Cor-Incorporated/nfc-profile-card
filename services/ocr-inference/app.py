@@ -78,7 +78,10 @@ def extract(
 ) -> dict[str, Any]:
     _authorize(authorization)
 
-    image = preprocess_image(payload.image, payload.mimeType)
+    try:
+        image = preprocess_image(payload.image, payload.mimeType)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid card image: {exc}") from exc
     qr = decode_qr(image)
 
     if _mode() != "live":

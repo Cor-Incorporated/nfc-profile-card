@@ -1,8 +1,9 @@
+# Local-dev mock only. Port 8090 is reserved in production for deck-forge.
 services:
   ocr-inference:
     build: .
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
     environment:
       OCR_INFERENCE_MODE: ${OCR_INFERENCE_MODE:-mock}
       OCR_INFERENCE_API_KEY: ${OCR_INFERENCE_API_KEY:-}

@@ -23,9 +23,29 @@ Default production engines (Apache 2.0, commercial-safe):
 Community License forbids EU/UK/KR use, requires attribution, and forbids
 training on outputs. Do not enable it in production without legal review.
 
+## Production (ThinkStation GB10)
+
+Default live path on Vercel talks to two dedicated processes on
+`thinkstationpgx-ab59` (Tailscale `100.93.32.70`):
+
+| Engine                        | URL                           |
+| ----------------------------- | ----------------------------- |
+| PP-OCRv6_medium               | `http://100.93.32.70:8093`    |
+| PaddleOCR-VL-1.6 llama-server | `http://100.93.32.70:8092/v1` |
+
+See `CLUSTER_RESERVATION.md`. Do not put these models on shared Ollama
+`:11434`, GPUStack `:8080`, or deck-forge `:8090`.
+
+```bash
+OCR_PROVIDER=local
+OCR_PPOCR_URL=http://100.93.32.70:8093
+OCR_VLM_URL=http://100.93.32.70:8092/v1
+OCR_INFERENCE_MODE=live
+```
+
 ## Run locally (mock, no model weights)
 
-This is the CI / laptop path. The HTTP contract is identical to live mode.
+**Local-dev only.** Port 8090 is reserved in production for deck-forge.
 
 ```bash
 cd services/ocr-inference
@@ -38,18 +58,18 @@ uvicorn app:app --host 127.0.0.1 --port 8090
 
 Health check: `curl http://127.0.0.1:8090/health`
 
-In the Next.js app:
-
 ```bash
 OCR_PROVIDER=local
-OCR_INFERENCE_URL=http://127.0.0.1:8090
-OCR_INFERENCE_MODE=live   # Next.js talks to the sidecar
+OCR_INFERENCE_URL=http://127.0.0.1:8090   # laptop aggregator only
+OCR_INFERENCE_MODE=live
 ```
 
-`OCR_INFERENCE_MODE=mock` on the Next.js side skips the HTTP call and uses
-the same fixture locally (useful for unit tests).
+`OCR_INFERENCE_MODE=mock` on the Next.js side skips HTTP and uses the same
+fixture locally (unit tests).
 
-## Docker
+## Docker (local-dev mock only)
+
+Binds **8090 on localhost**. Do not publish this port on the cluster.
 
 ```bash
 docker compose -f services/ocr-inference/docker-compose.yml up --build

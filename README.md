@@ -220,13 +220,15 @@ npm run lint
 # フォーマット
 npm run format
 
-# ローカルOCR推論（モック、モデル不要）
+# ローカルOCR推論（モック専用。:8090 は本番では deck-forge 予約）
 cd services/ocr-inference && python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 OCR_INFERENCE_MODE=mock uvicorn app:app --host 127.0.0.1 --port 8090
 ```
 
-詳細は `services/ocr-inference/README.md`。
+本番推論は ThinkStation GB10 の `100.93.32.70:8093` (PP-OCR) と
+`:8092/v1` (PaddleOCR-VL)。詳細は `services/ocr-inference/README.md` と
+`services/ocr-inference/CLUSTER_RESERVATION.md`。
 
 ## 🧪 テスト
 
