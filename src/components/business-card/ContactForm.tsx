@@ -37,6 +37,8 @@ interface ContactFormProps {
   enhancedImageBase64?: string | null;
   enhancedImageMimeType?: string | null;
   imageQualityWarnings?: string[];
+  humanReview?: boolean;
+  reviewReasons?: string[];
 }
 
 const ContactForm: React.FC<ContactFormProps> = ({
@@ -48,6 +50,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
   enhancedImageBase64,
   enhancedImageMimeType,
   imageQualityWarnings = [],
+  humanReview = false,
+  reviewReasons = [],
 }) => {
   const [formData, setFormData] = useState<ContactInfo>(initialData);
   const [vcardPreview, setVcardPreview] = useState("");
@@ -160,6 +164,25 @@ const ContactForm: React.FC<ContactFormProps> = ({
                   {imageQualityWarnings.map((warning) => (
                     <p key={warning}>{warning}</p>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {humanReview && (
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-orange-800">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <div className="space-y-1 text-sm">
+                  <p className="font-medium">{t("ocrNeedsHumanReview")}</p>
+                  <p>{t("ocrNeedsHumanReviewHint")}</p>
+                  {reviewReasons.length > 0 && (
+                    <ul className="list-disc pl-4">
+                      {reviewReasons.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { VCardButton } from "@/components/profile/VCardButton";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { usePublicLanguage } from "@/contexts/PublicLanguageContext";
 import { QrCode } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -49,7 +49,7 @@ export function TraditionalProfile({
   vcardData,
   username,
 }: TraditionalProfileProps) {
-  const { t } = useLanguage();
+  const { t } = usePublicLanguage();
   const [showQRCode, setShowQRCode] = useState(false);
   const [origin, setOrigin] = useState("");
 
@@ -65,6 +65,8 @@ export function TraditionalProfile({
                 width={128}
                 height={128}
                 className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
+                priority
+                sizes="128px"
               />
             )}
             <h1 className="text-3xl font-bold mb-2">{user.name}</h1>

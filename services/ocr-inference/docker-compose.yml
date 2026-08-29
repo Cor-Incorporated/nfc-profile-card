@@ -1,0 +1,9 @@
+services:
+  ocr-inference:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      OCR_INFERENCE_MODE: ${OCR_INFERENCE_MODE:-mock}
+      OCR_INFERENCE_API_KEY: ${OCR_INFERENCE_API_KEY:-}
+      OCR_ENABLE_HUNYUAN: ${OCR_ENABLE_HUNYUAN:-false}

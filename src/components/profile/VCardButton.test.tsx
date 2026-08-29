@@ -6,8 +6,8 @@ jest.mock("@/components/ui/use-toast", () => ({
   toast: jest.fn(),
 }));
 
-jest.mock("@/contexts/LanguageContext", () => ({
-  useLanguage: () => ({
+jest.mock("@/contexts/PublicLanguageContext", () => ({
+  usePublicLanguage: () => ({
     language: "ja",
     setLanguage: jest.fn(),
     t: (key: string) => {
@@ -22,7 +22,7 @@ jest.mock("@/contexts/LanguageContext", () => ({
       return map[key] || key;
     },
   }),
-  LanguageProvider: ({ children }: { children: React.ReactNode }) => (
+  PublicLanguageProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
 }));

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { usePublicLanguage } from "@/contexts/PublicLanguageContext";
 import { Copy, Download } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
@@ -31,7 +31,7 @@ export function QRCodeModal({
   username,
 }: QRCodeModalProps) {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t } = usePublicLanguage();
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 

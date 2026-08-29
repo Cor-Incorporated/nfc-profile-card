@@ -418,6 +418,9 @@ const translations = {
       "スキャン結果の保存に失敗しました。もう一度お試しください。",
     quotaExceeded:
       "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
+    ocrNeedsHumanReview: "メール・電話・URL の照合に差があります",
+    ocrNeedsHumanReviewHint:
+      "数字・記号の項目は画像上の文字と一致した値だけを採用しています。保存前に赤字の項目を確認してください。",
   },
   en: {
     // Dashboard
@@ -810,6 +813,9 @@ const translations = {
     scanSaveFailed: "Failed to save scan result. Please try again.",
     quotaExceeded:
       "Monthly scan limit reached. Upgrade to Pro with a promo code for unlimited scans.",
+    ocrNeedsHumanReview: "Email, phone, or URL needs a quick check",
+    ocrNeedsHumanReviewHint:
+      "Exact values are never invented by the model. Confirm highlighted fields before saving to your phone.",
   },
 };
 

@@ -20,7 +20,13 @@ export interface BusinessCardScanRequest {
 }
 
 export interface BusinessCardScanResponse extends ApiResponse<ContactInfo> {
-  processingTime?: number; // OCR processing time in milliseconds
+  processingTime?: number;
+  humanReview?: boolean;
+  engine?: string;
+  fieldReviews?: Record<
+    string,
+    { human_review: boolean; confidence: number; reason?: string }
+  >;
 }
 
 // Error Response for failed requests

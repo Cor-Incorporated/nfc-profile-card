@@ -186,32 +186,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
     // 認証状態の監視
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Firestore のユーザードキュメント同期は UI をブロックしない。
+    // 以前は getDoc+setDoc 完了まで loading=true のままだったため、
+    // ダッシュボード / 編集 / スキャンの初回描画が遅れていた。
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        await createOrUpdateUserDocument(user);
         setUser(user);
+        setLoading(false);
+        void createOrUpdateUserDocument(user);
 
-        // ログイン直後の場合、ダッシュボードへリダイレクト
         if (window.location.pathname === "/signin") {
           router.push("/dashboard");
         }
-
-        // メール未確認の場合の警告
-        if (
-          !user.emailVerified &&
-          user.providerData[0]?.providerId === "password"
-        ) {
-          // User email not verified
-        }
       } else {
         setUser(null);
-        // 保護されたページにいる場合はサインインページへリダイレクト
+        setLoading(false);
         if (window.location.pathname.startsWith("/dashboard")) {
           router.push("/signin");
         }
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();

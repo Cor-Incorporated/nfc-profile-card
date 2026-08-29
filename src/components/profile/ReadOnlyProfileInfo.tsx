@@ -251,6 +251,8 @@ export function ReadOnlyProfileInfo({
             width={80}
             height={80}
             className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white shadow-lg object-cover"
+            priority
+            sizes="80px"
           />
         ) : (
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-300 flex items-center justify-center shadow-lg">

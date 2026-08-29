@@ -43,10 +43,10 @@ async function loadOcrService() {
     },
   }));
 
-  return import("./ocrService");
+  return import("./ocr/geminiProvider");
 }
 
-describe("processBusinessCardImage Gemini model selection", () => {
+describe("processWithGemini Gemini model selection", () => {
   beforeEach(() => {
     process.env.GEMINI_API_KEY = "test-api-key";
     delete process.env.GEMINI_MODEL;
@@ -62,9 +62,9 @@ describe("processBusinessCardImage Gemini model selection", () => {
   });
 
   it("uses the default Gemini model when GEMINI_MODEL is not configured", async () => {
-    const { processBusinessCardImage } = await loadOcrService();
+    const { processWithGemini } = await loadOcrService();
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processWithGemini("base64-image", "image/png");
 
     expect(result.success).toBe(true);
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
@@ -74,9 +74,9 @@ describe("processBusinessCardImage Gemini model selection", () => {
 
   it("trims configured model names before calling Gemini", async () => {
     process.env.GEMINI_MODEL = " custom-primary ";
-    const { processBusinessCardImage } = await loadOcrService();
+    const { processWithGemini } = await loadOcrService();
 
-    await processBusinessCardImage("base64-image", "image/png");
+    await processWithGemini("base64-image", "image/png");
 
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
       model: "custom-primary",
@@ -86,7 +86,7 @@ describe("processBusinessCardImage Gemini model selection", () => {
   it("falls back when the primary model is unavailable", async () => {
     process.env.GEMINI_MODEL = "primary-model";
     process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
-    const { processBusinessCardImage } = await loadOcrService();
+    const { processWithGemini } = await loadOcrService();
     generateContentMock
       .mockRejectedValueOnce(
         new Error(
@@ -95,7 +95,7 @@ describe("processBusinessCardImage Gemini model selection", () => {
       )
       .mockResolvedValueOnce(successfulGeminiResponse);
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processWithGemini("base64-image", "image/png");
 
     expect(result.success).toBe(true);
     expect(getGenerativeModelMock).toHaveBeenNthCalledWith(1, {
@@ -109,14 +109,14 @@ describe("processBusinessCardImage Gemini model selection", () => {
   it("falls back when the primary model does not support content generation", async () => {
     process.env.GEMINI_MODEL = "primary-model";
     process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
-    const { processBusinessCardImage } = await loadOcrService();
+    const { processWithGemini } = await loadOcrService();
     generateContentMock
       .mockRejectedValueOnce(
         new Error("models/primary-model is not supported for generateContent"),
       )
       .mockResolvedValueOnce(successfulGeminiResponse);
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processWithGemini("base64-image", "image/png");
 
     expect(result.success).toBe(true);
     expect(getGenerativeModelMock).toHaveBeenNthCalledWith(1, {
@@ -139,13 +139,10 @@ describe("processBusinessCardImage Gemini model selection", () => {
     async (message) => {
       process.env.GEMINI_MODEL = "primary-model";
       process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
-      const { processBusinessCardImage } = await loadOcrService();
+      const { processWithGemini } = await loadOcrService();
       generateContentMock.mockRejectedValueOnce(new Error(message));
 
-      const result = await processBusinessCardImage(
-        "base64-image",
-        "image/png",
-      );
+      const result = await processWithGemini("base64-image", "image/png");
 
       expect(result.success).toBe(false);
       expect(getGenerativeModelMock).toHaveBeenCalledTimes(1);
@@ -158,14 +155,14 @@ describe("processBusinessCardImage Gemini model selection", () => {
   it("does not fall back when the fallback matches the primary model", async () => {
     process.env.GEMINI_MODEL = "same-model";
     process.env.GEMINI_FALLBACK_MODEL = "same-model";
-    const { processBusinessCardImage } = await loadOcrService();
+    const { processWithGemini } = await loadOcrService();
     generateContentMock.mockRejectedValueOnce(
       new Error(
         "[GoogleGenerativeAI Error]: [404 Not Found] models/same-model is not found for API version v1beta",
       ),
     );
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processWithGemini("base64-image", "image/png");
 
     expect(result.success).toBe(false);
     expect(getGenerativeModelMock).toHaveBeenCalledTimes(1);

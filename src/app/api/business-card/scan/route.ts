@@ -142,6 +142,9 @@ export async function POST(request: NextRequest) {
       success: true,
       data: ocrResult.contactInfo!,
       processingTime: ocrResult.processingTime,
+      humanReview: ocrResult.humanReview,
+      engine: ocrResult.engine,
+      fieldReviews: ocrResult.fieldReviews,
     };
 
     console.log("=== API Response Success ===");
