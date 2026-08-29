@@ -1,6 +1,8 @@
 import {
   LOCAL_DEV_AGGREGATOR_URL,
+  PRODUCTION_PPOCR_LAN_URL,
   PRODUCTION_PPOCR_URL,
+  PRODUCTION_VLM_LAN_URL,
   PRODUCTION_VLM_URL,
   getInferenceBaseUrl,
   getPpocrUrl,
@@ -18,13 +20,22 @@ describe("OCR inference URLs", () => {
   });
 
   it("defaults production engines to ThinkStation 8092/8093, not 8090", () => {
-    expect(getVlmUrl()).toBe(PRODUCTION_VLM_URL);
-    expect(getPpocrUrl()).toBe(PRODUCTION_PPOCR_URL);
-    expect(PRODUCTION_VLM_URL).toContain(":8092");
-    expect(PRODUCTION_PPOCR_URL).toContain(":8093");
-    expect(PRODUCTION_VLM_URL).not.toContain(":8090");
-    expect(PRODUCTION_PPOCR_URL).not.toContain(":8090");
+    expect(getVlmUrl()).toBe("http://100.93.32.70:8092/v1");
+    expect(getPpocrUrl()).toBe("http://100.93.32.70:8093");
+    expect(PRODUCTION_VLM_URL).toBe("http://100.93.32.70:8092/v1");
+    expect(PRODUCTION_PPOCR_URL).toBe("http://100.93.32.70:8093");
+    for (const url of [PRODUCTION_VLM_URL, PRODUCTION_PPOCR_URL]) {
+      expect(url).not.toContain(":8090");
+      expect(url).not.toContain(":8080");
+      expect(url).not.toContain(":11434");
+      expect(url).not.toContain(":8091");
+      expect(url).not.toContain(":8188");
+      expect(url).not.toContain(":8190");
+      expect(url).not.toContain(":50052");
+    }
     expect(getInferenceBaseUrl()).toBeUndefined();
+    expect(PRODUCTION_VLM_LAN_URL).toBe("http://192.168.11.26:8092/v1");
+    expect(PRODUCTION_PPOCR_LAN_URL).toBe("http://192.168.11.26:8093");
   });
 
   it("treats OCR_INFERENCE_URL as a local-dev aggregator only when set", () => {
