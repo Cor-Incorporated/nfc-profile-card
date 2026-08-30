@@ -12,12 +12,16 @@ Slice=tapforge-ocr.slice
 User=ocr
 Group=ocr
 WorkingDirectory=/opt/tapforge-ocr/vl
-Environment=LLAMA_ARG_HOST=0.0.0.0
+Environment=LLAMA_ARG_HOST=127.0.0.1
 Environment=LLAMA_ARG_PORT=8092
+# LLAMA_API_KEY must be injected by the host-approved secret mechanism or a
+# systemd drop-in. llama-server reads this environment variable directly;
+# never copy the value into ExecStart where it would be visible in argv.
 # Replace GGUF / mmproj paths on the host. Do not load this into Ollama.
 ExecStart=/usr/local/bin/llama-server \
-  --host 0.0.0.0 \
+  --host 127.0.0.1 \
   --port 8092 \
+  --alias paddleocr-vl-1.6 \
   --model /opt/tapforge-ocr/models/PaddleOCR-VL-1.6.gguf \
   --mmproj /opt/tapforge-ocr/models/PaddleOCR-VL-1.6.mmproj \
   --ctx-size 8192 \
@@ -27,6 +31,7 @@ RestartSec=5
 MemoryMax=6G
 
 # Bind only the reserved VL port.
+ExecStartPre=/bin/sh -c 'case "$LLAMA_API_KEY" in ""|*,*|*[[:space:]]*) echo "VLM token is not configured"; exit 1;; esac'
 ExecStartPre=/bin/sh -c 'ss -lnt | grep -q ":8092 " && echo "8092 already bound" && exit 1 || true'
 
 [Install]

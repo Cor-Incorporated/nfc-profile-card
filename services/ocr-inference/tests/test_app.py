@@ -50,6 +50,8 @@ class AdapterSecurityTests(unittest.TestCase):
             {
                 "OCR_INFERENCE_MODE": "live",
                 "OCR_ADAPTER_API_KEY": "adapter-test-token",
+                "OCR_VLM_API_KEY": "vlm-test-token",
+                "OCR_VLM_TIMEOUT_SECONDS": "5",
             },
             clear=True,
         )
@@ -95,6 +97,33 @@ class AdapterSecurityTests(unittest.TestCase):
             _authorize("Bearer adapter-test-token")
         self.assertEqual(caught.exception.status_code, 503)
         self.assertEqual(caught.exception.detail, AUTH_CONFIGURATION_DETAIL)
+
+    def test_vlm_configuration_fails_closed_with_fixed_error(self) -> None:
+        invalid_environments = [
+            {"OCR_VLM_API_KEY": ""},
+            {"OCR_VLM_API_KEY": "adapter-test-token"},
+            {"OCR_VLM_TIMEOUT_SECONDS": ""},
+            {"OCR_VLM_TIMEOUT_SECONDS": "11"},
+        ]
+        for invalid in invalid_environments:
+            with self.subTest(invalid=invalid), self.live_environment(), patch.dict(
+                os.environ, invalid
+            ), self.assertRaises(HTTPException) as caught:
+                health()
+            self.assertEqual(caught.exception.status_code, 503)
+            self.assertEqual(caught.exception.detail, AUTH_CONFIGURATION_DETAIL)
+
+    def test_health_requires_ready_authenticated_vlm_leaf(self) -> None:
+        with self.live_environment(), patch("app.check_paddle_vl_ready") as readiness:
+            self.assertEqual(health().status, "ok")
+            readiness.assert_called_once_with()
+
+        with self.live_environment(), patch(
+            "app.check_paddle_vl_ready", side_effect=RuntimeError("private leaf error")
+        ), self.assertRaises(HTTPException) as caught:
+            health()
+        self.assertEqual(caught.exception.status_code, 503)
+        self.assertEqual(caught.exception.detail, INFERENCE_FAILURE_DETAIL)
 
     def test_unknown_mode_fails_closed(self) -> None:
         with patch.dict(

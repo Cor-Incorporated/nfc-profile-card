@@ -40,11 +40,15 @@ Reservation issues already filed: `ai-cluster#184`, `Grift#2259`,
 ## Process shape
 
 - Dedicated `llama-server` for PaddleOCR-VL-1.6 — not the shared Ollama pool.
-- Dual adapter owns native PP-OCRv6 and calls the private VLM process.
+- Dual adapter owns native PP-OCRv6 and calls only
+  `http://127.0.0.1:8092/v1/chat/completions` with fixed alias
+  `paddleocr-vl-1.6`.
 - Next.js owns deterministic exact-field comparison and `human_review`.
 - The gateway validates its public token, then sends a distinct adapter token
   from `NFC_OCR_ADAPTER_BEARER_TOKEN`. The adapter compares that value against
-  `OCR_ADAPTER_API_KEY`; neither token belongs in Git or application logs.
+  `OCR_ADAPTER_API_KEY`, then uses a third value, `OCR_VLM_API_KEY`, which
+  matches the leaf's `LLAMA_API_KEY`. Public, adapter, and VLM values must be
+  pairwise distinct; none belongs in Git or application logs.
 - The live adapter accepts only `{image, mimeType}` and always runs PaddleOCR-VL.
   Hunyuan is not exposed through the HTTP contract.
 - Both under `systemd/tapforge-ocr.slice` (`MemoryMax=8G`).
@@ -62,12 +66,22 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
 ```
 
-Before starting the candidate adapter unit, inject `OCR_ADAPTER_API_KEY` through
-the host-approved secret mechanism or a systemd drop-in. The repository does
-not prescribe a host secret path and does not contain the value. The unit and
-the live `/health` endpoint both fail closed while it is absent.
+Before starting the candidate units, inject `LLAMA_API_KEY` into the VLM unit
+and distinct `OCR_ADAPTER_API_KEY` / `OCR_VLM_API_KEY` values into the adapter
+unit through the host-approved secret mechanism or systemd drop-ins.
+`OCR_VLM_API_KEY` and `LLAMA_API_KEY` are the same hop credential. The
+repository does not prescribe a host secret path and contains no secret value.
+Both unit preflights and the live `/health` endpoint fail closed while required
+configuration is absent or invalid. Adapter startup and `/health` also require
+the loopback leaf to reject an anonymous `/v1/models` request with 401, accept
+the dedicated Bearer, and advertise the fixed alias.
 
 Do not install these units on `evo-x2`, `evo-x2-2`, or `jetson-thor`.
 
 The unit names above are repository candidates, not live evidence. Reconcile
 them with the ai-cluster service catalog before the human-only GB10 bring-up.
+The installed binary/flags, real multimodal semantic JSON, 8GB behavior, and
+authenticated negative/positive calls remain human gates before route enablement.
+The request disables prompt reuse, but immediate GPU/RAM zeroization remains
+unproven until the installed binary's cache-disable flags are inspected and the
+host unit is reconciled.

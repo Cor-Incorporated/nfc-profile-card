@@ -1,7 +1,8 @@
 [Unit]
 Description=TapForge dual OCR adapter (PP-OCRv6 + PaddleOCR-VL)
 Documentation=https://github.com/Cor-Incorporated/nfc-profile-card/blob/dev/services/ocr-inference/CLUSTER_RESERVATION.md
-After=network-online.target
+Requires=tapforge-ocr-vl.service
+After=network-online.target tapforge-ocr-vl.service
 Wants=network-online.target
 
 [Service]
@@ -13,8 +14,10 @@ WorkingDirectory=/opt/tapforge-ocr/ppocr
 Environment=OCR_INFERENCE_MODE=live
 Environment=HOST=0.0.0.0
 Environment=PORT=8093
-# OCR_ADAPTER_API_KEY must be injected by the host-approved secret mechanism
-# or a systemd drop-in. Never commit the token or reuse the public gateway token.
+Environment=OCR_VLM_TIMEOUT_SECONDS=5
+# OCR_ADAPTER_API_KEY and OCR_VLM_API_KEY must be injected by the host-approved
+# secret mechanism or a systemd drop-in. They must be separate values. Never
+# commit either token or reuse the public gateway token for either boundary.
 # Dual raw-result adapter. Not Ollama. Not llama-server.
 ExecStart=/opt/tapforge-ocr/ppocr/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8093
 Restart=on-failure
@@ -22,6 +25,10 @@ RestartSec=5
 MemoryMax=2G
 
 ExecStartPre=/bin/sh -c 'case "$OCR_ADAPTER_API_KEY" in ""|*[[:space:]]*) echo "OCR adapter token is not configured"; exit 1;; esac'
+ExecStartPre=/bin/sh -c 'case "$OCR_VLM_API_KEY" in ""|*,*|*[[:space:]]*) echo "VLM token is not configured"; exit 1;; esac'
+ExecStartPre=/bin/sh -c '[ "$OCR_ADAPTER_API_KEY" != "$OCR_VLM_API_KEY" ] || { echo "OCR boundary tokens must be distinct"; exit 1; }'
+ExecStartPre=/bin/sh -c 'case "$OCR_VLM_TIMEOUT_SECONDS" in ""|*[!0-9]*) echo "VLM timeout is invalid"; exit 1;; esac; [ "$OCR_VLM_TIMEOUT_SECONDS" -ge 1 ] && [ "$OCR_VLM_TIMEOUT_SECONDS" -le 10 ] || { echo "VLM timeout is invalid"; exit 1; }'
+ExecStartPre=/opt/tapforge-ocr/ppocr/.venv/bin/python -c 'from engines.paddle_vl_adapter import check_paddle_vl_ready; check_paddle_vl_ready()'
 ExecStartPre=/bin/sh -c 'ss -lnt | grep -q ":8093 " && echo "8093 already bound" && exit 1 || true'
 
 [Install]
