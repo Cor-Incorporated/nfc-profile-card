@@ -105,7 +105,7 @@
 
 ### 必要な環境
 
-- Node.js 18.0以上
+- Node.js 24.x
 - npm または yarn
 - Firebaseアカウント
 
