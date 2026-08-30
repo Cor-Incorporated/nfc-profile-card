@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
     console.log("Starting OCR processing...");
     const ocrResult = await processBusinessCardImage(image, mimeType, {
       deadlineAtMs: requestStartedAt + getOcrTotalTimeoutMs(),
+      userId,
     });
 
     if (!ocrResult.success) {

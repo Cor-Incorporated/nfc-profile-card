@@ -20,11 +20,17 @@ const successfulGeminiResponse = {
 let generateContentMock: jest.Mock;
 let getGenerativeModelMock: jest.Mock;
 let ocrLoggerMock: Record<"debug" | "error" | "info" | "warn", jest.Mock>;
+let reserveGeminiFallbackBudgetMock: jest.Mock;
 
 async function loadOcrService() {
   jest.resetModules();
 
   generateContentMock = jest.fn().mockResolvedValue(successfulGeminiResponse);
+  reserveGeminiFallbackBudgetMock = jest.fn().mockResolvedValue({
+    allowed: true,
+    userMonthlyCount: 1,
+    globalDailyCount: 1,
+  });
   getGenerativeModelMock = jest.fn(() => ({
     generateContent: generateContentMock,
   }));
@@ -42,8 +48,28 @@ async function loadOcrService() {
     warn: jest.fn(),
   };
   jest.doMock("@/lib/logger", () => ({ ocrLogger: ocrLoggerMock }));
+  jest.doMock(
+    "@/services/business-card/ocr/geminiBudgetService.server",
+    () => ({
+      reserveGeminiFallbackBudget: reserveGeminiFallbackBudgetMock,
+    }),
+  );
 
-  return import("./ocr/geminiProvider");
+  const provider = await import("./ocr/geminiProvider");
+  return {
+    ...provider,
+    processWithGemini: (
+      image: string,
+      mimeType: string,
+      options: Partial<Parameters<typeof provider.processWithGemini>[2]> = {},
+    ) =>
+      provider.processWithGemini(image, mimeType, {
+        userId: "uid-1",
+        ...options,
+      }),
+    processWithGeminiWithoutUser: (image: string, mimeType: string) =>
+      provider.processWithGemini(image, mimeType, { userId: undefined }),
+  };
 }
 
 describe("processWithGemini Gemini model selection", () => {
@@ -59,6 +85,7 @@ describe("processWithGemini Gemini model selection", () => {
     delete process.env.GEMINI_FALLBACK_MODEL;
     jest.dontMock("@google/generative-ai");
     jest.dontMock("@/lib/logger");
+    jest.dontMock("@/services/business-card/ocr/geminiBudgetService.server");
     jest.useRealTimers();
     jest.restoreAllMocks();
   });
@@ -72,6 +99,51 @@ describe("processWithGemini Gemini model selection", () => {
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
       model: "gemini-3.1-flash-lite",
     });
+    expect(reserveGeminiFallbackBudgetMock).toHaveBeenCalledTimes(1);
+    expect(reserveGeminiFallbackBudgetMock).toHaveBeenCalledWith("uid-1", {
+      deadlineAtMs: undefined,
+    });
+    expect(
+      reserveGeminiFallbackBudgetMock.mock.invocationCallOrder[0],
+    ).toBeLessThan(generateContentMock.mock.invocationCallOrder[0]);
+  });
+
+  it("fails closed before generateContent when the authenticated user is missing", async () => {
+    const { processWithGeminiWithoutUser } = await loadOcrService();
+
+    const result = await processWithGeminiWithoutUser(
+      "base64-image",
+      "image/png",
+    );
+
+    expect(result.success).toBe(false);
+    expect(reserveGeminiFallbackBudgetMock).not.toHaveBeenCalled();
+    expect(generateContentMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before generateContent when budget reservation fails", async () => {
+    const { processWithGemini } = await loadOcrService();
+    reserveGeminiFallbackBudgetMock.mockRejectedValueOnce(
+      new Error("firestore unavailable"),
+    );
+
+    const result = await processWithGemini("base64-image", "image/png");
+
+    expect(result.success).toBe(false);
+    expect(generateContentMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before generateContent when the persistent cap is exhausted", async () => {
+    const { processWithGemini } = await loadOcrService();
+    reserveGeminiFallbackBudgetMock.mockResolvedValueOnce({
+      allowed: false,
+      reason: "global_daily_cap",
+    });
+
+    const result = await processWithGemini("base64-image", "image/png");
+
+    expect(result.success).toBe(false);
+    expect(generateContentMock).not.toHaveBeenCalled();
   });
 
   it("accepts non-empty addresses and supported phone types", async () => {
@@ -238,6 +310,35 @@ describe("processWithGemini Gemini model selection", () => {
     expect(getGenerativeModelMock).toHaveBeenNthCalledWith(2, {
       model: "fallback-model",
     });
+    expect(reserveGeminiFallbackBudgetMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not call the fallback model when its second reservation is denied", async () => {
+    process.env.GEMINI_MODEL = "primary-model";
+    process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
+    const { processWithGemini } = await loadOcrService();
+    generateContentMock.mockRejectedValueOnce(
+      new Error(
+        "[GoogleGenerativeAI Error]: [404 Not Found] models/primary-model is not found for API version v1beta",
+      ),
+    );
+    reserveGeminiFallbackBudgetMock
+      .mockResolvedValueOnce({
+        allowed: true,
+        userMonthlyCount: 1,
+        globalDailyCount: 1,
+      })
+      .mockResolvedValueOnce({
+        allowed: false,
+        reason: "global_daily_cap",
+      });
+
+    const result = await processWithGemini("base64-image", "image/png");
+
+    expect(result.success).toBe(false);
+    expect(reserveGeminiFallbackBudgetMock).toHaveBeenCalledTimes(2);
+    expect(generateContentMock).toHaveBeenCalledTimes(1);
+    expect(getGenerativeModelMock).toHaveBeenCalledTimes(2);
   });
 
   it("passes the remaining absolute deadline and abort signal to Gemini", async () => {
@@ -302,6 +403,7 @@ describe("processWithGemini Gemini model selection", () => {
     expect(result.error).toBe(
       "処理に時間がかかりすぎています。画像を再撮影してお試しください。",
     );
+    expect(reserveGeminiFallbackBudgetMock).not.toHaveBeenCalled();
     expect(generateContentMock).not.toHaveBeenCalled();
     now.mockRestore();
   });
@@ -311,6 +413,7 @@ describe("processWithGemini Gemini model selection", () => {
     process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
     const now = jest
       .spyOn(Date, "now")
+      .mockReturnValueOnce(1000)
       .mockReturnValueOnce(1000)
       .mockReturnValueOnce(1000)
       .mockReturnValue(2001);
