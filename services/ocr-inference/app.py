@@ -17,7 +17,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from starlette.requests import Request
 
 from engines.mock_engine import run_mock_pipeline
-from engines.paddle_vl_adapter import run_paddle_vl
+from engines.paddle_vl_adapter import (
+    check_paddle_vl_ready,
+    run_paddle_vl,
+    validate_vlm_configuration,
+)
 from engines.ppocr_adapter import run_ppocr
 from engines.preprocess import preprocess_image
 from engines.qr import decode_qr
@@ -143,6 +147,15 @@ def _authorize(authorization: str | None) -> None:
     token_matches = secrets.compare_digest(candidate.encode(), expected.encode())
     if not separator or not scheme_matches or not token_matches:
         raise HTTPException(status_code=401, detail=UNAUTHORIZED_DETAIL)
+    if mode == "live":
+        _validate_vlm_configuration()
+
+
+def _validate_vlm_configuration() -> None:
+    try:
+        validate_vlm_configuration()
+    except ValueError:
+        raise HTTPException(status_code=503, detail=AUTH_CONFIGURATION_DETAIL) from None
 
 
 def _response(data: object, mode: Literal["mock", "live"]) -> ExtractResponse:
@@ -166,6 +179,14 @@ def health() -> HealthResponse:
     mode = _mode()
     if mode == "live" and not _expected_adapter_api_key():
         raise HTTPException(status_code=503, detail=AUTH_CONFIGURATION_DETAIL)
+    if mode == "live":
+        _validate_vlm_configuration()
+        try:
+            check_paddle_vl_ready()
+        except Exception:
+            raise HTTPException(
+                status_code=503, detail=INFERENCE_FAILURE_DETAIL
+            ) from None
     return HealthResponse(
         status="ok",
         mode=mode,

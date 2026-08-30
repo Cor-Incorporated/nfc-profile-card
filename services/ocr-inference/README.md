@@ -1,7 +1,8 @@
 # Local business-card OCR inference service
 
 Vercel and Cloudflare Workers cannot run 0.9–1B VLMs. The Next.js app
-sends the card image here. This process owns the models.
+sends the card image here. This process owns native PP-OCR and calls the
+dedicated PaddleOCR-VL `llama-server` on private loopback.
 
 ## Pipeline
 
@@ -31,11 +32,18 @@ adapter. The adapter owns PP-OCR and calls the dedicated PaddleOCR-VL process
 inside the private cluster. Node addresses and individual engine URLs never
 belong in the application environment.
 
-Authentication uses two independent boundaries:
+Authentication uses three independent credential values across two private
+hops:
 
 - Vercel `OCR_INFERENCE_API_KEY` authenticates to the public gateway.
-- The gateway's `NFC_OCR_ADAPTER_BEARER_TOKEN` authenticates to the adapter's
-  `OCR_ADAPTER_API_KEY`. These two production tokens must not be reused.
+- Gateway `NFC_OCR_ADAPTER_BEARER_TOKEN` equals adapter
+  `OCR_ADAPTER_API_KEY` for that hop.
+- Adapter `OCR_VLM_API_KEY` equals leaf `LLAMA_API_KEY` for the loopback hop.
+
+The public, adapter, and VLM values must be pairwise distinct. The gateway
+enforces public-versus-adapter separation; the adapter enforces
+adapter-versus-VLM separation. Compare public-versus-VLM only in the approved
+secret-management process instead of copying the public secret onto the GB10.
 
 The adapter body is exactly `{image, mimeType}`. `model`, `vlmEngine`, and all
 other extra fields are rejected. It returns only raw classic, semantic, and QR
@@ -91,24 +99,45 @@ docker compose -f services/ocr-inference/docker-compose.yml up --build
 
 ## Plug in real weights
 
-1. Install PaddlePaddle + PaddleX / PaddleOCR in this environment (GPU
-   recommended).
-2. Download `PP-OCRv6_medium` and `PaddleOCR-VL-1.6` per the PaddleOCR docs.
-3. Set `OCR_INFERENCE_MODE=live` for the sidecar.
-4. Restart uvicorn. The adapters in `engines/ppocr_adapter.py` and
-   `engines/paddle_vl_adapter.py` are the plug-in points if API names change.
+1. Install PaddlePaddle + PaddleOCR in the adapter environment for native
+   `PP-OCRv6_medium` (GPU recommended).
+2. Run the dedicated PaddleOCR-VL-1.6 GGUF + mmproj with `llama-server` on
+   `127.0.0.1:8092`, alias `paddleocr-vl-1.6`, and a dedicated
+   `LLAMA_API_KEY`.
+3. Set `OCR_INFERENCE_MODE=live`, `OCR_ADAPTER_API_KEY`, `OCR_VLM_API_KEY`,
+   and an integer `OCR_VLM_TIMEOUT_SECONDS` from 1 through 10 for the adapter.
+   Start with 5 seconds so the outer request still has room to fall back.
+4. Restart uvicorn. The adapter always sends a canonical PNG `image_url` to
+   the fixed loopback endpoint and does not honor URL or model overrides.
 
 Hunyuan experiments, if legally approved, must use a separate offline harness.
 They are intentionally unreachable from this HTTP service.
 
 ## Auth
 
-Live mode requires `OCR_ADAPTER_API_KEY`; a missing value makes `/health` and
-`/v1/ocr/extract` return a fixed 503 response. Wrong or missing bearer headers
-return a fixed 401 response, and token comparison uses constant-time matching.
-Tokens containing whitespace are invalid configuration and also fail closed.
-The gateway injects the matching private value from
-`NFC_OCR_ADAPTER_BEARER_TOKEN`. Never expose it to Vercel.
+Live mode requires `OCR_ADAPTER_API_KEY`, `OCR_VLM_API_KEY`, and a bounded
+`OCR_VLM_TIMEOUT_SECONDS`; missing or invalid values make `/health` and an
+authorized `/v1/ocr/extract` return a fixed 503 response. Adapter and VLM keys
+must differ. Whitespace is invalid in either key, and the VLM key also rejects
+commas so llama-server cannot interpret it as a key list. Wrong or missing
+adapter bearer headers return a fixed 401 response, and comparisons use
+constant-time matching. The gateway injects the adapter value from
+`NFC_OCR_ADAPTER_BEARER_TOKEN`. Never expose adapter or VLM keys to Vercel.
+
+The standard-library transport has one fixed destination and a 64 KiB response
+limit. Each inference performs one request. It does not use proxy variables,
+redirects, retries, or
+`max_tokens`, and sends `cache_prompt: false`. Non-200, truncated, malformed,
+or wrong-model responses collapse to the adapter's fixed secret-safe 503.
+In live mode, adapter startup and `/health` require an anonymous `/v1/models`
+call to return 401, then a dedicated-Bearer call to return the fixed alias.
+This distinguishes an authenticated leaf from a merely reachable one without
+putting the VLM key in process arguments.
+
+`cache_prompt: false` prevents cross-request prompt reuse but is not proof of
+immediate GPU/RAM zeroization. Before route enablement, the human GB10 gate must
+verify the installed binary's cache/UI-disable flags and reconcile the host
+unit; unsupported flags must not be guessed into this candidate unit.
 
 Mock mode may omit adapter authentication only while bound to loopback. If
 `OCR_ADAPTER_API_KEY` is set in mock mode, callers must authenticate.
