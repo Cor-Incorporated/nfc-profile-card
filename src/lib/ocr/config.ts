@@ -1,5 +1,19 @@
 import type { InferenceMode, OcrProviderName, VlmEngine } from "./types";
 
+const API_ROUTE_MAX_DURATION_MS = 30000;
+const API_DEADLINE_HEADROOM_MS = 2000;
+const PIPELINE_HANDOFF_HEADROOM_MS = 1000;
+const DEFAULT_TOTAL_TIMEOUT_MS =
+  API_ROUTE_MAX_DURATION_MS - API_DEADLINE_HEADROOM_MS;
+const DEFAULT_INFERENCE_TIMEOUT_MS = 25000;
+const DEFAULT_GEMINI_FALLBACK_TIMEOUT_MS = 18000;
+const MIN_LOCAL_FALLBACK_TIMEOUT_MS = 3000;
+
+function positiveNumber(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 /** Production ThinkStation GB10. Not Modal/RunPod. Do not default to :8090. */
 export const PRODUCTION_VLM_URL = "http://100.93.32.70:8092/v1";
 export const PRODUCTION_PPOCR_URL = "http://100.93.32.70:8093";
@@ -52,6 +66,44 @@ export function getVlmEngine(): VlmEngine {
 }
 
 export function getInferenceTimeoutMs(): number {
-  const parsed = Number(process.env.OCR_INFERENCE_TIMEOUT_MS);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 25000;
+  const requested = positiveNumber(
+    process.env.OCR_INFERENCE_TIMEOUT_MS,
+    DEFAULT_INFERENCE_TIMEOUT_MS,
+  );
+  const totalBudget = getOcrTotalTimeoutMs();
+
+  if (!isGeminiFallbackEnabled()) {
+    return Math.min(requested, totalBudget);
+  }
+
+  const localBudget = Math.max(
+    1,
+    totalBudget - getGeminiFallbackTimeoutMs() - PIPELINE_HANDOFF_HEADROOM_MS,
+  );
+  const timeoutMs = Math.min(requested, localBudget);
+  if (timeoutMs < MIN_LOCAL_FALLBACK_TIMEOUT_MS) {
+    throw new Error(
+      `OCR timeout configuration must leave at least ${MIN_LOCAL_FALLBACK_TIMEOUT_MS}ms for local inference`,
+    );
+  }
+  return timeoutMs;
+}
+
+export function getOcrTotalTimeoutMs(): number {
+  const requested = positiveNumber(
+    process.env.OCR_TOTAL_TIMEOUT_MS,
+    DEFAULT_TOTAL_TIMEOUT_MS,
+  );
+  return Math.min(requested, DEFAULT_TOTAL_TIMEOUT_MS);
+}
+
+export function getGeminiFallbackTimeoutMs(): number {
+  const requested = positiveNumber(
+    process.env.OCR_GEMINI_FALLBACK_TIMEOUT_MS,
+    DEFAULT_GEMINI_FALLBACK_TIMEOUT_MS,
+  );
+  return Math.min(
+    requested,
+    Math.max(1, getOcrTotalTimeoutMs() - PIPELINE_HANDOFF_HEADROOM_MS),
+  );
 }

@@ -7,7 +7,10 @@
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
 import {
   extractionToContactInfo,
+  getGeminiFallbackTimeoutMs,
   getInferenceMode,
+  getInferenceTimeoutMs,
+  getOcrTotalTimeoutMs,
   getOcrProvider,
   isGeminiFallbackEnabled,
   mergeDualPipeline,
@@ -16,7 +19,11 @@ import {
 } from "@/lib/ocr";
 import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
-import { callInferenceService } from "./ocr/inferenceClient";
+import {
+  OcrInferenceError,
+  callInferenceService,
+  isTransientOcrInferenceError,
+} from "./ocr/inferenceClient";
 import { processWithGemini } from "./ocr/geminiProvider";
 import { createMockDualPipeline } from "./ocr/mockInference";
 
@@ -29,6 +36,33 @@ const SUPPORTED_MIME_TYPES = [
   "image/heic",
   "image/heif",
 ];
+const GEMINI_DEADLINE_ERROR = "Gemini OCRがAPI制限時間内に完了しませんでした。";
+
+class GeminiDeadlineError extends Error {
+  constructor() {
+    super(GEMINI_DEADLINE_ERROR);
+    this.name = "GeminiDeadlineError";
+  }
+}
+
+function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new GeminiDeadlineError()),
+      timeoutMs,
+    );
+    operation.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 export interface OcrResult {
   success: boolean;
@@ -77,12 +111,20 @@ function validateImage(
 async function processWithLocalPipeline(
   image: string,
   mimeType: string,
+  startTime: number,
+  timeoutMs: number,
 ): Promise<OcrResult> {
-  const startTime = Date.now();
+  if (timeoutMs <= 0) {
+    throw new OcrInferenceError(
+      "OCR inference timed out before dispatch",
+      "timeout",
+      true,
+    );
+  }
   const raw =
     getInferenceMode() === "mock"
       ? createMockDualPipeline()
-      : await callInferenceService(image, mimeType);
+      : await callInferenceService(image, mimeType, timeoutMs);
 
   const extraction = mergeDualPipeline(raw);
   const contactInfo = extractionToContactInfo(extraction);
@@ -101,23 +143,57 @@ async function processWithLocalPipeline(
 async function processWithGeminiFallback(
   image: string,
   mimeType: string,
+  startTime: number,
+  deadlineAtMs: number,
 ): Promise<OcrResult> {
-  const geminiResult = await processWithGemini(image, mimeType);
-  return {
-    success: geminiResult.success,
-    contactInfo: geminiResult.contactInfo,
-    processingTime: geminiResult.processingTime,
-    error: geminiResult.error,
-    engine: "gemini",
-    humanReview: true,
-  };
+  const timeoutMs = deadlineAtMs - Date.now();
+  if (timeoutMs <= 0) {
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error: GEMINI_DEADLINE_ERROR,
+      engine: "gemini",
+      humanReview: true,
+    };
+  }
+
+  try {
+    const geminiResult = await withTimeout(
+      processWithGemini(image, mimeType, { deadlineAtMs }),
+      timeoutMs,
+    );
+    return {
+      success: geminiResult.success,
+      contactInfo: geminiResult.contactInfo,
+      processingTime: Date.now() - startTime,
+      error: geminiResult.error,
+      engine: "gemini",
+      humanReview: true,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error:
+        error instanceof GeminiDeadlineError
+          ? GEMINI_DEADLINE_ERROR
+          : "Gemini OCRの実行に失敗しました。",
+      engine: "gemini",
+      humanReview: true,
+    };
+  }
 }
 
 export async function processBusinessCardImage(
   image: string,
   mimeType: string,
+  options: { deadlineAtMs?: number } = {},
 ): Promise<OcrResult> {
   const startTime = Date.now();
+  const deadlineAtMs = Math.min(
+    options.deadlineAtMs ?? Number.POSITIVE_INFINITY,
+    startTime + getOcrTotalTimeoutMs(),
+  );
   ocrLogger.debug("=== OCR Processing Started ===");
   ocrLogger.debug("Provider:", getOcrProvider());
   ocrLogger.debug("MIME Type:", mimeType);
@@ -131,27 +207,53 @@ export async function processBusinessCardImage(
 
   if (provider === "gemini") {
     ocrLogger.warn("Gemini OCR requested explicitly via OCR_PROVIDER=gemini");
-    return processWithGeminiFallback(image, mimeType);
+    return processWithGeminiFallback(image, mimeType, startTime, deadlineAtMs);
   }
 
   try {
-    return await processWithLocalPipeline(image, mimeType);
+    const localTimeoutMs = Math.min(
+      getInferenceTimeoutMs(),
+      deadlineAtMs - Date.now(),
+    );
+    return await processWithLocalPipeline(
+      image,
+      mimeType,
+      startTime,
+      localTimeoutMs,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     ocrLogger.error("Local OCR pipeline failed:", message);
 
-    if (isGeminiFallbackEnabled()) {
-      ocrLogger.warn(
-        "Falling back to Gemini because OCR_ENABLE_GEMINI_FALLBACK=true",
+    const transientFailure = isTransientOcrInferenceError(error);
+    if (isGeminiFallbackEnabled() && transientFailure) {
+      const fallbackDeadlineAtMs = Math.min(
+        deadlineAtMs,
+        Date.now() + getGeminiFallbackTimeoutMs(),
       );
-      return processWithGeminiFallback(image, mimeType);
+      ocrLogger.warn(
+        "Falling back to Gemini after a transient local OCR failure",
+      );
+      return processWithGeminiFallback(
+        image,
+        mimeType,
+        startTime,
+        fallbackDeadlineAtMs,
+      );
+    }
+
+    if (isGeminiFallbackEnabled() && !transientFailure) {
+      ocrLogger.warn(
+        "Gemini fallback skipped for a permanent local OCR failure",
+      );
     }
 
     return {
       success: false,
       processingTime: Date.now() - startTime,
-      error:
-        "ローカルOCR推論サービスに接続できません。OCR_INFERENCE_URL を確認するか、services/ocr-inference を起動してください。",
+      error: transientFailure
+        ? "ローカルOCR推論サービスに接続できません。OCR_INFERENCE_URL を確認するか、services/ocr-inference を起動してください。"
+        : "ローカルOCR推論の設定または応答が不正です。Geminiへの自動送信は行いませんでした。",
     };
   }
 }

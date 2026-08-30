@@ -59,6 +59,8 @@ describe("processWithGemini Gemini model selection", () => {
     delete process.env.GEMINI_FALLBACK_MODEL;
     jest.dontMock("@google/generative-ai");
     jest.dontMock("@/lib/logger");
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   it("uses the default Gemini model when GEMINI_MODEL is not configured", async () => {
@@ -104,6 +106,77 @@ describe("processWithGemini Gemini model selection", () => {
     expect(getGenerativeModelMock).toHaveBeenNthCalledWith(2, {
       model: "fallback-model",
     });
+  });
+
+  it("passes the remaining absolute deadline and abort signal to Gemini", async () => {
+    const now = jest.spyOn(Date, "now").mockReturnValue(1000);
+    const { processWithGemini } = await loadOcrService();
+
+    const result = await processWithGemini("base64-image", "image/png", {
+      deadlineAtMs: 2500,
+    });
+
+    expect(result.success).toBe(true);
+    expect(generateContentMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        timeout: 1500,
+        signal: expect.anything(),
+      }),
+    );
+    now.mockRestore();
+  });
+
+  it("aborts an active Gemini request when the deadline expires", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1000);
+    const { processWithGemini } = await loadOcrService();
+    let requestSignal: AbortSignal | undefined;
+    generateContentMock.mockImplementation(
+      (_request: unknown, options?: { signal?: AbortSignal }) => {
+        requestSignal = options?.signal;
+        return new Promise((_resolve, reject) => {
+          requestSignal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      },
+    );
+
+    const request = processWithGemini("base64-image", "image/png", {
+      deadlineAtMs: 1050,
+    });
+    await jest.advanceTimersByTimeAsync(50);
+    const result = await request;
+
+    expect(result.success).toBe(false);
+    expect(requestSignal?.aborted).toBe(true);
+  });
+
+  it("does not send the image to a second model after the deadline", async () => {
+    process.env.GEMINI_MODEL = "primary-model";
+    process.env.GEMINI_FALLBACK_MODEL = "fallback-model";
+    const now = jest
+      .spyOn(Date, "now")
+      .mockReturnValueOnce(1000)
+      .mockReturnValueOnce(1000)
+      .mockReturnValue(2001);
+    const { processWithGemini } = await loadOcrService();
+    generateContentMock.mockRejectedValueOnce(
+      new Error(
+        "[GoogleGenerativeAI Error]: [404 Not Found] models/primary-model is not found for API version v1beta",
+      ),
+    );
+
+    const result = await processWithGemini("base64-image", "image/png", {
+      deadlineAtMs: 2000,
+    });
+
+    expect(result.success).toBe(false);
+    expect(generateContentMock).toHaveBeenCalledTimes(1);
+    now.mockRestore();
   });
 
   it("falls back when the primary model does not support content generation", async () => {
