@@ -112,58 +112,73 @@ export async function getAnalytics(
   }
 }
 
+export interface AnalyticsSummary {
+  totalViews: number;
+  lastViewedAt: Date | null;
+  todayViews: number;
+  weekViews: number;
+}
+
+const EMPTY_ANALYTICS_SUMMARY: AnalyticsSummary = {
+  totalViews: 0,
+  lastViewedAt: null,
+  todayViews: 0,
+  weekViews: 0,
+};
+
+/**
+ * 既に取得済みのユーザードキュメントからサマリーを計算する。
+ * ダッシュボードが users/{uid} を二重に getDoc しないための純関数。
+ */
+export function summarizeAnalyticsFromUserData(
+  analytics?: {
+    totalViews?: number;
+    lastViewedAt?: { toDate?: () => Date };
+    dailyViews?: Record<string, number>;
+  } | null,
+): AnalyticsSummary {
+  const dailyViews = analytics?.dailyViews || {};
+  const today = new Date().toISOString().split("T")[0];
+  const dates: string[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    dates.push(date.toISOString().split("T")[0]);
+  }
+
+  const todayViews = dailyViews[today] || 0;
+  const weekViews = dates.reduce((sum, date) => {
+    return sum + (dailyViews[date] || 0);
+  }, 0);
+
+  return {
+    totalViews: analytics?.totalViews || 0,
+    lastViewedAt: analytics?.lastViewedAt?.toDate?.() || null,
+    todayViews,
+    weekViews,
+  };
+}
+
 /**
  * アナリティクスサマリーを取得（ダッシュボード用）
  * @param userId ユーザーID
  * @returns サマリーオブジェクト
  */
-export async function getAnalyticsSummary(userId: string) {
+export async function getAnalyticsSummary(
+  userId: string,
+): Promise<AnalyticsSummary> {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
 
     if (!userDoc.exists()) {
-      return {
-        totalViews: 0,
-        lastViewedAt: null,
-        todayViews: 0,
-        weekViews: 0,
-      };
+      return EMPTY_ANALYTICS_SUMMARY;
     }
 
-    const data = userDoc.data();
-    const analytics = data.analytics || {};
-
-    // 日付の計算
-    const today = new Date().toISOString().split("T")[0];
-    const dates = [];
-
-    // 過去7日分の日付を生成
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split("T")[0]);
-    }
-
-    // 日別カウンタから集計
-    const todayViews = analytics.dailyViews?.[today] || 0;
-    const weekViews = dates.reduce((sum, date) => {
-      return sum + (analytics.dailyViews?.[date] || 0);
-    }, 0);
-
-    return {
-      totalViews: analytics.totalViews || 0,
-      lastViewedAt: analytics.lastViewedAt?.toDate?.() || null,
-      todayViews,
-      weekViews,
-    };
+    return summarizeAnalyticsFromUserData(userDoc.data().analytics);
   } catch (error) {
     console.error("Analytics summary error:", error);
-    return {
-      totalViews: 0,
-      lastViewedAt: null,
-      todayViews: 0,
-      weekViews: 0,
-    };
+    return EMPTY_ANALYTICS_SUMMARY;
   }
 }
 

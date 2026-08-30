@@ -1,7 +1,6 @@
 "use client";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { usePublicLanguage } from "@/contexts/PublicLanguageContext";
 import { ROUTES, createAuthRedirectUrl } from "@/lib/constants/routes";
 import { Camera, Globe, QrCode } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -26,21 +25,15 @@ export function ProfileFloatingActions({
   variant = "full",
 }: ProfileFloatingActionsProps) {
   const router = useRouter();
-  const { user: authUser } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t } = usePublicLanguage();
   const [showQRCode, setShowQRCode] = useState(false);
   const [showLangSelector, setShowLangSelector] = useState(false);
   const [origin, setOrigin] = useState("");
 
   const handleCameraClick = () => {
-    if (!authUser) {
-      const redirectUrl = createAuthRedirectUrl(
-        ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN,
-      );
-      router.push(redirectUrl);
-    } else {
-      router.push(ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN);
-    }
+    // Public profile no longer hydrates Firebase Auth. Send visitors through
+    // sign-in with a return URL; the scan page will keep them if already signed in.
+    router.push(createAuthRedirectUrl(ROUTES.DASHBOARD_BUSINESS_CARDS_SCAN));
   };
 
   const handleOpenQR = () => {
@@ -96,15 +89,9 @@ export function ProfileFloatingActions({
 
         <button
           onClick={handleCameraClick}
-          className={`p-3 rounded-full shadow-lg transition-all flex items-center justify-center ${
-            !authUser
-              ? "bg-gray-400 hover:bg-blue-600 hover:shadow-xl text-white"
-              : "bg-blue-600 hover:bg-blue-700 hover:shadow-xl text-white"
-          }`}
-          aria-label={
-            !authUser ? t("loginToScanCard") : t("scanBusinessCardButton")
-          }
-          title={!authUser ? t("loginToScanCard") : t("scanBusinessCardButton")}
+          className="p-3 rounded-full shadow-lg transition-all flex items-center justify-center bg-blue-600 hover:bg-blue-700 hover:shadow-xl text-white"
+          aria-label={t("loginToScanCard")}
+          title={t("loginToScanCard")}
         >
           <Camera className="h-6 w-6" />
         </button>

@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { getRedirectUrl } from "@/lib/constants/routes";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +31,6 @@ import { FcGoogle } from "react-icons/fc";
 
 function SignInForm() {
   const router = useRouter();
-  const pathname = usePathname();
   const { t } = useLanguage();
   const {
     signInWithGoogle,
@@ -42,6 +42,7 @@ function SignInForm() {
     loading,
   } = useAuth();
   const searchParams = useSearchParams();
+  const redirectTo = getRedirectUrl(searchParams);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -63,14 +64,12 @@ function SignInForm() {
     }
   }, [searchParams]);
 
-  // 既にログイン済みの場合はダッシュボードへリダイレクト
+  // 既にログイン済みの場合は検証済みのアプリ内URLへリダイレクト
   useEffect(() => {
     if (user && !loading) {
-      // ロケールを保持したままリダイレクト
-      const locale = pathname.startsWith("/en") ? "/en" : "";
-      router.push(`${locale}/dashboard`);
+      router.push(redirectTo);
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, redirectTo, router]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);

@@ -68,8 +68,9 @@
 ### 📸 名刺スキャン機能
 
 - ✅ 名刺OCR機能（カメラで撮影するだけで連絡先を自動保存）
-- ✅ **Geminiモデルフォールバック** - primary: gemini-3.1-flash-lite-preview → fallback: gemini-2.5-flash
-- ✅ **ミドルネーム対応** - OCR抽出データにmiddleNameフィールドを追加
+- ✅ **ローカル dual-pipeline** - PP-OCRv6_medium（生文字）+ PaddleOCR-VL-1.6（意味づけ）。メール/電話/URL/郵便番号は正規表現で検証し、VLMの創作を採用しない
+- ✅ **自己ホスト推論** - Vercel では VLM を動かさない。`services/ocr-inference` を参照
+- ✅ Gemini は `OCR_PROVIDER=gemini` または `OCR_ENABLE_GEMINI_FALLBACK=true` のときだけ
 - ✅ 月間スキャン上限管理（Free: 10回、Pro: 無制限）
 - ✅ プロモーションコードによるProプランアップグレード
 - ✅ スキャン履歴の保存と管理
@@ -194,7 +195,7 @@ src/
 - **DnD**: @dnd-kit (ドラッグ&ドロップライブラリ)
 - **QRCode**: qr-code-styling (QRコード生成)
 - **Color Picker**: react-colorful
-- **OCR**: Google Gemini API (gemini-3.1-flash-lite-preview + gemini-2.5-flash フォールバック)
+- **OCR**: ローカル dual-pipeline（PP-OCRv6_medium + PaddleOCR-VL-1.6）。Gemini はオプトインの最終手段
 - **Analytics**: Vercel Analytics + カスタムサーバー側PV追跡API
 - **Hosting**: Vercel
 
@@ -218,7 +219,17 @@ npm run lint
 
 # フォーマット
 npm run format
+
+# ローカルOCR推論（モック専用。:8090 は本番では deck-forge 予約）
+cd services/ocr-inference && python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+OCR_INFERENCE_MODE=mock uvicorn app:app --host 127.0.0.1 --port 8090
 ```
+
+本番推論は認証済みの公開OCR gatewayからGB10のdual adapterへ接続します。
+Vercelへcluster nodeのTailscale/LANアドレスや個別engine URLを設定しません。
+詳細は `services/ocr-inference/README.md` と
+`services/ocr-inference/CLUSTER_RESERVATION.md` を参照してください。
 
 ## 🧪 テスト
 

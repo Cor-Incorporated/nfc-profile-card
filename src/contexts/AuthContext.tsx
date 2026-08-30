@@ -25,6 +25,7 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { ROUTES, getRedirectUrl } from "@/lib/constants/routes";
 
 interface AuthContextType {
   user: User | null;
@@ -95,6 +96,14 @@ const getErrorMessage = (error: AuthError): string => {
       return `認証エラーが発生しました: ${error.message}`;
   }
 };
+
+function getCurrentSignInRedirect(): string {
+  if (typeof window === "undefined") {
+    return ROUTES.DASHBOARD;
+  }
+
+  return getRedirectUrl(new URLSearchParams(window.location.search));
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -176,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       .then(async (result) => {
         if (result && result.user) {
           await createOrUpdateUserDocument(result.user);
-          router.push("/dashboard");
+          router.push(getCurrentSignInRedirect());
         }
       })
       .catch((error) => {
@@ -186,32 +195,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
     // 認証状態の監視
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Firestore のユーザードキュメント同期は UI をブロックしない。
+    // 以前は getDoc+setDoc 完了まで loading=true のままだったため、
+    // ダッシュボード / 編集 / スキャンの初回描画が遅れていた。
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        await createOrUpdateUserDocument(user);
         setUser(user);
+        setLoading(false);
+        void createOrUpdateUserDocument(user);
 
-        // ログイン直後の場合、ダッシュボードへリダイレクト
-        if (window.location.pathname === "/signin") {
-          router.push("/dashboard");
-        }
-
-        // メール未確認の場合の警告
-        if (
-          !user.emailVerified &&
-          user.providerData[0]?.providerId === "password"
-        ) {
-          // User email not verified
+        if (window.location.pathname === ROUTES.SIGNIN) {
+          router.push(getCurrentSignInRedirect());
         }
       } else {
         setUser(null);
-        // 保護されたページにいる場合はサインインページへリダイレクト
+        setLoading(false);
         if (window.location.pathname.startsWith("/dashboard")) {
           router.push("/signin");
         }
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -219,13 +221,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Googleでサインイン
   const signInWithGoogle = async () => {
+    const redirectTo = getCurrentSignInRedirect();
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     try {
       const result = await signInWithPopup(auth, provider);
 
       await createOrUpdateUserDocument(result.user);
-      router.push("/dashboard");
+      router.push(redirectTo);
     } catch (error: any) {
       console.error("Google sign in error:", error);
       // ポップアップがブロックされた場合のみ、リダイレクト方式へフォールバック
@@ -250,14 +253,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // メールとパスワードでサインイン
   const signInWithEmail = async (email: string, password: string) => {
+    const redirectTo = getCurrentSignInRedirect();
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
 
       // ユーザードキュメント更新
       await createOrUpdateUserDocument(result.user);
 
-      // 明示的にダッシュボードへリダイレクト
-      router.push("/dashboard");
+      // 検証済みのアプリ内URLへリダイレクト
+      router.push(redirectTo);
     } catch (error: any) {
       console.error("Email sign in error:", error);
       throw new Error(getErrorMessage(error));
@@ -270,6 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     password: string,
     displayName?: string,
   ) => {
+    const redirectTo = getCurrentSignInRedirect();
     try {
       // アカウント作成
       const result = await createUserWithEmailAndPassword(
@@ -289,7 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // ユーザードキュメント作成
       await createOrUpdateUserDocument(result.user);
 
-      router.push("/dashboard");
+      router.push(redirectTo);
     } catch (error: any) {
       console.error("Email sign up error:", error);
       throw new Error(getErrorMessage(error));

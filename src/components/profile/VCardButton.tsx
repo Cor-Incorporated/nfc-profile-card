@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { usePublicLanguage } from "@/contexts/PublicLanguageContext";
 
 interface VCardButtonProps {
   username?: string;
@@ -46,7 +46,7 @@ export function VCardButton({
   className = "",
 }: VCardButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { t } = useLanguage();
+  const { t } = usePublicLanguage();
 
   const handleDownload = async () => {
     setIsLoading(true);

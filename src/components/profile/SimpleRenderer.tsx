@@ -20,7 +20,13 @@ const TextComponent = memo(({ component }: { component: ProfileComponent }) => {
 TextComponent.displayName = "TextComponent";
 
 const ImageComponent = memo(
-  ({ component }: { component: ProfileComponent }) => {
+  ({
+    component,
+    priority = false,
+  }: {
+    component: ProfileComponent;
+    priority?: boolean;
+  }) => {
     const content = component.content as any;
     return (
       <div className="w-[90%] max-w-[600px] mx-auto bg-white bg-opacity-90 rounded-lg shadow-md p-4 mb-4">
@@ -31,8 +37,9 @@ const ImageComponent = memo(
             width={500}
             height={300}
             className="w-full h-auto rounded"
-            priority={false}
-            loading="lazy"
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            sizes="(max-width: 640px) 90vw, 600px"
           />
         ) : (
           <div className="bg-gray-200 h-32 rounded flex items-center justify-center">
@@ -107,7 +114,7 @@ export const SimpleRenderer = memo(function SimpleRenderer({
               <p>プロフィールコンテンツがありません</p>
             </div>
           ) : (
-            safeComponents.map((component) => {
+            safeComponents.map((component, index) => {
               switch (component.type) {
                 case "text":
                   return (
@@ -115,7 +122,11 @@ export const SimpleRenderer = memo(function SimpleRenderer({
                   );
                 case "image":
                   return (
-                    <ImageComponent key={component.id} component={component} />
+                    <ImageComponent
+                      key={component.id}
+                      component={component}
+                      priority={index === 0}
+                    />
                   );
                 case "link":
                   return (

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getAnalyticsSummary } from "@/lib/analytics";
+import { summarizeAnalyticsFromUserData } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
 import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc } from "firebase/firestore";
@@ -51,12 +51,12 @@ export default function DashboardPage() {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-        setUserProfile(userSnap.data());
+        const data = userSnap.data();
+        setUserProfile(data);
+        setAnalytics(summarizeAnalyticsFromUserData(data.analytics));
+      } else {
+        setAnalytics(summarizeAnalyticsFromUserData(null));
       }
-
-      // Fetch analytics data
-      const analyticsData = await getAnalyticsSummary(user.uid);
-      setAnalytics(analyticsData);
     } catch (error) {
       console.error("Error fetching user profile:", error);
     } finally {

@@ -1,11 +1,20 @@
-import { AuthProvider } from "@/contexts/AuthContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], preload: false });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  adjustFontFallback: true,
+  fallback: [
+    "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP",
+    "sans-serif",
+  ],
+});
 
 export const metadata: Metadata = {
   title: "TapForge",
@@ -29,9 +38,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={inter.className}>
-        <AuthProvider>
-          <LanguageProvider>{children}</LanguageProvider>
-        </AuthProvider>
+        {children}
         <Analytics />
       </body>
     </html>

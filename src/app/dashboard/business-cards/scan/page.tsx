@@ -22,6 +22,7 @@ import {
   type EnhancedImageResult,
 } from "@/services/business-card/imageEnhancement";
 import { downloadVCard } from "@/services/business-card/vcardService";
+import { BusinessCardScanResponse } from "@/types/api";
 import { AppStatus, ContactInfo } from "@/types/business-card";
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export default function BusinessCardScanPage() {
   const router = useRouter();
-  const { user, getIdToken } = useAuth();
+  const { user, loading: authLoading, getIdToken } = useAuth();
   const { t } = useLanguage();
   const [appStatus, setAppStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
@@ -43,6 +44,8 @@ export default function BusinessCardScanPage() {
   );
   const [scanQuota, setScanQuota] = useState<ScanQuota | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [humanReview, setHumanReview] = useState(false);
+  const [reviewReasons, setReviewReasons] = useState<string[]>([]);
 
   const refreshQuota = useCallback(async () => {
     if (user?.uid) {
@@ -50,6 +53,12 @@ export default function BusinessCardScanPage() {
       setScanQuota(quota);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/signin");
+    }
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     refreshQuota();
@@ -80,11 +89,12 @@ export default function BusinessCardScanPage() {
       setContactInfo(null);
       setEnhancedImage(null);
       setImageQualityWarnings(warnings);
+      setHumanReview(false);
+      setReviewReasons([]);
 
       // Log HEIC format detection for monitoring
       if (file.type === "image/heic" || file.type === "image/heif") {
-        console.log("📱 HEIC format detected from mobile device");
-        console.log("Proceeding with Gemini Flash Latest processing");
+        console.log("HEIC format detected from mobile device");
       }
 
       const reader = new FileReader();
@@ -172,10 +182,16 @@ export default function BusinessCardScanPage() {
           }
 
           // Parse JSON response only if response is ok
-          const result = await response.json();
+          const result = (await response.json()) as BusinessCardScanResponse;
 
-          if (result.success) {
+          if (result.success && result.data) {
             setContactInfo(result.data);
+            setHumanReview(Boolean(result.humanReview));
+            setReviewReasons(
+              Object.entries(result.fieldReviews || {})
+                .filter(([, meta]) => meta.human_review)
+                .map(([field, meta]) => `${field}: ${meta.reason || "review"}`),
+            );
             setAppStatus(AppStatus.EDITING);
 
             // 処理時間をログに記録
@@ -195,7 +211,7 @@ export default function BusinessCardScanPage() {
           } else {
             // Translate error message if it's a translation key
             const errorMessage =
-              t(result.error) ||
+              t(result.error ?? "") ||
               result.error ||
               "Failed to extract information";
             throw new Error(errorMessage);
@@ -276,6 +292,8 @@ export default function BusinessCardScanPage() {
     setImageMimeType(null);
     setEnhancedImage(null);
     setImageQualityWarnings([]);
+    setHumanReview(false);
+    setReviewReasons([]);
   };
 
   const renderContent = () => {
@@ -294,6 +312,8 @@ export default function BusinessCardScanPage() {
               enhancedImageBase64={enhancedImage?.base64 || null}
               enhancedImageMimeType={enhancedImage?.mimeType || null}
               imageQualityWarnings={imageQualityWarnings}
+              humanReview={humanReview}
+              reviewReasons={reviewReasons}
             />
           );
         }
