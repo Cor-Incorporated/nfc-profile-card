@@ -22,6 +22,59 @@ export interface InferenceRequest {
   vlmEngine: VlmEngine;
 }
 
+export type OcrInferenceErrorKind =
+  | "configuration"
+  | "timeout"
+  | "network"
+  | "unavailable"
+  | "http"
+  | "invalid_response";
+
+export class OcrInferenceError extends Error {
+  constructor(
+    message: string,
+    readonly kind: OcrInferenceErrorKind,
+    readonly retryable: boolean,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "OcrInferenceError";
+  }
+}
+
+export function isTransientOcrInferenceError(error: unknown): boolean {
+  return error instanceof OcrInferenceError && error.retryable;
+}
+
+const NETWORK_ERROR_CODES = new Set([
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+function hasNetworkErrorCode(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const record = value as {
+    cause?: unknown;
+    code?: unknown;
+    errors?: unknown;
+  };
+  if (typeof record.code === "string" && NETWORK_ERROR_CODES.has(record.code)) {
+    return true;
+  }
+  if (Array.isArray(record.errors) && record.errors.some(hasNetworkErrorCode)) {
+    return true;
+  }
+  return hasNetworkErrorCode(record.cause);
+}
+
 const SEMANTIC_PROMPT = `Extract business-card fields as JSON only.
 Keys: name, name_kana, company, department, title, email, phone, mobile, fax, postal_code, address, url, social.
 Associate name / company / title from layout. Do not invent email, phone, URL, or postal_code if they are not visible. Empty string if unseen.`;
@@ -45,22 +98,76 @@ async function fetchJson(
   init: RequestInit,
   timeoutMs: number,
 ): Promise<unknown> {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(url);
+  } catch {
+    throw new OcrInferenceError(
+      "OCR inference endpoint is invalid",
+      "configuration",
+      false,
+    );
+  }
+  if (!["http:", "https:"].includes(endpoint.protocol)) {
+    throw new OcrInferenceError(
+      "OCR inference endpoint must use HTTP or HTTPS",
+      "configuration",
+      false,
+    );
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(endpoint, {
+      ...init,
+      signal: controller.signal,
+    });
     if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(
-        `OCR inference ${url} returned ${response.status}: ${detail.slice(0, 200)}`,
+      const retryable = [408, 429, 500, 502, 503, 504].includes(
+        response.status,
+      );
+      throw new OcrInferenceError(
+        `OCR inference returned HTTP ${response.status}`,
+        retryable ? "unavailable" : "http",
+        retryable,
+        response.status,
       );
     }
-    return response.json();
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`OCR inference timed out: ${url}`);
+    try {
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw error;
+      }
+      throw new OcrInferenceError(
+        "OCR inference returned invalid JSON",
+        "invalid_response",
+        false,
+      );
     }
-    throw error;
+  } catch (error) {
+    if (error instanceof OcrInferenceError) {
+      throw error;
+    }
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new OcrInferenceError("OCR inference timed out", "timeout", true);
+    }
+    if (error instanceof TypeError) {
+      if (!hasNetworkErrorCode(error)) {
+        throw new OcrInferenceError(
+          "OCR inference request configuration is invalid",
+          "configuration",
+          false,
+        );
+      }
+      throw new OcrInferenceError(
+        "OCR inference network request failed",
+        "network",
+        true,
+      );
+    }
+    throw new OcrInferenceError("OCR inference request failed", "http", false);
   } finally {
     clearTimeout(timer);
   }
@@ -103,15 +210,28 @@ function extractJsonObject(text: string): unknown {
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error("VLM response did not contain JSON");
+    throw new OcrInferenceError(
+      "VLM response did not contain JSON",
+      "invalid_response",
+      false,
+    );
   }
-  return JSON.parse(trimmed.slice(start, end + 1));
+  try {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  } catch {
+    throw new OcrInferenceError(
+      "VLM response contained invalid JSON",
+      "invalid_response",
+      false,
+    );
+  }
 }
 
 async function callAggregator(
   image: string,
   mimeType: string,
   baseUrl: string,
+  timeoutMs: number,
 ): Promise<DualPipelineRaw> {
   const vlmEngine = getVlmEngine();
   ocrLogger.info("Calling OCR aggregator (local-dev)", baseUrl, vlmEngine);
@@ -126,7 +246,7 @@ async function callAggregator(
         vlmEngine,
       } satisfies InferenceRequest),
     },
-    getInferenceTimeoutMs(),
+    timeoutMs,
   );
 
   const data =
@@ -135,7 +255,11 @@ async function callAggregator(
       : payload;
 
   if (!isDualPipelineRaw(data)) {
-    throw new Error("OCR inference service returned an unexpected payload");
+    throw new OcrInferenceError(
+      "OCR inference service returned an unexpected payload",
+      "invalid_response",
+      false,
+    );
   }
   return data;
 }
@@ -164,6 +288,7 @@ function parseClassicPayload(payload: unknown): ClassicOcrResult {
 async function callPpocr(
   image: string,
   mimeType: string,
+  timeoutMs: number,
 ): Promise<ClassicOcrResult> {
   const base = getPpocrUrl();
   ocrLogger.info("Calling PP-OCRv6", base);
@@ -177,7 +302,7 @@ async function callPpocr(
         mimeType,
       }),
     },
-    getInferenceTimeoutMs(),
+    timeoutMs,
   );
   return parseClassicPayload(payload);
 }
@@ -185,6 +310,7 @@ async function callPpocr(
 async function callLlamaVlm(
   image: string,
   mimeType: string,
+  timeoutMs: number,
 ): Promise<SemanticExtraction> {
   const base = getVlmUrl();
   const dataUrl = `data:${mimeType};base64,${stripDataUrl(image)}`;
@@ -208,7 +334,7 @@ async function callLlamaVlm(
         ],
       }),
     },
-    getInferenceTimeoutMs(),
+    timeoutMs,
   );
 
   const content = (
@@ -218,7 +344,11 @@ async function callLlamaVlm(
   )?.choices?.[0]?.message?.content;
 
   if (typeof content !== "string" || !content.trim()) {
-    throw new Error("VLM llama-server returned empty content");
+    throw new OcrInferenceError(
+      "VLM llama-server returned empty content",
+      "invalid_response",
+      false,
+    );
   }
 
   return {
@@ -230,16 +360,37 @@ async function callLlamaVlm(
 export async function callInferenceService(
   image: string,
   mimeType: string,
+  timeoutMs = getInferenceTimeoutMs(),
 ): Promise<DualPipelineRaw> {
   const aggregator = getInferenceBaseUrl();
   if (aggregator) {
-    return callAggregator(image, mimeType, aggregator);
+    return callAggregator(image, mimeType, aggregator, timeoutMs);
   }
 
-  const [classic, semantic] = await Promise.all([
-    callPpocr(image, mimeType),
-    callLlamaVlm(image, mimeType),
+  const [classicResult, semanticResult] = await Promise.allSettled([
+    callPpocr(image, mimeType, timeoutMs),
+    callLlamaVlm(image, mimeType, timeoutMs),
   ]);
 
-  return { classic, semantic, qr: [] };
+  if (
+    classicResult.status === "rejected" ||
+    semanticResult.status === "rejected"
+  ) {
+    const failures = [classicResult, semanticResult]
+      .filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      )
+      .map((result) => result.reason as unknown);
+    const permanentFailure = failures.find(
+      (failure) => !isTransientOcrInferenceError(failure),
+    );
+    throw permanentFailure ?? failures[0];
+  }
+
+  return {
+    classic: classicResult.value,
+    semantic: semanticResult.value,
+    qr: [],
+  };
 }
