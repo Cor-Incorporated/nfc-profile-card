@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 env:
   NODE_VERSION: "18"
@@ -32,6 +32,9 @@ jobs:
       - name: Check TypeScript types
         run: npm run type-check
 
+      - name: Run unit tests
+        run: npm test -- --runInBand
+
       - name: Check code formatting (PR only)
         if: github.event_name == 'pull_request'
         run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}"
@@ -39,12 +42,6 @@ jobs:
       - name: Check code formatting (Push)
         if: github.event_name != 'pull_request'
         run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}" || true  # プッシュ時は警告のみ
-
-  # Jestテストは現在保守されていないのでスキップ
-  # test:
-  #   name: Run Tests
-  #   runs-on: ubuntu-latest
-  #   if: false  # テストが修正されるまで無効化
 
   # E2Eテストも現在機能していないのでスキップ
   # e2e-test:

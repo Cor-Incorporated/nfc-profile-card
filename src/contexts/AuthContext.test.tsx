@@ -77,9 +77,7 @@ describe("AuthContext", () => {
     (firestore.getDoc as jest.Mock).mockResolvedValue({ exists: () => false });
     (firestore.setDoc as jest.Mock).mockResolvedValue(undefined);
 
-    // window.location のモック
-    delete (window as any).location;
-    window.location = { pathname: "/" } as any;
+    window.history.replaceState({}, "", "/");
   });
 
   afterEach(() => {
@@ -240,6 +238,68 @@ describe("AuthContext", () => {
       );
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
     });
+
+    it("安全な内部redirectへサインイン後に遷移する", async () => {
+      const mockUser = {
+        uid: "email-uid",
+        email: "user@example.com",
+        emailVerified: true,
+      } as firebaseAuth.User;
+
+      (firebaseAuth.signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
+        user: mockUser,
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+
+      window.history.replaceState(
+        {},
+        "",
+        "/signin?redirect=%2Fdashboard%2Fbusiness-cards%2Fscan",
+      );
+
+      await act(async () => {
+        await result.current.signInWithEmail("user@example.com", "password123");
+      });
+
+      expect(mockPush).toHaveBeenCalledWith("/dashboard/business-cards/scan");
+    });
+
+    it.each(["//evil.example/steal", "https://evil.example/steal"])(
+      "危険なredirectを拒否する: %s",
+      async (redirect) => {
+        const mockUser = {
+          uid: "email-uid",
+          email: "user@example.com",
+          emailVerified: true,
+        } as firebaseAuth.User;
+
+        (
+          firebaseAuth.signInWithEmailAndPassword as jest.Mock
+        ).mockResolvedValue({ user: mockUser });
+
+        const { result } = renderHook(() => useAuth(), {
+          wrapper: AuthProvider,
+        });
+
+        window.history.replaceState(
+          {},
+          "",
+          `/signin?${new URLSearchParams({ redirect }).toString()}`,
+        );
+
+        await act(async () => {
+          await result.current.signInWithEmail(
+            "user@example.com",
+            "password123",
+          );
+        });
+
+        expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      },
+    );
 
     it("間違ったパスワードでエラーを返す", async () => {
       const error = { code: "auth/wrong-password", message: "Wrong password" };
@@ -536,6 +596,31 @@ describe("AuthContext", () => {
       });
 
       expect(firestore.setDoc).toHaveBeenCalled();
+    });
+
+    it("認証済みユーザーをsigninの安全な内部redirectへ送る", async () => {
+      const mockUser = {
+        uid: "test-uid",
+        email: "test@example.com",
+        providerData: [],
+        emailVerified: true,
+      } as unknown as firebaseAuth.User;
+
+      window.history.replaceState(
+        {},
+        "",
+        "/signin?redirect=%2Fdashboard%2Fbusiness-cards%2Fscan",
+      );
+      mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+        setTimeout(() => callback(mockUser), 0);
+        return mockUnsubscribe;
+      });
+
+      renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/dashboard/business-cards/scan");
+      });
     });
 
     it("ログアウト時にユーザー状態がクリアされる", async () => {
