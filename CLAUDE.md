@@ -113,10 +113,11 @@ The project follows Next.js 14 App Router conventions with the following planned
 
 ### OCR Functionality
 
-- Uses Google Gemini API with model fallback (gemini-3.1-flash-lite-preview → gemini-2.5-flash)
+- Defaults to the local PP-OCRv6 + semantic VLM pipeline; Gemini is an opt-in,
+  last-resort fallback (gemini-3.1-flash-lite → gemini-2.5-flash)
 - Extracts name (first/middle/last), company, title, phone, email, address
 - Converts scanned data to VCard format
-- Immediate data deletion after processing for privacy
+- Does not persist uploaded card images after processing
 
 ### Database Schema (Firestore)
 

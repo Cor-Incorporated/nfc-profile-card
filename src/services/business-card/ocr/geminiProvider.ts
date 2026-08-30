@@ -9,29 +9,55 @@ import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { GenerateContentResult, Part } from "@google/generative-ai";
+import { z } from "zod";
 
 // Initialize Gemini AI with API key from environment
 // Use empty string as fallback to avoid build-time errors
 // Actual validation happens at runtime in processBusinessCardImage
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
-// Empty contact info template
-const emptyContactInfo: ContactInfo = {
-  lastName: "",
-  firstName: "",
-  phoneticLastName: "",
-  phoneticFirstName: "",
-  company: "",
-  department: "",
-  title: "",
-  addresses: [],
-  email: "",
-  website: "",
-  phoneNumbers: [],
-};
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
+const contactTextSchema = z
+  .string()
+  .max(1000)
+  .refine((value) => !CONTROL_CHARACTER_PATTERN.test(value));
+const contactInfoSchema = z
+  .object({
+    lastName: contactTextSchema,
+    firstName: contactTextSchema,
+    phoneticLastName: contactTextSchema,
+    phoneticFirstName: contactTextSchema,
+    company: contactTextSchema,
+    department: contactTextSchema,
+    title: contactTextSchema,
+    addresses: z
+      .array(
+        z
+          .object({
+            label: contactTextSchema,
+            postalCode: contactTextSchema,
+            address: contactTextSchema,
+          })
+          .strict(),
+      )
+      .max(10),
+    email: contactTextSchema,
+    website: contactTextSchema,
+    phoneNumbers: z
+      .array(
+        z
+          .object({
+            type: z.enum(["WORK", "MOBILE", "FAX", "OTHER"]),
+            number: contactTextSchema,
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict();
 
 // Optimized OCR prompt for Japanese business cards
 const OCR_PROMPT = `
@@ -122,6 +148,89 @@ function isModelAvailabilityError(error: unknown) {
   const modelMethodUnsupported = /\bis not supported for\b/i.test(message);
 
   return referencesModel && (modelNotFound || modelMethodUnsupported);
+}
+
+type GeminiFailureCode =
+  | "api_key"
+  | "deadline"
+  | "quota"
+  | "response_format"
+  | "unknown";
+
+function classifyGeminiFailure(
+  error: unknown,
+  mimeType: string,
+): { code: GeminiFailureCode; publicMessage: string } {
+  const message = error instanceof Error ? error.message : "";
+
+  if (
+    error instanceof Error &&
+    (error.name === "AbortError" || error.name === "GeminiDeadlineError")
+  ) {
+    return {
+      code: "deadline",
+      publicMessage:
+        "処理に時間がかかりすぎています。画像を再撮影してお試しください。",
+    };
+  }
+  if (message.includes("API key") || message.includes("API_KEY_INVALID")) {
+    return {
+      code: "api_key",
+      publicMessage: "OCR APIキーが無効です。管理者にお問い合わせください。",
+    };
+  }
+  if (message.includes("timeout") || message.includes("DEADLINE_EXCEEDED")) {
+    return {
+      code: "deadline",
+      publicMessage:
+        "処理に時間がかかりすぎています。画像を再撮影してお試しください。",
+    };
+  }
+  if (message.includes("quota") || message.includes("RESOURCE_EXHAUSTED")) {
+    return {
+      code: "quota",
+      publicMessage: ERROR_MESSAGES.QUOTA_EXCEEDED,
+    };
+  }
+  if (
+    message.includes("The string did not match the expected pattern") &&
+    (mimeType === "image/heic" || mimeType === "image/heif")
+  ) {
+    return {
+      code: "response_format",
+      publicMessage:
+        "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。",
+    };
+  }
+  if (
+    message.includes("The string did not match the expected pattern") ||
+    message.includes("Unexpected token") ||
+    message.includes("not valid JSON")
+  ) {
+    return {
+      code: "response_format",
+      publicMessage: "OCR APIからの応答形式が不正です。再度お試しください。",
+    };
+  }
+  return {
+    code: "unknown",
+    publicMessage: ERROR_MESSAGES.UNKNOWN_ERROR,
+  };
+}
+
+function parseContactInfo(text: string): ContactInfo | null {
+  const jsonText = text.trim();
+  if (!jsonText.startsWith("{") || !jsonText.endsWith("}")) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(jsonText) as unknown;
+    const validated = contactInfoSchema.safeParse(parsed);
+    return validated.success ? validated.data : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface GeminiExecutionOptions {
@@ -302,12 +411,7 @@ export async function processWithGemini(
         "Primary Gemini model failed; retrying with fallback model:",
         fallbackModelName,
       );
-      ocrLogger.warn(
-        "Primary Gemini error:",
-        primaryError instanceof Error
-          ? primaryError.message
-          : String(primaryError),
-      );
+      ocrLogger.warn("Primary Gemini failure category: model_unavailable");
       result = await generateOcrContent(
         fallbackModelName,
         imagePart,
@@ -317,7 +421,6 @@ export async function processWithGemini(
 
     if (!result || !result.response) {
       ocrLogger.error("❌ No response from Gemini API");
-      ocrLogger.error("Result object:", result);
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -341,9 +444,10 @@ export async function processWithGemini(
             "OCR APIから空の応答が返されました。画像が読み取れなかった可能性があります。",
         };
       }
-    } catch (textError) {
-      ocrLogger.error("❌ Error getting text from Gemini response:", textError);
-      ocrLogger.error("Response object:", response);
+    } catch {
+      ocrLogger.error("❌ Gemini response text extraction failed", {
+        code: "response_text_unavailable",
+      });
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -354,140 +458,13 @@ export async function processWithGemini(
     // Calculate processing time
     const processingTime = Date.now() - startTime;
     ocrLogger.debug(`⏱️ OCR processing completed in ${processingTime}ms`);
-    ocrLogger.debug("=== Gemini Raw Response ===");
     ocrLogger.debug("Response length:", text.length);
-    ocrLogger.debug("First 200 chars:", text.substring(0, 200));
-    ocrLogger.debug(
-      "Last 200 chars:",
-      text.substring(Math.max(0, text.length - 200)),
-    );
-    ocrLogger.debug("Full response:", text);
-    ocrLogger.debug("=== End Gemini Response ===");
-
-    // Try to parse the JSON response
-    let contactInfo: ContactInfo;
-    try {
-      // First, check if the response looks like an error message
-      if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-        ocrLogger.error(
-          "❌ Gemini returned HTML instead of JSON (likely an error page)",
-        );
-        ocrLogger.error("First 500 chars of HTML:", text.substring(0, 500));
-        return {
-          success: false,
-          processingTime: Date.now() - startTime,
-          error:
-            "OCR APIがエラーページを返しました。APIキーまたはサービス設定を確認してください。",
-        };
-      }
-
-      if (text.toLowerCase().includes("error") && !text.includes("{")) {
-        ocrLogger.error("❌ Gemini returned plain text error:", text);
-        return {
-          success: false,
-          processingTime: Date.now() - startTime,
-          error: `OCR APIエラー: ${text.substring(0, 100)}`,
-        };
-      }
-
-      // Check for common error patterns
-      if (text.includes("Request En") || text.includes("Request Entity")) {
-        ocrLogger.error("❌ Request Entity error detected");
-        ocrLogger.error("Response:", text);
-        return {
-          success: false,
-          processingTime: Date.now() - startTime,
-          error:
-            "リクエストエンティティエラーが発生しました。画像サイズが大きすぎる可能性があります。",
-        };
-      }
-
-      // Enhanced JSON extraction with multiple fallback strategies
-      let jsonText = text.trim();
-
-      // Strategy 1: Remove markdown code blocks
-      jsonText = jsonText
-        .replace(/^```json\s*/g, "")
-        .replace(/```\s*$/g, "")
-        .replace(/^```.*$/gm, "")
-        .trim();
-
-      // Strategy 2: If still not JSON, try to find JSON object boundaries
-      if (!jsonText.startsWith("{") && !jsonText.startsWith("[")) {
-        ocrLogger.debug("🔍 Attempting to extract JSON from mixed content...");
-
-        // Look for JSON object boundaries
-        const jsonStart = jsonText.indexOf("{");
-        const jsonEnd = jsonText.lastIndexOf("}");
-
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
-          jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
-          ocrLogger.debug("✅ Extracted JSON from mixed content");
-        } else {
-          ocrLogger.error("❌ No valid JSON object found in response");
-          ocrLogger.error("Response content:", text.substring(0, 500));
-          return {
-            success: false,
-            processingTime: Date.now() - startTime,
-            error:
-              "有効なJSONオブジェクトが見つかりませんでした。画像を再撮影してお試しください。",
-          };
-        }
-      }
-
-      ocrLogger.debug(
-        "📝 Final JSON text:",
-        jsonText.substring(0, 200) + "...",
-      );
-
-      // Parse JSON with detailed error handling
-      let parsedJson;
-      try {
-        parsedJson = JSON.parse(jsonText);
-        ocrLogger.debug("✅ JSON parsed successfully");
-      } catch (parseError) {
-        ocrLogger.error("❌ JSON parse error:", parseError);
-        ocrLogger.error("Problematic JSON:", jsonText);
-
-        // Try to fix common JSON issues
-        try {
-          // Remove any trailing commas or extra characters
-          const fixedJson = jsonText
-            .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
-            .replace(/([^\\])\\(?!["\\/bfnrt])/g, "$1\\\\") // Fix unescaped backslashes
-            .trim();
-
-          parsedJson = JSON.parse(fixedJson);
-          ocrLogger.debug("✅ JSON fixed and parsed successfully");
-        } catch (fixError) {
-          ocrLogger.error("❌ JSON fix failed:", fixError);
-          return {
-            success: false,
-            processingTime: Date.now() - startTime,
-            error:
-              "JSON形式の解析に失敗しました。画像を再撮影してお試しください。",
-          };
-        }
-      }
-
-      contactInfo = {
-        ...emptyContactInfo,
-        ...parsedJson,
-        phoneNumbers: parsedJson.phoneNumbers || [],
-        addresses: parsedJson.addresses || [],
-      };
-    } catch (parseError) {
-      ocrLogger.error("❌ Failed to parse Gemini response as JSON");
-      ocrLogger.error("Parse error:", parseError);
-      ocrLogger.error("=== Raw text that failed to parse ===");
-      ocrLogger.error(text);
-      ocrLogger.error("=== End of failed text ===");
-
-      // Log the first 200 characters for quick debugging
-      ocrLogger.error("First 200 chars:", text.substring(0, 200));
-      ocrLogger.error("Text length:", text.length);
-
-      // Return error with parsing failure details
+    const contactInfo = parseContactInfo(text);
+    if (!contactInfo) {
+      ocrLogger.error("❌ Gemini response failed strict schema validation", {
+        code: "invalid_response_schema",
+        responseLength: text.length,
+      });
       return {
         success: false,
         processingTime: Date.now() - startTime,
@@ -503,67 +480,16 @@ export async function processWithGemini(
     };
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    ocrLogger.error("❌ Error in OCR processing");
-    ocrLogger.error("Error object:", error);
-
-    // More specific error messages
-    let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
-    if (error instanceof Error) {
-      ocrLogger.error("Error name:", error.name);
-      ocrLogger.error("Error message:", error.message);
-      ocrLogger.error("Error stack:", error.stack);
-
-      if (
-        error.message.includes("API key") ||
-        error.message.includes("API_KEY_INVALID")
-      ) {
-        errorMessage = "OCR APIキーが無効です。管理者にお問い合わせください。";
-        ocrLogger.error("🔑 API Key error detected");
-      } else if (error.message.includes("timeout")) {
-        errorMessage =
-          "処理に時間がかかりすぎています。画像を再撮影してお試しください。";
-        ocrLogger.error("⏱️ Timeout error detected");
-      } else if (
-        error.message.includes("quota") ||
-        error.message.includes("RESOURCE_EXHAUSTED")
-      ) {
-        errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
-        ocrLogger.error("📊 Quota exceeded error detected");
-      } else if (
-        error.message.includes("The string did not match the expected pattern")
-      ) {
-        // Check if this is a HEIC format issue
-        if (mimeType === "image/heic" || mimeType === "image/heif") {
-          errorMessage =
-            "HEIC形式の画像でエラーが発生しました。JPEGまたはPNG形式で撮影し直してください。";
-          ocrLogger.error("📱 HEIC format processing error detected");
-        } else {
-          errorMessage =
-            "OCR APIからの応答形式が不正です。再度お試しください。";
-          ocrLogger.error("📝 Response format error detected");
-        }
-      } else if (
-        error.message.includes("Unexpected token") ||
-        error.message.includes("not valid JSON")
-      ) {
-        errorMessage =
-          "OCR APIの応答形式に問題があります。画像を再撮影してお試しください。";
-        ocrLogger.error("🔧 JSON parsing error detected");
-      } else {
-        // Include actual error message for debugging
-        errorMessage = `OCR処理エラー: ${error.message}`;
-        ocrLogger.error("⚠️ Unknown error type");
-      }
-    }
+    const failure = classifyGeminiFailure(error, mimeType);
+    ocrLogger.error("❌ Gemini OCR request failed", { code: failure.code });
 
     ocrLogger.info("=== OCR Processing Failed ===");
     ocrLogger.info(`Processing time: ${processingTime}ms`);
-    ocrLogger.info(`Error message returned: ${errorMessage}`);
 
     return {
       success: false,
       processingTime,
-      error: errorMessage,
+      error: failure.publicMessage,
     };
   }
 }
