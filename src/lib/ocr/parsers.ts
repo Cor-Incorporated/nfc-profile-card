@@ -7,7 +7,8 @@ const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 const PHONE_RE =
   /(?:\+81[-\s]?)?(?:0\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{3,4}|\d{2,4}[-.\s]\d{2,4}[-.\s]\d{3,4})/g;
 
-const MOBILE_PREFIXES = ["070", "080", "090", "050"];
+const MOBILE_PREFIXES = ["070", "080", "090"];
+const FAX_LABEL_RE = /(?:fax|ファックス|ファクス)/i;
 
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -30,11 +31,20 @@ export function normalizePhone(value: string): string {
 }
 
 export function formatPhone(digits: string): string {
+  if (/^0120\d{6}$/.test(digits)) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
   if (/^0[789]0\d{8}$/.test(digits) || /^050\d{8}$/.test(digits)) {
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   }
-  if (/^0\d{9,10}$/.test(digits)) {
+  if (/^(?:03|06)\d{8}$/.test(digits)) {
     return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  if (/^0\d{9}$/.test(digits)) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (/^0\d{10}$/.test(digits)) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   }
   return digits;
 }
@@ -122,6 +132,20 @@ export function extractPhones(rawText: string): string[] {
   );
 }
 
+function isLabeledFax(rawText: string, number: string): boolean {
+  const targetDigits = normalizePhone(number);
+
+  return rawText.split(/\r?\n/).some((line) => {
+    const label = line.match(FAX_LABEL_RE);
+    if (!label || label.index === undefined) return false;
+
+    const [labeledNumber] = extractPhones(
+      line.slice(label.index + label[0].length),
+    );
+    return normalizePhone(labeledNumber || "") === targetDigits;
+  });
+}
+
 export function classifyPhones(rawText: string): {
   phone: string[];
   mobile: string[];
@@ -133,11 +157,7 @@ export function classifyPhones(rawText: string): {
   const work: string[] = [];
 
   for (const number of phones) {
-    const digits = normalizePhone(number);
-    const labeledFax = new RegExp(
-      `(?:fax|ファックス|ファクス)[^\\d]{0,12}${digits.slice(0, 4)}`,
-      "i",
-    ).test(rawText.replace(/\D/g, (ch) => (/\d/.test(ch) ? ch : "")));
+    const labeledFax = isLabeledFax(rawText, number);
 
     if (labeledFax) {
       fax.push(number);
