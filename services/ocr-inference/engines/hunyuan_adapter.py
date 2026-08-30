@@ -11,7 +11,7 @@ def run_hunyuan(image: Image.Image) -> dict[str, Any]:
     """Optional HunyuanOCR-1.5 A/B path.
 
     License: Tencent Hunyuan Community License — no EU/UK/KR, attribution
-    required, do not train on outputs. Keep this behind OCR_ENABLE_HUNYUAN.
+    required. Offline only; the HTTP adapter never imports this module.
     """
     try:
         from transformers import AutoModel, AutoProcessor  # type: ignore

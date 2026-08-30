@@ -42,6 +42,11 @@ Reservation issues already filed: `ai-cluster#184`, `Grift#2259`,
 - Dedicated `llama-server` for PaddleOCR-VL-1.6 — not the shared Ollama pool.
 - Dual adapter owns native PP-OCRv6 and calls the private VLM process.
 - Next.js owns deterministic exact-field comparison and `human_review`.
+- The gateway validates its public token, then sends a distinct adapter token
+  from `NFC_OCR_ADAPTER_BEARER_TOKEN`. The adapter compares that value against
+  `OCR_ADAPTER_API_KEY`; neither token belongs in Git or application logs.
+- The live adapter accepts only `{image, mimeType}` and always runs PaddleOCR-VL.
+  Hunyuan is not exposed through the HTTP contract.
 - Both under `systemd/tapforge-ocr.slice` (`MemoryMax=8G`).
 - Next.js on Vercel calls only the authenticated public gateway through
   `OCR_INFERENCE_URL`; it never calls these ports directly.
@@ -56,6 +61,11 @@ sudo cp services/ocr-inference/systemd/tapforge-ocr-ppocr.service /etc/systemd/s
 sudo systemctl daemon-reload
 sudo systemctl enable --now tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
 ```
+
+Before starting the candidate adapter unit, inject `OCR_ADAPTER_API_KEY` through
+the host-approved secret mechanism or a systemd drop-in. The repository does
+not prescribe a host secret path and does not contain the value. The unit and
+the live `/health` endpoint both fail closed while it is absent.
 
 Do not install these units on `evo-x2`, `evo-x2-2`, or `jetson-thor`.
 
