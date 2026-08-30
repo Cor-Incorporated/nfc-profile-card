@@ -21,7 +21,7 @@ describe("OCR inference failure classification", () => {
     jest.restoreAllMocks();
   });
 
-  it.each([408, 429, 500, 502, 503, 504])(
+  it.each([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524])(
     "classifies HTTP %i as a transient upstream outage",
     async (status) => {
       global.fetch = jest.fn().mockResolvedValue({

@@ -130,9 +130,9 @@ async function fetchJson(
       signal: controller.signal,
     });
     if (!response.ok) {
-      const retryable = [408, 429, 500, 502, 503, 504].includes(
-        response.status,
-      );
+      const retryable = [
+        408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524,
+      ].includes(response.status);
       throw new OcrInferenceError(
         `OCR inference returned HTTP ${response.status}`,
         retryable ? "unavailable" : "http",
