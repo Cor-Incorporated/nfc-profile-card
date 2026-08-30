@@ -124,24 +124,62 @@ function isModelAvailabilityError(error: unknown) {
   return referencesModel && (modelNotFound || modelMethodUnsupported);
 }
 
-async function generateOcrContent(modelName: string, imagePart: Part) {
-  const model = genAI.getGenerativeModel({ model: modelName });
+export interface GeminiExecutionOptions {
+  deadlineAtMs?: number;
+}
 
-  return model.generateContent({
-    contents: [
+class GeminiDeadlineError extends Error {
+  constructor() {
+    super("Gemini OCR deadline exceeded");
+    this.name = "GeminiDeadlineError";
+  }
+}
+
+function remainingTimeoutMs(deadlineAtMs: number | undefined) {
+  if (deadlineAtMs === undefined) return undefined;
+  const remaining = deadlineAtMs - Date.now();
+  if (remaining <= 0) throw new GeminiDeadlineError();
+  return remaining;
+}
+
+async function generateOcrContent(
+  modelName: string,
+  imagePart: Part,
+  deadlineAtMs: number | undefined,
+) {
+  const timeoutMs = remainingTimeoutMs(deadlineAtMs);
+  const model = genAI.getGenerativeModel({ model: modelName });
+  const controller =
+    timeoutMs === undefined ? undefined : new AbortController();
+  const timer =
+    timeoutMs === undefined
+      ? undefined
+      : setTimeout(() => controller?.abort(), timeoutMs);
+
+  try {
+    return await model.generateContent(
       {
-        role: "user",
-        parts: [imagePart, { text: OCR_PROMPT }],
+        contents: [
+          {
+            role: "user",
+            parts: [imagePart, { text: OCR_PROMPT }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          topP: 0.8,
+          topK: 40,
+          maxOutputTokens: 2048,
+        },
       },
-    ],
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.1,
-      topP: 0.8,
-      topK: 40,
-      maxOutputTokens: 2048,
-    },
-  });
+      timeoutMs === undefined
+        ? undefined
+        : { timeout: timeoutMs, signal: controller?.signal },
+    );
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 /**
@@ -153,6 +191,7 @@ async function generateOcrContent(modelName: string, imagePart: Part) {
 export async function processWithGemini(
   image: string,
   mimeType: string,
+  options: GeminiExecutionOptions = {},
 ): Promise<OcrResult> {
   const startTime = Date.now();
 
@@ -249,7 +288,11 @@ export async function processWithGemini(
 
     try {
       ocrLogger.info("Calling Gemini API with model:", primaryModelName);
-      result = await generateOcrContent(primaryModelName, imagePart);
+      result = await generateOcrContent(
+        primaryModelName,
+        imagePart,
+        options.deadlineAtMs,
+      );
     } catch (primaryError) {
       if (!fallbackModelName || !isModelAvailabilityError(primaryError)) {
         throw primaryError;
@@ -265,7 +308,11 @@ export async function processWithGemini(
           ? primaryError.message
           : String(primaryError),
       );
-      result = await generateOcrContent(fallbackModelName, imagePart);
+      result = await generateOcrContent(
+        fallbackModelName,
+        imagePart,
+        options.deadlineAtMs,
+      );
     }
 
     if (!result || !result.response) {

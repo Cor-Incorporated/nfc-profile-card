@@ -3,6 +3,7 @@ import {
   ERROR_MESSAGES,
 } from "@/lib/constants/error-messages";
 import { verifyIdToken } from "@/lib/firebase-admin";
+import { getOcrTotalTimeoutMs } from "@/lib/ocr";
 import { strictRateLimit } from "@/lib/rateLimit";
 import { processBusinessCardImage } from "@/services/business-card/ocrService";
 import { canScan } from "@/services/business-card/scanQuotaService.server";
@@ -19,6 +20,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const requestStartedAt = Date.now();
   console.log("=== Business Card Scan API Called ===");
   console.log("Time:", new Date().toISOString());
   console.log("Method:", request.method);
@@ -122,7 +124,9 @@ export async function POST(request: NextRequest) {
 
     // Process the business card image using OCR service
     console.log("Starting OCR processing...");
-    const ocrResult = await processBusinessCardImage(image, mimeType);
+    const ocrResult = await processBusinessCardImage(image, mimeType, {
+      deadlineAtMs: requestStartedAt + getOcrTotalTimeoutMs(),
+    });
 
     if (!ocrResult.success) {
       console.error("❌ OCR processing failed");
