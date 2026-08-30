@@ -418,9 +418,25 @@ const translations = {
       "スキャン結果の保存に失敗しました。もう一度お試しください。",
     quotaExceeded:
       "今月のスキャン上限に達しました。プロモーションコードでProプランにアップグレードすると無制限でご利用いただけます。",
-    ocrNeedsHumanReview: "メール・電話・URL の照合に差があります",
+    ocrNeedsHumanReview: "OCRで読み取った項目を確認してください",
     ocrNeedsHumanReviewHint:
-      "数字・記号の項目は画像上の文字と一致した値だけを採用しています。保存前に赤字の項目を確認してください。",
+      "「確認が必要」と表示された項目を名刺画像と見比べてから保存してください。",
+    ocrReviewRequired: "確認が必要",
+    ocrReviewFieldOther: "読み取り項目",
+    ocrReviewReasonClassicVlmDisagree:
+      "複数の読み取り結果が一致していません。画像上の値を確認してください。",
+    ocrReviewReasonInventedExact:
+      "画像上でこの値を確認できません。正しい値を入力してください。",
+    ocrReviewReasonUnverifiedExact:
+      "この値を画像と照合できませんでした。正しい値を入力してください。",
+    ocrReviewReasonSemanticMissing:
+      "値を読み取れませんでした。画像を見ながら入力してください。",
+    ocrReviewReasonUnverifiedSemantic:
+      "画像上でこの項目の値を確認できません。正しい値を入力してください。",
+    ocrReviewReasonSemanticAssociation:
+      "文字は読み取れましたが、この項目との対応を確認してください。",
+    ocrReviewReasonGeneral:
+      "読み取り結果の確信度が不足しています。画像と見比べて確認してください。",
   },
   en: {
     // Dashboard
@@ -813,9 +829,25 @@ const translations = {
     scanSaveFailed: "Failed to save scan result. Please try again.",
     quotaExceeded:
       "Monthly scan limit reached. Upgrade to Pro with a promo code for unlimited scans.",
-    ocrNeedsHumanReview: "Email, phone, or URL needs a quick check",
+    ocrNeedsHumanReview: "Review the OCR fields before saving",
     ocrNeedsHumanReviewHint:
-      "Exact values are never invented by the model. Confirm highlighted fields before saving to your phone.",
+      'Compare every field marked "Needs review" with the business card image before saving.',
+    ocrReviewRequired: "Needs review",
+    ocrReviewFieldOther: "OCR field",
+    ocrReviewReasonClassicVlmDisagree:
+      "The OCR results disagree. Confirm the value shown on the card.",
+    ocrReviewReasonInventedExact:
+      "This value was not confirmed on the card. Enter the correct value.",
+    ocrReviewReasonUnverifiedExact:
+      "This value could not be verified against the card. Enter the correct value.",
+    ocrReviewReasonSemanticMissing:
+      "No value was read for this field. Enter it from the card.",
+    ocrReviewReasonUnverifiedSemantic:
+      "This field value was not confirmed on the card. Enter the correct value.",
+    ocrReviewReasonSemanticAssociation:
+      "The text was read, but its association with this field needs confirmation.",
+    ocrReviewReasonGeneral:
+      "The OCR result is uncertain. Compare this field with the card image.",
   },
 };
 

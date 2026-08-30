@@ -22,11 +22,13 @@ import {
   type EnhancedImageResult,
 } from "@/services/business-card/imageEnhancement";
 import { downloadVCard } from "@/services/business-card/vcardService";
-import { BusinessCardScanResponse } from "@/types/api";
+import type { BusinessCardScanResponse } from "@/types/api";
 import { AppStatus, ContactInfo } from "@/types/business-card";
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+type FieldReviews = NonNullable<BusinessCardScanResponse["fieldReviews"]>;
 
 export default function BusinessCardScanPage() {
   const router = useRouter();
@@ -45,7 +47,7 @@ export default function BusinessCardScanPage() {
   const [scanQuota, setScanQuota] = useState<ScanQuota | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [humanReview, setHumanReview] = useState(false);
-  const [reviewReasons, setReviewReasons] = useState<string[]>([]);
+  const [fieldReviews, setFieldReviews] = useState<FieldReviews>({});
 
   const refreshQuota = useCallback(async () => {
     if (user?.uid) {
@@ -90,7 +92,7 @@ export default function BusinessCardScanPage() {
       setEnhancedImage(null);
       setImageQualityWarnings(warnings);
       setHumanReview(false);
-      setReviewReasons([]);
+      setFieldReviews({});
 
       // Log HEIC format detection for monitoring
       if (file.type === "image/heic" || file.type === "image/heif") {
@@ -187,11 +189,7 @@ export default function BusinessCardScanPage() {
           if (result.success && result.data) {
             setContactInfo(result.data);
             setHumanReview(Boolean(result.humanReview));
-            setReviewReasons(
-              Object.entries(result.fieldReviews || {})
-                .filter(([, meta]) => meta.human_review)
-                .map(([field, meta]) => `${field}: ${meta.reason || "review"}`),
-            );
+            setFieldReviews(result.fieldReviews || {});
             setAppStatus(AppStatus.EDITING);
 
             // 処理時間をログに記録
@@ -293,7 +291,7 @@ export default function BusinessCardScanPage() {
     setEnhancedImage(null);
     setImageQualityWarnings([]);
     setHumanReview(false);
-    setReviewReasons([]);
+    setFieldReviews({});
   };
 
   const renderContent = () => {
@@ -313,7 +311,7 @@ export default function BusinessCardScanPage() {
               enhancedImageMimeType={enhancedImage?.mimeType || null}
               imageQualityWarnings={imageQualityWarnings}
               humanReview={humanReview}
-              reviewReasons={reviewReasons}
+              fieldReviews={fieldReviews}
             />
           );
         }

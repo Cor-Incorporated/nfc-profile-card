@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { ContactInfo, PhoneNumber, Address } from "@/types/business-card";
+import type { BusinessCardScanResponse } from "@/types/api";
 import { generateVCard } from "@/services/business-card/vcardService";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,70 @@ import {
   Trash2,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
+
+type FieldReviews = NonNullable<BusinessCardScanResponse["fieldReviews"]>;
+type FieldReview = FieldReviews[string];
+type Translate = (key: string) => string;
+
+const REVIEW_REASON_KEYS: Record<string, string> = {
+  classic_and_vlm_disagree: "ocrReviewReasonClassicVlmDisagree",
+  vlm_invented_exact_value: "ocrReviewReasonInventedExact",
+  vlm_unverified_exact_value: "ocrReviewReasonUnverifiedExact",
+  semantic_value_missing: "ocrReviewReasonSemanticMissing",
+  vlm_unverified_semantic_value: "ocrReviewReasonUnverifiedSemantic",
+  semantic_association_requires_review: "ocrReviewReasonSemanticAssociation",
+};
+
+function reviewReason(review: FieldReview, t: Translate): string {
+  return t(REVIEW_REASON_KEYS[review.reason || ""] || "ocrReviewReasonGeneral");
+}
+
+function reviewFieldLabel(field: string, t: Translate): string {
+  const labels: Record<string, string> = {
+    name: t("name"),
+    name_kana: `${t("name")} (${t("phoneticReading")})`,
+    company: t("company"),
+    department: t("department"),
+    title: t("position"),
+    email: t("email"),
+    phone: t("phone"),
+    mobile: t("mobile"),
+    fax: t("fax"),
+    postal_code: t("postalCode"),
+    address: t("address"),
+    url: t("website"),
+    social: t("website"),
+  };
+  return labels[field] || t("ocrReviewFieldOther");
+}
+
+function ReviewNotice({
+  id,
+  review,
+  t,
+}: {
+  id: string;
+  review?: FieldReview;
+  t: Translate;
+}) {
+  if (!review) return null;
+  return (
+    <p
+      id={id}
+      className="flex items-start gap-1.5 text-pretty text-sm text-orange-800"
+    >
+      <AlertTriangle
+        aria-hidden="true"
+        className="mt-0.5 size-4 flex-shrink-0"
+      />
+      <span>
+        <span className="font-semibold">{t("ocrReviewRequired")}:</span>{" "}
+        {reviewReason(review, t)}
+      </span>
+    </p>
+  );
+}
 
 interface ContactFormProps {
   initialData: ContactInfo;
@@ -38,7 +103,7 @@ interface ContactFormProps {
   enhancedImageMimeType?: string | null;
   imageQualityWarnings?: string[];
   humanReview?: boolean;
-  reviewReasons?: string[];
+  fieldReviews?: FieldReviews;
 }
 
 const ContactForm: React.FC<ContactFormProps> = ({
@@ -51,7 +116,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   enhancedImageMimeType,
   imageQualityWarnings = [],
   humanReview = false,
-  reviewReasons = [],
+  fieldReviews = {},
 }) => {
   const [formData, setFormData] = useState<ContactInfo>(initialData);
   const [vcardPreview, setVcardPreview] = useState("");
@@ -60,6 +125,24 @@ const ContactForm: React.FC<ContactFormProps> = ({
     enhancedImageBase64 ? "enhanced" : "original",
   );
   const { t } = useLanguage();
+
+  const reviewEntries = Object.entries(fieldReviews).filter(
+    ([, review]) => review.human_review,
+  );
+  const reviewFor = (...fields: string[]): FieldReview | undefined =>
+    fields
+      .map((field) => fieldReviews[field])
+      .find((review) => review?.human_review);
+  const nameReview = reviewFor("name");
+  const nameKanaReview = reviewFor("name_kana");
+  const companyReview = reviewFor("company");
+  const departmentReview = reviewFor("department");
+  const titleReview = reviewFor("title");
+  const emailReview = reviewFor("email");
+  const websiteReview = reviewFor("url", "social");
+  const addressReview = reviewFor("address");
+  const postalCodeReview = reviewFor("postal_code");
+  const phoneGroupReview = reviewFor("phone", "mobile", "fax");
 
   const selectedImageBase64 =
     imageVariant === "enhanced" && enhancedImageBase64
@@ -169,17 +252,30 @@ const ContactForm: React.FC<ContactFormProps> = ({
             </div>
           )}
 
-          {humanReview && (
-            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-orange-800">
+          {(humanReview || reviewEntries.length > 0) && (
+            <div
+              role="status"
+              className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-orange-800"
+            >
               <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 flex-shrink-0"
+                />
                 <div className="space-y-1 text-sm">
-                  <p className="font-medium">{t("ocrNeedsHumanReview")}</p>
-                  <p>{t("ocrNeedsHumanReviewHint")}</p>
-                  {reviewReasons.length > 0 && (
+                  <p className="text-pretty font-medium">
+                    {t("ocrNeedsHumanReview")}
+                  </p>
+                  <p className="text-pretty">{t("ocrNeedsHumanReviewHint")}</p>
+                  {reviewEntries.length > 0 && (
                     <ul className="list-disc pl-4">
-                      {reviewReasons.map((reason) => (
-                        <li key={reason}>{reason}</li>
+                      {reviewEntries.map(([field, review]) => (
+                        <li className="text-pretty" key={field}>
+                          <span className="font-medium">
+                            {reviewFieldLabel(field, t)}:
+                          </span>{" "}
+                          {reviewReason(review, t)}
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -247,6 +343,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.lastName}
                 onChange={handleChange("lastName")}
                 placeholder={t("lastNamePlaceholder")}
+                aria-invalid={nameReview ? true : undefined}
+                aria-describedby={
+                  nameReview ? "lastName-ocr-review" : undefined
+                }
+                className={cn(nameReview && "border-orange-500")}
+              />
+              <ReviewNotice
+                id="lastName-ocr-review"
+                review={nameReview}
+                t={t}
               />
             </div>
             <div className="space-y-2">
@@ -256,6 +362,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.firstName}
                 onChange={handleChange("firstName")}
                 placeholder={t("firstNamePlaceholder")}
+                aria-invalid={nameReview ? true : undefined}
+                aria-describedby={
+                  nameReview ? "firstName-ocr-review" : undefined
+                }
+                className={cn(nameReview && "border-orange-500")}
+              />
+              <ReviewNotice
+                id="firstName-ocr-review"
+                review={nameReview}
+                t={t}
               />
             </div>
           </div>
@@ -274,6 +390,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.phoneticLastName}
                 onChange={handleChange("phoneticLastName")}
                 placeholder={t("phoneticLastNamePlaceholder")}
+                aria-invalid={nameKanaReview ? true : undefined}
+                aria-describedby={
+                  nameKanaReview ? "phoneticLastName-ocr-review" : undefined
+                }
+                className={cn(nameKanaReview && "border-orange-500")}
+              />
+              <ReviewNotice
+                id="phoneticLastName-ocr-review"
+                review={nameKanaReview}
+                t={t}
               />
             </div>
             <div className="space-y-2">
@@ -288,6 +414,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.phoneticFirstName}
                 onChange={handleChange("phoneticFirstName")}
                 placeholder={t("phoneticFirstNamePlaceholder")}
+                aria-invalid={nameKanaReview ? true : undefined}
+                aria-describedby={
+                  nameKanaReview ? "phoneticFirstName-ocr-review" : undefined
+                }
+                className={cn(nameKanaReview && "border-orange-500")}
+              />
+              <ReviewNotice
+                id="phoneticFirstName-ocr-review"
+                review={nameKanaReview}
+                t={t}
               />
             </div>
           </div>
@@ -300,6 +436,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
               value={formData.company}
               onChange={handleChange("company")}
               placeholder="株式会社サンプル"
+              aria-invalid={companyReview ? true : undefined}
+              aria-describedby={
+                companyReview ? "company-ocr-review" : undefined
+              }
+              className={cn(companyReview && "border-orange-500")}
+            />
+            <ReviewNotice
+              id="company-ocr-review"
+              review={companyReview}
+              t={t}
             />
           </div>
 
@@ -311,6 +457,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.department}
                 onChange={handleChange("department")}
                 placeholder="営業部"
+                aria-invalid={departmentReview ? true : undefined}
+                aria-describedby={
+                  departmentReview ? "department-ocr-review" : undefined
+                }
+                className={cn(departmentReview && "border-orange-500")}
+              />
+              <ReviewNotice
+                id="department-ocr-review"
+                review={departmentReview}
+                t={t}
               />
             </div>
             <div className="space-y-2">
@@ -320,7 +476,11 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 value={formData.title}
                 onChange={handleChange("title")}
                 placeholder="課長"
+                aria-invalid={titleReview ? true : undefined}
+                aria-describedby={titleReview ? "title-ocr-review" : undefined}
+                className={cn(titleReview && "border-orange-500")}
               />
+              <ReviewNotice id="title-ocr-review" review={titleReview} t={t} />
             </div>
           </div>
 
@@ -333,7 +493,11 @@ const ContactForm: React.FC<ContactFormProps> = ({
               value={formData.email}
               onChange={handleChange("email")}
               placeholder="yamada@example.com"
+              aria-invalid={emailReview ? true : undefined}
+              aria-describedby={emailReview ? "email-ocr-review" : undefined}
+              className={cn(emailReview && "border-orange-500")}
             />
+            <ReviewNotice id="email-ocr-review" review={emailReview} t={t} />
           </div>
 
           <div className="space-y-2">
@@ -344,12 +508,38 @@ const ContactForm: React.FC<ContactFormProps> = ({
               value={formData.website}
               onChange={handleChange("website")}
               placeholder="https://example.com"
+              aria-invalid={websiteReview ? true : undefined}
+              aria-describedby={
+                websiteReview ? "website-ocr-review" : undefined
+              }
+              className={cn(websiteReview && "border-orange-500")}
+            />
+            <ReviewNotice
+              id="website-ocr-review"
+              review={websiteReview}
+              t={t}
             />
           </div>
 
           {/* 住所 */}
-          <div className="space-y-3">
-            <Label>{t("address")}</Label>
+          <div
+            className="space-y-3"
+            role="group"
+            aria-labelledby="address-section-label"
+            aria-describedby={
+              addressReview && formData.addresses.length === 0
+                ? "address-empty-ocr-review"
+                : undefined
+            }
+          >
+            <Label id="address-section-label">{t("address")}</Label>
+            {formData.addresses.length === 0 && (
+              <ReviewNotice
+                id="address-empty-ocr-review"
+                review={addressReview}
+                t={t}
+              />
+            )}
             {(formData.addresses || []).map((addr, index) => (
               <div
                 key={index}
@@ -366,21 +556,52 @@ const ContactForm: React.FC<ContactFormProps> = ({
                     onClick={() => removeAddress(index)}
                     variant="ghost"
                     size="icon"
+                    aria-label={`${t("delete")} ${t("address")} ${index + 1}`}
                     className="text-red-500 hover:text-red-700"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
-                <Input
-                  value={addr.postalCode}
-                  onChange={handleAddressChange(index, "postalCode")}
-                  placeholder={t("postalCodeExample")}
-                />
-                <Input
-                  value={addr.address}
-                  onChange={handleAddressChange(index, "address")}
-                  placeholder={t("address")}
-                />
+                <div className="space-y-1">
+                  <Input
+                    id={`address-${index}-postalCode`}
+                    value={addr.postalCode}
+                    onChange={handleAddressChange(index, "postalCode")}
+                    placeholder={t("postalCodeExample")}
+                    aria-invalid={postalCodeReview ? true : undefined}
+                    aria-describedby={
+                      postalCodeReview
+                        ? `address-${index}-postalCode-ocr-review`
+                        : undefined
+                    }
+                    className={cn(postalCodeReview && "border-orange-500")}
+                  />
+                  <ReviewNotice
+                    id={`address-${index}-postalCode-ocr-review`}
+                    review={postalCodeReview}
+                    t={t}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Input
+                    id={`address-${index}-address`}
+                    value={addr.address}
+                    onChange={handleAddressChange(index, "address")}
+                    placeholder={t("address")}
+                    aria-invalid={addressReview ? true : undefined}
+                    aria-describedby={
+                      addressReview
+                        ? `address-${index}-address-ocr-review`
+                        : undefined
+                    }
+                    className={cn(addressReview && "border-orange-500")}
+                  />
+                  <ReviewNotice
+                    id={`address-${index}-address-ocr-review`}
+                    review={addressReview}
+                    t={t}
+                  />
+                </div>
               </div>
             ))}
             <Button
@@ -394,48 +615,91 @@ const ContactForm: React.FC<ContactFormProps> = ({
           </div>
 
           {/* 電話番号 */}
-          <div className="space-y-3">
-            <Label>{t("phone")}</Label>
-            {(formData.phoneNumbers || []).map((phone, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 flex-wrap sm:flex-nowrap"
-              >
-                <Select
-                  value={phone.type}
-                  onValueChange={(value) =>
-                    handlePhoneChange(index, "type")(value as any)
-                  }
+          <div
+            className="space-y-3"
+            role="group"
+            aria-labelledby="phone-section-label"
+            aria-describedby={
+              phoneGroupReview && formData.phoneNumbers.length === 0
+                ? "phone-empty-ocr-review"
+                : undefined
+            }
+          >
+            <Label id="phone-section-label">{t("phone")}</Label>
+            {formData.phoneNumbers.length === 0 && (
+              <ReviewNotice
+                id="phone-empty-ocr-review"
+                review={phoneGroupReview}
+                t={t}
+              />
+            )}
+            {(formData.phoneNumbers || []).map((phone, index) => {
+              const reviewField =
+                phone.type === "WORK"
+                  ? "phone"
+                  : phone.type === "MOBILE"
+                    ? "mobile"
+                    : phone.type === "FAX"
+                      ? "fax"
+                      : undefined;
+              const phoneReview = reviewField
+                ? reviewFor(reviewField)
+                : undefined;
+              const phoneInputId = `phone-${index}-number`;
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-2 flex-wrap sm:flex-nowrap"
                 >
-                  <SelectTrigger className="w-[100px] sm:w-[120px] flex-shrink-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="WORK">{t("work")}</SelectItem>
-                    <SelectItem value="MOBILE">{t("mobile")}</SelectItem>
-                    <SelectItem value="FAX">{t("fax")}</SelectItem>
-                    <SelectItem value="OTHER">{t("other")}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="tel"
-                  value={phone.number || ""}
-                  onChange={(e) =>
-                    handlePhoneChange(index, "number")(e.target.value)
-                  }
-                  placeholder={t("phone")}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={() => removePhoneNumber(index)}
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                  <Select
+                    value={phone.type}
+                    onValueChange={(value) =>
+                      handlePhoneChange(index, "type")(value as any)
+                    }
+                  >
+                    <SelectTrigger className="w-[100px] sm:w-[120px] flex-shrink-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WORK">{t("work")}</SelectItem>
+                      <SelectItem value="MOBILE">{t("mobile")}</SelectItem>
+                      <SelectItem value="FAX">{t("fax")}</SelectItem>
+                      <SelectItem value="OTHER">{t("other")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Input
+                      id={phoneInputId}
+                      type="tel"
+                      value={phone.number || ""}
+                      onChange={(e) =>
+                        handlePhoneChange(index, "number")(e.target.value)
+                      }
+                      placeholder={t("phone")}
+                      aria-invalid={phoneReview ? true : undefined}
+                      aria-describedby={
+                        phoneReview ? `${phoneInputId}-ocr-review` : undefined
+                      }
+                      className={cn(phoneReview && "border-orange-500")}
+                    />
+                    <ReviewNotice
+                      id={`${phoneInputId}-ocr-review`}
+                      review={phoneReview}
+                      t={t}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => removePhoneNumber(index)}
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`${t("delete")} ${t("phone")} ${index + 1}`}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              );
+            })}
             <Button
               onClick={addPhoneNumber}
               variant="outline"
