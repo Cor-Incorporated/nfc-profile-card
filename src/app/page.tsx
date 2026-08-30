@@ -1,5 +1,5 @@
+import { LandingActions } from "@/components/landing/LandingActions";
 import { AuthRedirect } from "@/components/providers/AuthRedirect";
-import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -32,20 +32,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <Link
-          href="/signin?tab=signup"
-          className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-        >
-          Get Started
-        </Link>
-        <Link
-          href="/signin?tab=signin"
-          className="w-full py-4 bg-white/80 backdrop-blur text-gray-700 rounded-2xl font-semibold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-        >
-          ログイン
-        </Link>
-      </div>
+      <LandingActions />
 
       <div className="mt-12 flex gap-2">
         <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
