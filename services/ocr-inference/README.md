@@ -23,25 +23,23 @@ Default production engines (Apache 2.0, commercial-safe):
 Community License forbids EU/UK/KR use, requires attribution, and forbids
 training on outputs. Do not enable it in production without legal review.
 
-## Production (ThinkStation GB10)
+## Production gateway contract
 
-Default live path on Vercel talks to two dedicated processes on
-`thinkstationpgx-ab59` (Tailscale `100.93.32.70`):
-
-| Engine                        | URL                           |
-| ----------------------------- | ----------------------------- |
-| PP-OCRv6_medium               | `http://100.93.32.70:8093`    |
-| PaddleOCR-VL-1.6 llama-server | `http://100.93.32.70:8092/v1` |
-
-See `CLUSTER_RESERVATION.md`. Do not put these models on shared Ollama
-`:11434`, GPUStack `:8080`, or deck-forge `:8090`.
+Vercel calls only the authenticated public OCR gateway. The gateway accepts
+`POST /v1/ocr/extract` with `model: "nfc-ocr"` and routes to the GB10 dual
+adapter. The adapter owns PP-OCR and calls the dedicated PaddleOCR-VL process
+inside the private cluster. Node addresses and individual engine URLs never
+belong in the application environment.
 
 ```bash
 OCR_PROVIDER=local
-OCR_PPOCR_URL=http://100.93.32.70:8093
-OCR_VLM_URL=http://100.93.32.70:8092/v1
+OCR_INFERENCE_URL=https://replace-with-ocr-gateway.example.com
+OCR_INFERENCE_API_KEY=replace_with_dedicated_gateway_token
 OCR_INFERENCE_MODE=live
 ```
+
+See `CLUSTER_RESERVATION.md`. Do not put these models on shared Ollama,
+GPUStack, or another product's reserved service.
 
 ## Run locally (mock, no model weights)
 
@@ -53,6 +51,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 export OCR_INFERENCE_MODE=mock
+export OCR_INFERENCE_API_KEY=local-dev-only-token
 uvicorn app:app --host 127.0.0.1 --port 8090
 ```
 
@@ -61,6 +60,7 @@ Health check: `curl http://127.0.0.1:8090/health`
 ```bash
 OCR_PROVIDER=local
 OCR_INFERENCE_URL=http://127.0.0.1:8090   # laptop aggregator only
+OCR_INFERENCE_API_KEY=local-dev-only-token
 OCR_INFERENCE_MODE=live
 ```
 
@@ -95,8 +95,9 @@ Only do this on an internal host after accepting the Hunyuan license.
 
 ## Auth
 
-If `OCR_INFERENCE_API_KEY` is set, callers must send
-`Authorization: Bearer <key>`. The Next.js server reads the same variable.
+Production requires a dedicated gateway bearer token in
+`OCR_INFERENCE_API_KEY`. The gateway uses a different credential for the
+private adapter; do not reuse or expose that downstream token in Vercel.
 
 ## Why this is not a Next.js API route
 

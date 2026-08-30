@@ -14,14 +14,18 @@ function positiveNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-/** Production ThinkStation GB10. Not Modal/RunPod. Do not default to :8090. */
-export const PRODUCTION_VLM_URL = "http://100.93.32.70:8092/v1";
-export const PRODUCTION_PPOCR_URL = "http://100.93.32.70:8093";
-export const PRODUCTION_VLM_LAN_URL = "http://192.168.11.26:8092/v1";
-export const PRODUCTION_PPOCR_LAN_URL = "http://192.168.11.26:8093";
-
 /** Laptop mock sidecar only. Never use this port in production. */
 export const LOCAL_DEV_AGGREGATOR_URL = "http://127.0.0.1:8090";
+
+function requiredDirectEndpoint(name: "OCR_VLM_URL" | "OCR_PPOCR_URL") {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(
+      `${name} is required only for an explicitly configured direct development path`,
+    );
+  }
+  return value.replace(/\/$/, "");
+}
 
 export function getOcrProvider(): OcrProviderName {
   const value = process.env.OCR_PROVIDER?.trim().toLowerCase();
@@ -38,17 +42,11 @@ export function getInferenceBaseUrl(): string | undefined {
 }
 
 export function getVlmUrl(): string {
-  return (process.env.OCR_VLM_URL?.trim() || PRODUCTION_VLM_URL).replace(
-    /\/$/,
-    "",
-  );
+  return requiredDirectEndpoint("OCR_VLM_URL");
 }
 
 export function getPpocrUrl(): string {
-  return (process.env.OCR_PPOCR_URL?.trim() || PRODUCTION_PPOCR_URL).replace(
-    /\/$/,
-    "",
-  );
+  return requiredDirectEndpoint("OCR_PPOCR_URL");
 }
 
 export function getInferenceApiKey(): string | undefined {
