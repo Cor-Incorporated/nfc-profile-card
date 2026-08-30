@@ -235,12 +235,20 @@ function parseContactInfo(text: string): ContactInfo | null {
 
 export interface GeminiExecutionOptions {
   deadlineAtMs?: number;
+  userId: string | undefined;
 }
 
 class GeminiDeadlineError extends Error {
   constructor() {
     super("Gemini OCR deadline exceeded");
     this.name = "GeminiDeadlineError";
+  }
+}
+
+class GeminiBudgetAuthorizationError extends Error {
+  constructor(reason: string) {
+    super(`Gemini budget authorization failed: ${reason}`);
+    this.name = "GeminiBudgetAuthorizationError";
   }
 }
 
@@ -255,9 +263,28 @@ async function generateOcrContent(
   modelName: string,
   imagePart: Part,
   deadlineAtMs: number | undefined,
+  authorizeApiCall: () => Promise<void>,
 ) {
-  const timeoutMs = remainingTimeoutMs(deadlineAtMs);
+  remainingTimeoutMs(deadlineAtMs);
   const model = genAI.getGenerativeModel({ model: modelName });
+  const request = {
+    contents: [
+      {
+        role: "user",
+        parts: [imagePart, { text: OCR_PROMPT }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.1,
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 2048,
+    },
+  };
+
+  await authorizeApiCall();
+  const timeoutMs = remainingTimeoutMs(deadlineAtMs);
   const controller =
     timeoutMs === undefined ? undefined : new AbortController();
   const timer =
@@ -267,21 +294,7 @@ async function generateOcrContent(
 
   try {
     return await model.generateContent(
-      {
-        contents: [
-          {
-            role: "user",
-            parts: [imagePart, { text: OCR_PROMPT }],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-        },
-      },
+      request,
       timeoutMs === undefined
         ? undefined
         : { timeout: timeoutMs, signal: controller?.signal },
@@ -300,9 +313,23 @@ async function generateOcrContent(
 export async function processWithGemini(
   image: string,
   mimeType: string,
-  options: GeminiExecutionOptions = {},
+  options: GeminiExecutionOptions,
 ): Promise<OcrResult> {
   const startTime = Date.now();
+  const authorizeApiCall = async () => {
+    if (!options.userId) {
+      throw new GeminiBudgetAuthorizationError("missing_user");
+    }
+    const { reserveGeminiFallbackBudget } = await import(
+      "./geminiBudgetService.server"
+    );
+    const reservation = await reserveGeminiFallbackBudget(options.userId, {
+      deadlineAtMs: options.deadlineAtMs,
+    });
+    if (!reservation.allowed) {
+      throw new GeminiBudgetAuthorizationError(reservation.reason);
+    }
+  };
 
   // Log request info for debugging
   ocrLogger.debug("=== OCR Processing Started ===");
@@ -401,6 +428,7 @@ export async function processWithGemini(
         primaryModelName,
         imagePart,
         options.deadlineAtMs,
+        authorizeApiCall,
       );
     } catch (primaryError) {
       if (!fallbackModelName || !isModelAvailabilityError(primaryError)) {
@@ -416,6 +444,7 @@ export async function processWithGemini(
         fallbackModelName,
         imagePart,
         options.deadlineAtMs,
+        authorizeApiCall,
       );
     }
 

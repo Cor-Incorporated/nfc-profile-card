@@ -115,6 +115,8 @@ The project follows Next.js 14 App Router conventions with the following planned
 
 - Defaults to the local PP-OCRv6 + semantic VLM pipeline; Gemini is an opt-in,
   last-resort fallback (gemini-3.1-flash-lite → gemini-2.5-flash)
+- Reserves per-user monthly and global daily UTC budget counters
+  transactionally before each Gemini API call
 - Extracts name (first/middle/last), company, title, phone, email, address
 - Converts scanned data to VCard format
 - Does not persist uploaded card images after processing

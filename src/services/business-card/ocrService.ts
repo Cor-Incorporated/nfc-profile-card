@@ -145,6 +145,7 @@ async function processWithGeminiFallback(
   mimeType: string,
   startTime: number,
   deadlineAtMs: number,
+  userId: string | undefined,
 ): Promise<OcrResult> {
   const timeoutMs = deadlineAtMs - Date.now();
   if (timeoutMs <= 0) {
@@ -159,7 +160,10 @@ async function processWithGeminiFallback(
 
   try {
     const geminiResult = await withTimeout(
-      processWithGemini(image, mimeType, { deadlineAtMs }),
+      processWithGemini(image, mimeType, {
+        deadlineAtMs,
+        userId,
+      }),
       timeoutMs,
     );
     return {
@@ -187,7 +191,7 @@ async function processWithGeminiFallback(
 export async function processBusinessCardImage(
   image: string,
   mimeType: string,
-  options: { deadlineAtMs?: number } = {},
+  options: { deadlineAtMs?: number; userId?: string } = {},
 ): Promise<OcrResult> {
   const startTime = Date.now();
   const deadlineAtMs = Math.min(
@@ -207,7 +211,13 @@ export async function processBusinessCardImage(
 
   if (provider === "gemini") {
     ocrLogger.warn("Gemini OCR requested explicitly via OCR_PROVIDER=gemini");
-    return processWithGeminiFallback(image, mimeType, startTime, deadlineAtMs);
+    return processWithGeminiFallback(
+      image,
+      mimeType,
+      startTime,
+      deadlineAtMs,
+      options.userId,
+    );
   }
 
   try {
@@ -239,6 +249,7 @@ export async function processBusinessCardImage(
         mimeType,
         startTime,
         fallbackDeadlineAtMs,
+        options.userId,
       );
     }
 

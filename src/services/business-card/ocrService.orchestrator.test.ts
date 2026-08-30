@@ -10,6 +10,11 @@ async function loadOrchestrator() {
   callInferenceServiceMock.mockReset();
   isTransientOcrInferenceErrorMock.mockReset();
   isTransientOcrInferenceErrorMock.mockReturnValue(false);
+  processWithGeminiMock.mockResolvedValue({
+    success: true,
+    contactInfo: { email: "gemini@example.com" },
+    processingTime: 10,
+  });
 
   jest.doMock("@/services/business-card/ocr/geminiProvider", () => ({
     processWithGemini: processWithGeminiMock,
@@ -52,7 +57,9 @@ describe("processBusinessCardImage orchestrator", () => {
     process.env.OCR_INFERENCE_MODE = "mock";
     const { processBusinessCardImage } = await loadOrchestrator();
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processBusinessCardImage("base64-image", "image/png", {
+      userId: "uid-1",
+    });
 
     expect(result.success).toBe(true);
     expect(result.engine).toContain("mock");
@@ -96,16 +103,18 @@ describe("processBusinessCardImage orchestrator", () => {
   it("uses Gemini only when OCR_PROVIDER=gemini", async () => {
     process.env.OCR_PROVIDER = "gemini";
     const { processBusinessCardImage } = await loadOrchestrator();
-    processWithGeminiMock.mockResolvedValue({
-      success: true,
-      contactInfo: { email: "gemini@example.com" },
-      processingTime: 10,
-    });
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processBusinessCardImage("base64-image", "image/png", {
+      userId: "uid-1",
+    });
 
     expect(result.success).toBe(true);
     expect(processWithGeminiMock).toHaveBeenCalledTimes(1);
+    expect(processWithGeminiMock).toHaveBeenCalledWith(
+      "base64-image",
+      "image/png",
+      expect.objectContaining({ userId: "uid-1" }),
+    );
     expect(callInferenceServiceMock).not.toHaveBeenCalled();
   });
 
@@ -121,7 +130,9 @@ describe("processBusinessCardImage orchestrator", () => {
       processingTime: 10,
     });
 
-    const result = await processBusinessCardImage("base64-image", "image/png");
+    const result = await processBusinessCardImage("base64-image", "image/png", {
+      userId: "uid-1",
+    });
 
     expect(result.success).toBe(true);
     expect(result.engine).toBe("gemini");
@@ -129,7 +140,10 @@ describe("processBusinessCardImage orchestrator", () => {
     expect(processWithGeminiMock).toHaveBeenCalledWith(
       "base64-image",
       "image/png",
-      { deadlineAtMs: expect.any(Number) },
+      {
+        deadlineAtMs: expect.any(Number),
+        userId: "uid-1",
+      },
     );
   });
 
