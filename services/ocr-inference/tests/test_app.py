@@ -76,6 +76,25 @@ class AdapterSecurityTests(unittest.TestCase):
                     self.assertEqual(caught.exception.status_code, 503)
                     self.assertEqual(caught.exception.detail, AUTH_CONFIGURATION_DETAIL)
 
+    def test_live_health_initializes_classic_backend_before_claiming_ok(self) -> None:
+        with self.live_environment(), patch(
+            "app.ensure_ppocr_ready"
+        ) as ensure_ready, patch("app.check_paddle_vl_ready") as vlm_ready:
+            response = health()
+
+        ensure_ready.assert_called_once_with()
+        vlm_ready.assert_called_once_with()
+        self.assertEqual(response.classic_backend, "pp-ocrv6-medium")
+
+    def test_live_health_masks_classic_backend_failure(self) -> None:
+        with self.live_environment(), patch(
+            "app.ensure_ppocr_ready", side_effect=RuntimeError("secret model path")
+        ), self.assertRaises(HTTPException) as caught:
+            health()
+
+        self.assertEqual(caught.exception.status_code, 503)
+        self.assertEqual(caught.exception.detail, INFERENCE_FAILURE_DETAIL)
+
     def test_missing_and_wrong_bearer_tokens_use_fixed_error(self) -> None:
         for header in (None, "Bearer attacker-controlled-secret", "Bearer 誤り"):
             with self.subTest(header=header), self.live_environment():
@@ -114,11 +133,13 @@ class AdapterSecurityTests(unittest.TestCase):
             self.assertEqual(caught.exception.detail, AUTH_CONFIGURATION_DETAIL)
 
     def test_health_requires_ready_authenticated_vlm_leaf(self) -> None:
-        with self.live_environment(), patch("app.check_paddle_vl_ready") as readiness:
+        with self.live_environment(), patch("app.ensure_ppocr_ready"), patch(
+            "app.check_paddle_vl_ready"
+        ) as readiness:
             self.assertEqual(health().status, "ok")
             readiness.assert_called_once_with()
 
-        with self.live_environment(), patch(
+        with self.live_environment(), patch("app.ensure_ppocr_ready"), patch(
             "app.check_paddle_vl_ready", side_effect=RuntimeError("private leaf error")
         ), self.assertRaises(HTTPException) as caught:
             health()

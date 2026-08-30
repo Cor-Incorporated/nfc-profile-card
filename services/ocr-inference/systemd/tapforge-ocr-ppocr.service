@@ -18,6 +18,8 @@ Environment=OCR_VLM_TIMEOUT_SECONDS=5
 # OCR_ADAPTER_API_KEY and OCR_VLM_API_KEY must be injected by the host-approved
 # secret mechanism or a systemd drop-in. They must be separate values. Never
 # commit either token or reuse the public gateway token for either boundary.
+# PPOCR_DET_MODEL_DIR and PPOCR_REC_MODEL_DIR must be injected as absolute paths
+# to the pre-provisioned PP-OCRv6_medium_det and PP-OCRv6_medium_rec directories.
 # Dual raw-result adapter. Not Ollama. Not llama-server.
 ExecStart=/opt/tapforge-ocr/ppocr/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8093
 Restart=on-failure
@@ -28,6 +30,8 @@ ExecStartPre=/bin/sh -c 'case "$OCR_ADAPTER_API_KEY" in ""|*[[:space:]]*) echo "
 ExecStartPre=/bin/sh -c 'case "$OCR_VLM_API_KEY" in ""|*,*|*[[:space:]]*) echo "VLM token is not configured"; exit 1;; esac'
 ExecStartPre=/bin/sh -c '[ "$OCR_ADAPTER_API_KEY" != "$OCR_VLM_API_KEY" ] || { echo "OCR boundary tokens must be distinct"; exit 1; }'
 ExecStartPre=/bin/sh -c 'case "$OCR_VLM_TIMEOUT_SECONDS" in ""|*[!0-9]*) echo "VLM timeout is invalid"; exit 1;; esac; [ "$OCR_VLM_TIMEOUT_SECONDS" -ge 1 ] && [ "$OCR_VLM_TIMEOUT_SECONDS" -le 10 ] || { echo "VLM timeout is invalid"; exit 1; }'
+ExecStartPre=/bin/sh -c 'case "$PPOCR_DET_MODEL_DIR" in /*) test -d "$PPOCR_DET_MODEL_DIR";; *) echo "PP-OCRv6 detection model directory is not configured"; exit 1;; esac'
+ExecStartPre=/bin/sh -c 'case "$PPOCR_REC_MODEL_DIR" in /*) test -d "$PPOCR_REC_MODEL_DIR";; *) echo "PP-OCRv6 recognition model directory is not configured"; exit 1;; esac'
 ExecStartPre=/opt/tapforge-ocr/ppocr/.venv/bin/python -c 'from engines.paddle_vl_adapter import check_paddle_vl_ready; check_paddle_vl_ready()'
 ExecStartPre=/bin/sh -c 'ss -lnt | grep -q ":8093 " && echo "8093 already bound" && exit 1 || true'
 

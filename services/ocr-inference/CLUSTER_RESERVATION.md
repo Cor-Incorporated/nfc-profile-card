@@ -40,7 +40,8 @@ Reservation issues already filed: `ai-cluster#184`, `Grift#2259`,
 ## Process shape
 
 - Dedicated `llama-server` for PaddleOCR-VL-1.6 — not the shared Ollama pool.
-- Dual adapter owns native PP-OCRv6 and calls only
+- Dual adapter owns the exact native `PP-OCRv6_medium_det` and
+  `PP-OCRv6_medium_rec` pair and calls only
   `http://127.0.0.1:8092/v1/chat/completions` with fixed alias
   `paddleocr-vl-1.6`.
 - Next.js owns deterministic exact-field comparison and `human_review`.
@@ -63,18 +64,44 @@ sudo cp services/ocr-inference/systemd/tapforge-ocr.slice /etc/systemd/system/
 sudo cp services/ocr-inference/systemd/tapforge-ocr-vl.service /etc/systemd/system/
 sudo cp services/ocr-inference/systemd/tapforge-ocr-ppocr.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
+sudo systemctl enable tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
 ```
 
-Before starting the candidate units, inject `LLAMA_API_KEY` into the VLM unit
-and distinct `OCR_ADAPTER_API_KEY` / `OCR_VLM_API_KEY` values into the adapter
-unit through the host-approved secret mechanism or systemd drop-ins.
-`OCR_VLM_API_KEY` and `LLAMA_API_KEY` are the same hop credential. The
-repository does not prescribe a host secret path and contains no secret value.
-Both unit preflights and the live `/health` endpoint fail closed while required
-configuration is absent or invalid. Adapter startup and `/health` also require
-the loopback leaf to reject an anonymous `/v1/models` request with 401, accept
-the dedicated Bearer, and advertise the fixed alias.
+Before starting the candidate adapter unit, install
+`requirements-live-cpu.txt`. Inject `LLAMA_API_KEY` into the VLM unit and
+distinct `OCR_ADAPTER_API_KEY` / `OCR_VLM_API_KEY` values into the adapter unit
+through the host-approved secret mechanism or systemd drop-ins.
+`OCR_VLM_API_KEY` and `LLAMA_API_KEY` are the same hop credential. Also inject
+absolute `PPOCR_DET_MODEL_DIR` and `PPOCR_REC_MODEL_DIR` paths to the
+pre-provisioned exact v6 models. Each directory must include `inference.yml`
+with the required v6 `model_name`. The repository does not prescribe a host
+secret/model path and contains no secret value.
+
+Both unit preflights and live `/health` fail closed while required
+configuration, dependencies, models, or leaf readiness are invalid. Adapter
+startup and `/health` require the loopback leaf to reject anonymous
+`/v1/models` with 401, accept the dedicated Bearer, and advertise the fixed
+alias. They also initialize and verify the exact PP-OCRv6 pair.
+
+The official PaddlePaddle distribution provides arm64 CPU wheels but no arm64
+GPU wheel. Use the pinned PaddlePaddle 3.1.1 CPU wheel for the first GB10
+candidate. A GPU source build requires separate human approval and its own
+reproducible build/accuracy evidence; never replace the pin with a community
+wheel during bring-up.
+
+Only after the drop-in has been reviewed should a human run:
+
+```bash
+sudo systemctl start tapforge-ocr.slice tapforge-ocr-vl.service tapforge-ocr-ppocr.service
+```
+
+Promotion gates are: package-version readback, `paddle.utils.run_check()`,
+successful live `/health`, real Japanese/English card inference, exact
+email/phone/postal/URL matching, warm p50/p95 latency, and peak cgroup memory
+below the 2GB adapter / 8GB slice caps. When Gemini fallback is enabled, the
+complete local request must stay inside the current 9-second local budget.
+Missing/wrong model directories, legacy result shapes, or invalid boxes/scores
+must produce 503 and leave the public route dark.
 
 Do not install these units on `evo-x2`, `evo-x2-2`, or `jetson-thor`.
 

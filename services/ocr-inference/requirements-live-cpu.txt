@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# PaddleOCR 3.7's official PP-OCRv6 pipeline. The PaddlePaddle pin has an
+# official CPython 3.11 manylinux2014_aarch64 CPU wheel; no arm64 GPU wheel is
+# published. GPU source builds are a separate human validation gate.
+paddlepaddle==3.1.1
+paddleocr==3.7.0
+paddlex[ocr-core]==3.7.2
