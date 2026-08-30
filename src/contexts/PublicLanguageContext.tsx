@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -104,17 +105,30 @@ const PublicLanguageContext = createContext<
 >(undefined);
 
 function readStoredLanguage(): Language {
-  if (typeof window === "undefined") return "ja";
-  const saved = window.localStorage.getItem("userLanguage");
-  return saved === "en" ? "en" : "ja";
+  try {
+    const saved = window.localStorage.getItem("userLanguage");
+    return saved === "en" ? "en" : "ja";
+  } catch {
+    return "ja";
+  }
 }
 
 export function PublicLanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(readStoredLanguage);
+  // Keep the server and the first client render identical, then apply the
+  // browser preference after hydration.
+  const [language, setLanguageState] = useState<Language>("ja");
+
+  useEffect(() => {
+    setLanguageState(readStoredLanguage());
+  }, []);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    window.localStorage.setItem("userLanguage", lang);
+    try {
+      window.localStorage.setItem("userLanguage", lang);
+    } catch {
+      // Language switching remains usable when storage is unavailable.
+    }
   }, []);
 
   const t = useCallback(

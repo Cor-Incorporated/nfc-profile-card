@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Monitor, X } from "lucide-react";
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
+import { PublicLanguageProvider } from "@/contexts/PublicLanguageContext";
 import type { ProfileComponent } from "./utils/dataStructure";
 
 export type DeviceType = "mobile" | "desktop";
@@ -113,10 +114,12 @@ export function DevicePreview({
                     selectedDevice !== "desktop" ? "calc(100% - 24px)" : "100%",
                 }}
               >
-                <SimpleRenderer
-                  components={components}
-                  background={background}
-                />
+                <PublicLanguageProvider>
+                  <SimpleRenderer
+                    components={components}
+                    background={background}
+                  />
+                </PublicLanguageProvider>
               </div>
             </div>
 
