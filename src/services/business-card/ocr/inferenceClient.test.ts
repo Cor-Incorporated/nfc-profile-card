@@ -10,6 +10,7 @@ describe("OCR inference failure classification", () => {
 
   beforeEach(() => {
     process.env.OCR_INFERENCE_URL = "http://127.0.0.1:8090";
+    process.env.OCR_INFERENCE_API_KEY = "test-gateway-token";
     process.env.OCR_INFERENCE_TIMEOUT_MS = "50";
   });
 
@@ -125,6 +126,116 @@ describe("OCR inference failure classification", () => {
     });
   });
 
+  it("fails before dispatch when the dedicated gateway token is missing", async () => {
+    delete process.env.OCR_INFERENCE_API_KEY;
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(
+      callInferenceService("base64-image", "image/png"),
+    ).rejects.toMatchObject({
+      kind: "configuration",
+      retryable: false,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-loopback HTTP gateways before sending the image", async () => {
+    process.env.OCR_INFERENCE_URL = "http://ocr-gateway.example.com";
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(
+      callInferenceService("base64-image", "image/png"),
+    ).rejects.toMatchObject({
+      kind: "configuration",
+      retryable: false,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects credentials embedded in the gateway URL before sending the image", async () => {
+    process.env.OCR_INFERENCE_URL =
+      "https://user:password@ocr-gateway.example.com";
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(
+      callInferenceService("base64-image", "image/png"),
+    ).rejects.toMatchObject({
+      kind: "configuration",
+      retryable: false,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("sends only the authenticated nfc-ocr gateway contract", async () => {
+    process.env.OCR_INFERENCE_API_KEY = "test-gateway-token";
+    process.env.OCR_VLM_ENGINE = "hunyuanocr-1.5";
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          classic: { engine: "mock", rawText: "Cor", blocks: [] },
+          semantic: { engine: "mock", fields: { company: "Cor" } },
+          qr: [],
+        },
+      }),
+    }) as jest.Mock;
+
+    const result = await callInferenceService(
+      "data:image/png;base64,ZmFrZQ==",
+      "image/png",
+    );
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0] as [
+      URL,
+      RequestInit,
+    ];
+
+    expect(result.classic.rawText).toBe("Cor");
+    expect(init.headers).toMatchObject({
+      Authorization: "Bearer test-gateway-token",
+    });
+    expect(JSON.parse(init.body as string)).toEqual({
+      model: "nfc-ocr",
+      image: "ZmFrZQ==",
+      mimeType: "image/png",
+    });
+  });
+
+  it("normalizes the JPEG alias to the gateway MIME contract", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          classic: { engine: "mock", rawText: "Cor", blocks: [] },
+          semantic: { engine: "mock", fields: { company: "Cor" } },
+          qr: [],
+        },
+      }),
+    }) as jest.Mock;
+
+    await callInferenceService("base64-image", "image/jpg");
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0] as [
+      URL,
+      RequestInit,
+    ];
+    expect(JSON.parse(init.body as string).mimeType).toBe("image/jpeg");
+  });
+
+  it("rejects formats outside the gateway contract before dispatch", async () => {
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(
+      callInferenceService("base64-image", "image/heic"),
+    ).rejects.toMatchObject({
+      kind: "unsupported_input",
+      retryable: false,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it("classifies an aborted request as a transient timeout", async () => {
     jest.useFakeTimers();
     global.fetch = jest.fn((_input: RequestInfo | URL, init?: RequestInit) => {
@@ -180,5 +291,21 @@ describe("OCR inference failure classification", () => {
       retryable: false,
       status: 401,
     });
+  });
+
+  it("does not restore direct engine calls when the production gateway is missing", async () => {
+    delete process.env.OCR_INFERENCE_URL;
+    process.env.OCR_PPOCR_URL = "http://127.0.0.1:8093";
+    process.env.OCR_VLM_URL = "http://127.0.0.1:8092/v1";
+    process.env = { ...process.env, NODE_ENV: "production" };
+    global.fetch = jest.fn() as jest.Mock;
+
+    await expect(
+      callInferenceService("base64-image", "image/png"),
+    ).rejects.toMatchObject({
+      kind: "configuration",
+      retryable: false,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

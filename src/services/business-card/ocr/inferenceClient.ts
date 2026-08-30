@@ -11,15 +11,14 @@ import type {
   DualPipelineRaw,
   SemanticCardFields,
   SemanticExtraction,
-  VlmEngine,
 } from "@/lib/ocr/types";
 import { CARD_FIELDS } from "@/lib/ocr/types";
 import { ocrLogger } from "@/lib/logger";
 
 export interface InferenceRequest {
+  model: "nfc-ocr";
   image: string;
   mimeType: string;
-  vlmEngine: VlmEngine;
 }
 
 export type OcrInferenceErrorKind =
@@ -28,6 +27,7 @@ export type OcrInferenceErrorKind =
   | "network"
   | "unavailable"
   | "http"
+  | "unsupported_input"
   | "invalid_response";
 
 export class OcrInferenceError extends Error {
@@ -78,6 +78,12 @@ function hasNetworkErrorCode(value: unknown): boolean {
 const SEMANTIC_PROMPT = `Extract business-card fields as JSON only.
 Keys: name, name_kana, company, department, title, email, phone, mobile, fax, postal_code, address, url, social.
 Associate name / company / title from layout. Do not invent email, phone, URL, or postal_code if they are not visible. Empty string if unseen.`;
+const OCR_GATEWAY_MODEL = "nfc-ocr" as const;
+const OCR_GATEWAY_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 function stripDataUrl(image: string): string {
   return image.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
@@ -184,6 +190,70 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
+function authenticatedGatewayHeaders(): Record<string, string> {
+  const apiKey = getInferenceApiKey();
+  if (!apiKey) {
+    throw new OcrInferenceError(
+      "OCR gateway token is not configured",
+      "configuration",
+      false,
+    );
+  }
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+}
+
+function assertSecureGatewayUrl(baseUrl: string): URL {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(baseUrl);
+  } catch {
+    throw new OcrInferenceError(
+      "OCR gateway endpoint is invalid",
+      "configuration",
+      false,
+    );
+  }
+  const loopbackHosts = new Set(["127.0.0.1", "::1", "localhost"]);
+  if (endpoint.protocol !== "https:" && !loopbackHosts.has(endpoint.hostname)) {
+    throw new OcrInferenceError(
+      "OCR gateway endpoint must use HTTPS",
+      "configuration",
+      false,
+    );
+  }
+  if (
+    endpoint.username ||
+    endpoint.password ||
+    endpoint.search ||
+    endpoint.hash
+  ) {
+    throw new OcrInferenceError(
+      "OCR gateway endpoint must not contain credentials, a query, or a fragment",
+      "configuration",
+      false,
+    );
+  }
+  return endpoint;
+}
+
+function normalizeGatewayMimeType(mimeType: string): string {
+  const normalized =
+    mimeType.toLowerCase() === "image/jpg"
+      ? "image/jpeg"
+      : mimeType.toLowerCase();
+  if (!OCR_GATEWAY_MIME_TYPES.has(normalized)) {
+    throw new OcrInferenceError(
+      "OCR gateway does not support this image format",
+      "unsupported_input",
+      false,
+    );
+  }
+  return normalized;
+}
+
 function emptyFields(): SemanticCardFields {
   return CARD_FIELDS.reduce((acc, key) => {
     acc[key] = "";
@@ -233,17 +303,18 @@ async function callAggregator(
   baseUrl: string,
   timeoutMs: number,
 ): Promise<DualPipelineRaw> {
-  const vlmEngine = getVlmEngine();
-  ocrLogger.info("Calling OCR aggregator (local-dev)", baseUrl, vlmEngine);
+  const endpoint = assertSecureGatewayUrl(baseUrl);
+  const gatewayMimeType = normalizeGatewayMimeType(mimeType);
+  ocrLogger.info("Calling authenticated OCR gateway", endpoint.origin);
   const payload = await fetchJson(
     `${baseUrl}/v1/ocr/extract`,
     {
       method: "POST",
-      headers: authHeaders(),
+      headers: authenticatedGatewayHeaders(),
       body: JSON.stringify({
+        model: OCR_GATEWAY_MODEL,
         image: stripDataUrl(image),
-        mimeType,
-        vlmEngine,
+        mimeType: gatewayMimeType,
       } satisfies InferenceRequest),
     },
     timeoutMs,
@@ -365,6 +436,14 @@ export async function callInferenceService(
   const aggregator = getInferenceBaseUrl();
   if (aggregator) {
     return callAggregator(image, mimeType, aggregator, timeoutMs);
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new OcrInferenceError(
+      "OCR gateway endpoint is not configured",
+      "configuration",
+      false,
+    );
   }
 
   const [classicResult, semanticResult] = await Promise.allSettled([

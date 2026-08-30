@@ -5,24 +5,22 @@ cluster. It is isolated from other Cor products.
 
 ## Host
 
-|            |                                                |
-| ---------- | ---------------------------------------------- |
-| Hostname   | `thinkstationpgx-ab59`                         |
-| Hardware   | NVIDIA GB10, ~121GB RAM                        |
-| Memory cap | **8GB** (cgroup / systemd slice)               |
-| Network    | Tailscale `100.93.32.70` / LAN `192.168.11.26` |
+|            |                                                                |
+| ---------- | -------------------------------------------------------------- |
+| Hostname   | `thinkstationpgx-ab59`                                         |
+| Hardware   | NVIDIA GB10, ~121GB RAM                                        |
+| Memory cap | **8GB** (cgroup / systemd slice)                               |
+| Network    | Private cluster only; node addresses stay out of this app repo |
 
 Do **not** place this workload on `evo-x2`, `evo-x2-2` (35B/26B/12B keepwarm),
 or `jetson-thor`.
 
 ## Dedicated ports (production)
 
-| Service                                         | Port     | URL                           |
-| ----------------------------------------------- | -------- | ----------------------------- |
-| PaddleOCR-VL-1.6 `llama-server` (GGUF + mmproj) | **8092** | `http://100.93.32.70:8092/v1` |
-| Native PP-OCRv6_medium                          | **8093** | `http://100.93.32.70:8093`    |
-
-LAN aliases: `http://192.168.11.26:8092` and `http://192.168.11.26:8093`.
+| Service                                          | Port     | Exposure        |
+| ------------------------------------------------ | -------- | --------------- |
+| PaddleOCR-VL-1.6 `llama-server` (GGUF + mmproj)  | **8092** | cluster-private |
+| Dual adapter (raw PP-OCR + semantic VLM results) | **8093** | gateway only    |
 
 ## Ports that must stay unused by this product
 
@@ -42,9 +40,11 @@ Reservation issues already filed: `ai-cluster#184`, `Grift#2259`,
 ## Process shape
 
 - Dedicated `llama-server` for PaddleOCR-VL-1.6 — not the shared Ollama pool.
-- Dedicated native PP-OCRv6 process.
+- Dual adapter owns native PP-OCRv6 and calls the private VLM process.
+- Next.js owns deterministic exact-field comparison and `human_review`.
 - Both under `systemd/tapforge-ocr.slice` (`MemoryMax=8G`).
-- Next.js on Vercel calls these URLs through `OCR_VLM_URL` and `OCR_PPOCR_URL`.
+- Next.js on Vercel calls only the authenticated public gateway through
+  `OCR_INFERENCE_URL`; it never calls these ports directly.
 - Not Modal. Not RunPod. Not a Vercel function.
 
 Install on `thinkstationpgx-ab59` only:
@@ -58,3 +58,6 @@ sudo systemctl enable --now tapforge-ocr.slice tapforge-ocr-vl.service tapforge-
 ```
 
 Do not install these units on `evo-x2`, `evo-x2-2`, or `jetson-thor`.
+
+The unit names above are repository candidates, not live evidence. Reconcile
+them with the ai-cluster service catalog before the human-only GB10 bring-up.
