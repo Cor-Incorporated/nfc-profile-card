@@ -22,7 +22,7 @@ from engines.paddle_vl_adapter import (
     run_paddle_vl,
     validate_vlm_configuration,
 )
-from engines.ppocr_adapter import run_ppocr
+from engines.ppocr_adapter import ensure_ppocr_ready, run_ppocr
 from engines.preprocess import preprocess_image
 from engines.qr import decode_qr
 
@@ -182,6 +182,7 @@ def health() -> HealthResponse:
     if mode == "live":
         _validate_vlm_configuration()
         try:
+            ensure_ppocr_ready()
             check_paddle_vl_ready()
         except Exception:
             raise HTTPException(

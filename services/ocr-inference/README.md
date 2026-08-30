@@ -17,7 +17,8 @@ against classic OCR strings. The VLM never invents those fields.
 
 Default production engines (Apache 2.0, commercial-safe):
 
-- `PP-OCRv6_medium`
+- `PP-OCRv6_medium_det` + `PP-OCRv6_medium_rec` (reported as
+  `pp-ocrv6-medium` only after both return a valid PaddleOCR 3.7 result)
 - `PaddleOCR-VL-1.6`
 
 `HunyuanOCR-1.5` remains an offline, non-production experiment only. The HTTP
@@ -97,19 +98,73 @@ Binds **8090 on localhost**. Do not publish this port on the cluster.
 docker compose -f services/ocr-inference/docker-compose.yml up --build
 ```
 
-## Plug in real weights
+## PP-OCRv6 live runtime
 
-1. Install PaddlePaddle + PaddleOCR in the adapter environment for native
-   `PP-OCRv6_medium` (GPU recommended).
-2. Run the dedicated PaddleOCR-VL-1.6 GGUF + mmproj with `llama-server` on
-   `127.0.0.1:8092`, alias `paddleocr-vl-1.6`, and a dedicated
-   `LLAMA_API_KEY`.
-3. Set `OCR_INFERENCE_MODE=live`, `OCR_ADAPTER_API_KEY`, `OCR_VLM_API_KEY`,
-   and an integer `OCR_VLM_TIMEOUT_SECONDS` from 1 through 10 for the adapter.
-   Start with 5 seconds so the outer request still has room to fall back.
-4. Restart uvicorn. The adapter always sends a canonical PNG `image_url` to
-   the fixed loopback endpoint and does not honor URL or model overrides.
+The live classic adapter is pinned to the official PaddleOCR 3.7 API and its
+exact `PP-OCRv6_medium_det` / `PP-OCRv6_medium_rec` pair. It passes a BGR NumPy
+array to `predict()` and reads `rec_texts`, `rec_scores`, and `rec_boxes` from
+the PaddleX `OCRResult`. It does not call the deprecated 2.x `ocr()` API.
 
+Install the separate CPU runtime only on the approved OCR host:
+
+```bash
+cd services/ocr-inference
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-live-cpu.txt
+python -c 'import paddle; paddle.utils.run_check()'
+```
+
+The pins are `paddleocr==3.7.0`, `paddlex[ocr-core]==3.7.2`, and
+`paddlepaddle==3.1.1`. PaddleOCR 3.7 officially requires PaddleX `>=3.7,<3.8`
+and PaddlePaddle `>=3.0`. PyPI publishes a CPython 3.11
+`manylinux2014_aarch64` CPU wheel for PaddlePaddle 3.1.1. PaddlePaddle's
+official install guide states that arm64 GPU wheels are not published, so the
+GB10 candidate must first be measured on the official CPU wheel. A GPU source
+build is a separate human-approved experiment; do not substitute an unverified
+community wheel.
+
+Provision both model directories out of band, then inject absolute paths. The
+adapter requires these values and never falls back to PaddleOCR's automatic
+weight download. Each directory's official `inference.yml` must declare the
+matching exact model name; an older model behind a v6-looking path is rejected:
+
+```bash
+export PPOCR_DET_MODEL_DIR=/absolute/path/to/PP-OCRv6_medium_det
+export PPOCR_REC_MODEL_DIR=/absolute/path/to/PP-OCRv6_medium_rec
+export OCR_INFERENCE_MODE=live
+```
+
+Run the dedicated PaddleOCR-VL-1.6 GGUF + mmproj with `llama-server` on
+`127.0.0.1:8092`, alias `paddleocr-vl-1.6`, and a dedicated `LLAMA_API_KEY`.
+Set distinct `OCR_ADAPTER_API_KEY` / `OCR_VLM_API_KEY` values on the adapter;
+`OCR_VLM_API_KEY` must match the leaf's `LLAMA_API_KEY`. Set an integer
+`OCR_VLM_TIMEOUT_SECONDS` from 1 through 10, starting with 5 seconds so the
+outer request still has room to fall back. The adapter always sends a
+canonical PNG `image_url` to the fixed loopback endpoint and does not honor
+URL or model overrides.
+
+One pipeline is loaded lazily and cached per uvicorn process; predictions are
+serialized because Paddle's predictor is process state. Run one uvicorn worker
+until concurrency and memory have been measured. Live `/health` initializes
+the classic pipeline and returns a fixed 503 if dependencies, directories, or
+model loading are invalid. An image-level inference check is still required
+before promotion.
+
+Official references:
+
+- [PaddleOCR 3.7 OCR pipeline](https://github.com/PaddlePaddle/PaddleOCR/blob/v3.7.0/paddleocr/_pipelines/ocr.py)
+- [PaddleOCR general OCR usage](https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/pipeline_usage/OCR.en.md)
+- [PaddleOCR and PaddleX compatibility](https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/paddleocr_and_paddlex.md)
+- [PaddlePaddle 3.1.1 PyPI files](https://pypi.org/project/paddlepaddle/3.1.1/)
+- [PaddlePaddle installation guide](https://www.paddlepaddle.org.cn/documentation/docs/zh/install/index_cn.html)
+
+Before GB10 promotion, a human must record Python/package versions,
+`paddle.utils.run_check()`, `/health`, and real Japanese/English business-card
+results. Measure warm p50/p95 latency and peak cgroup memory. With Gemini
+fallback enabled, the current application budget leaves at most 9 seconds for
+the complete local request; the PP-OCR and VLM path must fit that budget. Keep
+the route dark if the 2GB adapter cap, accuracy checks, or deadline fail.
 Hunyuan experiments, if legally approved, must use a separate offline harness.
 They are intentionally unreachable from this HTTP service.
 
