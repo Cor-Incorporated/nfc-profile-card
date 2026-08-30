@@ -1,0 +1,229 @@
+[
+  {
+    "id": "ja_clean_full",
+    "variant": "clean",
+    "layout": "single",
+    "lines": [
+      "山田 太郎",
+      "やまだ たろう",
+      "株式会社タップフォージ",
+      "開発部 代表取締役",
+      "taro.yamada@tapforge.example",
+      "TEL 03-1234-5678  MOBILE 090-1234-5678",
+      "FAX 03-1234-5679",
+      "〒150-0001 東京都渋谷区神宮前1-1-1",
+      "https://tapforge.example"
+    ],
+    "fields": {
+      "name": "山田 太郎",
+      "name_kana": "やまだ たろう",
+      "company": "株式会社タップフォージ",
+      "department": "開発部",
+      "title": "代表取締役",
+      "email": "taro.yamada@tapforge.example",
+      "phone": "03-1234-5678",
+      "mobile": "090-1234-5678",
+      "fax": "03-1234-5679",
+      "postal_code": "150-0001",
+      "address": "東京都渋谷区神宮前1-1-1",
+      "url": "https://tapforge.example",
+      "social": ""
+    }
+  },
+  {
+    "id": "en_middle_name",
+    "variant": "clean",
+    "layout": "single",
+    "lines": [
+      "Alex Morgan Lee",
+      "Research Director",
+      "Example Robotics Ltd.",
+      "alex.lee@example.com",
+      "+81 90-2468-1357",
+      "2-8-1 Marunouchi, Chiyoda-ku, Tokyo 100-0005",
+      "https://robotics.example"
+    ],
+    "fields": {
+      "name": "Alex Morgan Lee",
+      "name_kana": "",
+      "company": "Example Robotics Ltd.",
+      "department": "",
+      "title": "Research Director",
+      "email": "alex.lee@example.com",
+      "phone": "",
+      "mobile": "+81 90-2468-1357",
+      "fax": "",
+      "postal_code": "100-0005",
+      "address": "2-8-1 Marunouchi, Chiyoda-ku, Tokyo",
+      "url": "https://robotics.example",
+      "social": ""
+    }
+  },
+  {
+    "id": "ja_email_only",
+    "variant": "clean",
+    "layout": "single",
+    "lines": [
+      "佐藤 花子",
+      "プロダクトデザイナー",
+      "hanako.sato@example.net"
+    ],
+    "fields": {
+      "name": "佐藤 花子",
+      "name_kana": "",
+      "company": "",
+      "department": "",
+      "title": "プロダクトデザイナー",
+      "email": "hanako.sato@example.net",
+      "phone": "",
+      "mobile": "",
+      "fax": "",
+      "postal_code": "",
+      "address": "",
+      "url": "",
+      "social": ""
+    }
+  },
+  {
+    "id": "bilingual_two_column",
+    "variant": "clean",
+    "layout": "two_column",
+    "lines": [
+      "中村 健 / Ken Nakamura",
+      "海外事業部 / Global Business",
+      "事業開発マネージャー",
+      "North Star Studio Inc.",
+      "ken.nakamura@example.org",
+      "TEL 06-2468-1357",
+      "〒530-0001 大阪府大阪市北区梅田1-1-1",
+      "https://northstar.example"
+    ],
+    "fields": {
+      "name": "中村 健 / Ken Nakamura",
+      "name_kana": "",
+      "company": "North Star Studio Inc.",
+      "department": "海外事業部 / Global Business",
+      "title": "事業開発マネージャー",
+      "email": "ken.nakamura@example.org",
+      "phone": "06-2468-1357",
+      "mobile": "",
+      "fax": "",
+      "postal_code": "530-0001",
+      "address": "大阪府大阪市北区梅田1-1-1",
+      "url": "https://northstar.example",
+      "social": ""
+    }
+  },
+  {
+    "id": "fax_mobile_labels",
+    "variant": "clean",
+    "layout": "single",
+    "lines": [
+      "鈴木 一郎",
+      "Example Works 合同会社",
+      "営業部 部長",
+      "TEL 052-1357-2468",
+      "FAX 052-1357-2469",
+      "携帯 080-1111-2222",
+      "ichiro.suzuki@example.co.jp"
+    ],
+    "fields": {
+      "name": "鈴木 一郎",
+      "name_kana": "",
+      "company": "Example Works 合同会社",
+      "department": "営業部",
+      "title": "部長",
+      "email": "ichiro.suzuki@example.co.jp",
+      "phone": "052-1357-2468",
+      "mobile": "080-1111-2222",
+      "fax": "052-1357-2469",
+      "postal_code": "",
+      "address": "",
+      "url": "",
+      "social": ""
+    }
+  },
+  {
+    "id": "low_contrast_rotated",
+    "variant": "low_contrast_rotated",
+    "layout": "single",
+    "lines": [
+      "高橋 美咲",
+      "データサイエンス室 リードエンジニア",
+      "未来分析株式会社",
+      "misaki.takahashi@example.com",
+      "TEL 045-2222-3333",
+      "〒220-0012 神奈川県横浜市西区みなとみらい2-2-1"
+    ],
+    "fields": {
+      "name": "高橋 美咲",
+      "name_kana": "",
+      "company": "未来分析株式会社",
+      "department": "データサイエンス室",
+      "title": "リードエンジニア",
+      "email": "misaki.takahashi@example.com",
+      "phone": "045-2222-3333",
+      "mobile": "",
+      "fax": "",
+      "postal_code": "220-0012",
+      "address": "神奈川県横浜市西区みなとみらい2-2-1",
+      "url": "",
+      "social": ""
+    }
+  },
+  {
+    "id": "dense_small_text",
+    "variant": "small_blurred",
+    "layout": "single",
+    "lines": [
+      "Emily Chen",
+      "Senior Security Engineer",
+      "Example Secure Systems K.K.",
+      "Cloud Platform Division",
+      "emily.chen@example.dev",
+      "TEL 03-8642-9753  FAX 03-8642-9754",
+      "4-2-8 Shibaura, Minato-ku, Tokyo 108-0023",
+      "https://secure.example"
+    ],
+    "fields": {
+      "name": "Emily Chen",
+      "name_kana": "",
+      "company": "Example Secure Systems K.K.",
+      "department": "Cloud Platform Division",
+      "title": "Senior Security Engineer",
+      "email": "emily.chen@example.dev",
+      "phone": "03-8642-9753",
+      "mobile": "",
+      "fax": "03-8642-9754",
+      "postal_code": "108-0023",
+      "address": "4-2-8 Shibaura, Minato-ku, Tokyo",
+      "url": "https://secure.example",
+      "social": ""
+    }
+  },
+  {
+    "id": "empty_optional",
+    "variant": "clean",
+    "layout": "single",
+    "lines": [
+      "田中 葵",
+      "コミュニティマネージャー",
+      "Example Community Lab"
+    ],
+    "fields": {
+      "name": "田中 葵",
+      "name_kana": "",
+      "company": "Example Community Lab",
+      "department": "",
+      "title": "コミュニティマネージャー",
+      "email": "",
+      "phone": "",
+      "mobile": "",
+      "fax": "",
+      "postal_code": "",
+      "address": "",
+      "url": "",
+      "social": ""
+    }
+  }
+]

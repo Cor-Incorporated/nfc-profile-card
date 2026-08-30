@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-08-30T16:25:31Z",
+  "host": "thinkstationpgx-ab59",
+  "constraints": {
+    "slice_limit_mb": 8192,
+    "application_local_deadline_ms": 9000
+  },
+  "processes": {
+    "ppocr_v6_medium_cpu": {
+      "measurement": "resource.RUSAGE_SELF.ru_maxrss",
+      "peak_mb": 1270.711,
+      "warmup_ms": 5786.014
+    },
+    "phi4_text_only": {
+      "measurement": "systemd MemoryPeak",
+      "peak_bytes": 716713984,
+      "memory_max_bytes": 5368709120
+    },
+    "phi4_direct_image": {
+      "measurement": "systemd MemoryPeak",
+      "peak_bytes": 2415030272,
+      "memory_max_bytes": 5368709120
+    },
+    "hunyuanocr_direct_image": {
+      "measurement": "systemd MemoryPeak",
+      "peak_bytes": 2041044992,
+      "memory_max_bytes": 3221225472
+    },
+    "paddleocr_vl_live": {
+      "measurement": "systemd user unit MemoryPeak",
+      "peak_bytes": 1806692352,
+      "memory_max_bytes": 8589934592
+    }
+  },
+  "cleanup": {
+    "tapforge-ocr-bench-phi4text.service": "inactive",
+    "tapforge-ocr-bench-phi4vision.service": "inactive",
+    "tapforge-ocr-bench-hunyuan.service": "inactive"
+  }
+}

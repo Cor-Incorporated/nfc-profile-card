@@ -1,0 +1,233 @@
+{
+  "source": "services/ocr-inference/benchmark/results/hunyuan-image.json",
+  "model": "hunyuanocr-1.5",
+  "success_rate": 1.0,
+  "semantic_json_rate": 0.5,
+  "field_exact_accuracy": 0.46153846153846156,
+  "nonempty_field_exact_accuracy": 0.75,
+  "hallucination_rate_on_empty": 1.0,
+  "missing_rate_on_nonempty": 0.0,
+  "transcription_cer": 1.811764705882353,
+  "line_order_invariant_cer": 1.997752808988764,
+  "raw_field_coverage": 1.0,
+  "latency_p50_ms": 1207.9265,
+  "latency_p95_ms": 1368.68255,
+  "warmup_ms": null,
+  "peak_rss_mb": null,
+  "per_field": {
+    "name": {
+      "correct": 9,
+      "total": 12
+    },
+    "name_kana": {
+      "correct": 3,
+      "total": 12
+    },
+    "company": {
+      "correct": 12,
+      "total": 12
+    },
+    "department": {
+      "correct": 3,
+      "total": 12
+    },
+    "title": {
+      "correct": 9,
+      "total": 12
+    },
+    "email": {
+      "correct": 9,
+      "total": 12
+    },
+    "phone": {
+      "correct": 6,
+      "total": 12
+    },
+    "mobile": {
+      "correct": 6,
+      "total": 12
+    },
+    "fax": {
+      "correct": 3,
+      "total": 12
+    },
+    "postal_code": {
+      "correct": 3,
+      "total": 12
+    },
+    "address": {
+      "correct": 0,
+      "total": 12
+    },
+    "url": {
+      "correct": 9,
+      "total": 12
+    },
+    "social": {
+      "correct": 0,
+      "total": 12
+    }
+  },
+  "raw_support_per_field": {
+    "name": {
+      "supported": 12,
+      "expected": 12
+    },
+    "name_kana": {
+      "supported": 0,
+      "expected": 0
+    },
+    "company": {
+      "supported": 9,
+      "expected": 9
+    },
+    "department": {
+      "supported": 9,
+      "expected": 9
+    },
+    "title": {
+      "supported": 12,
+      "expected": 12
+    },
+    "email": {
+      "supported": 12,
+      "expected": 12
+    },
+    "phone": {
+      "supported": 9,
+      "expected": 9
+    },
+    "mobile": {
+      "supported": 3,
+      "expected": 3
+    },
+    "fax": {
+      "supported": 6,
+      "expected": 6
+    },
+    "postal_code": {
+      "supported": 6,
+      "expected": 6
+    },
+    "address": {
+      "supported": 6,
+      "expected": 6
+    },
+    "url": {
+      "supported": 3,
+      "expected": 3
+    },
+    "social": {
+      "supported": 0,
+      "expected": 0
+    }
+  },
+  "per_case": {
+    "ja_clean_full": {
+      "success_count": 3,
+      "semantic_json_rate": 1.0,
+      "field_exact_accuracy": 0.7692307692307693,
+      "hallucination_rate_on_empty": 1.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 0.0,
+      "line_order_invariant_cer": 0.0,
+      "raw_field_coverage": 0.0,
+      "latency_p50_ms": 1236.859,
+      "latency_p95_ms": 1241.2798
+    },
+    "en_middle_name": {
+      "success_count": 3,
+      "semantic_json_rate": 1.0,
+      "field_exact_accuracy": 0.5384615384615384,
+      "hallucination_rate_on_empty": 1.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 0.0,
+      "line_order_invariant_cer": 0.0,
+      "raw_field_coverage": 0.0,
+      "latency_p50_ms": 1231.342,
+      "latency_p95_ms": 1245.2695
+    },
+    "ja_email_only": {
+      "success_count": 3,
+      "semantic_json_rate": 0.0,
+      "field_exact_accuracy": 0.0,
+      "hallucination_rate_on_empty": 0.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 6.081081081081081,
+      "line_order_invariant_cer": 6.153846153846154,
+      "raw_field_coverage": 1.0,
+      "latency_p50_ms": 966.016,
+      "latency_p95_ms": 997.0507
+    },
+    "bilingual_two_column": {
+      "success_count": 3,
+      "semantic_json_rate": 1.0,
+      "field_exact_accuracy": 0.38461538461538464,
+      "hallucination_rate_on_empty": 1.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 0.0,
+      "line_order_invariant_cer": 0.0,
+      "raw_field_coverage": 0.0,
+      "latency_p50_ms": 1243.856,
+      "latency_p95_ms": 1329.3614
+    },
+    "fax_mobile_labels": {
+      "success_count": 3,
+      "semantic_json_rate": 0.0,
+      "field_exact_accuracy": 0.0,
+      "hallucination_rate_on_empty": 0.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 1.9191919191919191,
+      "line_order_invariant_cer": 1.8952380952380952,
+      "raw_field_coverage": 1.0,
+      "latency_p50_ms": 1048.14,
+      "latency_p95_ms": 1065.7377
+    },
+    "low_contrast_rotated": {
+      "success_count": 3,
+      "semantic_json_rate": 0.0,
+      "field_exact_accuracy": 0.0,
+      "hallucination_rate_on_empty": 0.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 1.6274509803921569,
+      "line_order_invariant_cer": 1.9345794392523366,
+      "raw_field_coverage": 1.0,
+      "latency_p50_ms": 1090.445,
+      "latency_p95_ms": 1121.4509
+    },
+    "dense_small_text": {
+      "success_count": 3,
+      "semantic_json_rate": 0.0,
+      "field_exact_accuracy": 0.0,
+      "hallucination_rate_on_empty": 0.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 1.0106951871657754,
+      "line_order_invariant_cer": 1.2525773195876289,
+      "raw_field_coverage": 1.0,
+      "latency_p50_ms": 1373.945,
+      "latency_p95_ms": 1416.2864
+    },
+    "empty_optional": {
+      "success_count": 3,
+      "semantic_json_rate": 1.0,
+      "field_exact_accuracy": 0.15384615384615385,
+      "hallucination_rate_on_empty": 1.0,
+      "missing_rate_on_nonempty": 0.0,
+      "transcription_cer": 0.0,
+      "line_order_invariant_cer": 0.0,
+      "raw_field_coverage": 0.0,
+      "latency_p50_ms": 1245.26,
+      "latency_p95_ms": 1306.1891
+    }
+  },
+  "counts": {
+    "successful_predictions": 24,
+    "semantic_predictions": 12,
+    "field_total": 156,
+    "expected_nonempty": 96,
+    "expected_empty": 60,
+    "transcript_characters": 1275,
+    "raw_field_supported": 87,
+    "raw_field_expected": 87
+  }
+}
