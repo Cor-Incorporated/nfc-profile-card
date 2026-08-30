@@ -9,14 +9,49 @@ import * as firebaseAuth from "firebase/auth";
 import * as firestore from "firebase/firestore";
 import { AuthProvider, useAuth } from "./AuthContext";
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
+function createMockUser(
+  overrides: Partial<firebaseAuth.User> = {},
+): firebaseAuth.User {
+  return {
+    uid: "test-uid",
+    email: "test@example.com",
+    emailVerified: true,
+    displayName: "Test User",
+    photoURL: null,
+    providerData: [],
+    isAnonymous: false,
+    metadata: {},
+    refreshToken: "",
+    tenantId: null,
+    delete: jest.fn(),
+    getIdToken: jest.fn(),
+    getIdTokenResult: jest.fn(),
+    reload: jest.fn(),
+    toJSON: jest.fn(),
+    phoneNumber: null,
+    providerId: "firebase",
+    ...overrides,
+  } as firebaseAuth.User;
+}
+
 // Routerのモック
 const mockPush = jest.fn();
+const mockRouter = {
+  push: mockPush,
+  replace: jest.fn(),
+  refresh: jest.fn(),
+};
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: mockPush,
-    replace: jest.fn(),
-    refresh: jest.fn(),
-  }),
+  useRouter: () => mockRouter,
 }));
 
 // Firebaseのモック（jest.setup.jsのモックを上書き）
@@ -52,15 +87,25 @@ jest.mock("firebase/firestore", () => ({
 describe("AuthContext", () => {
   let mockOnAuthStateChanged: jest.Mock;
   let mockUnsubscribe: jest.Mock;
+  let authStateCallback: ((user: firebaseAuth.User | null) => void) | undefined;
+
+  const emitAuthState = (user: firebaseAuth.User | null) => {
+    if (!authStateCallback) {
+      throw new Error("auth observer is not subscribed");
+    }
+    authStateCallback(user);
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockPush.mockClear();
+    authStateCallback = undefined;
 
     // onAuthStateChangedのモック設定
     mockUnsubscribe = jest.fn();
     mockOnAuthStateChanged = firebaseAuth.onAuthStateChanged as jest.Mock;
     mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+      authStateCallback = callback;
       // 初期状態（未認証）を通知
       setTimeout(() => callback(null), 0);
       return mockUnsubscribe;
@@ -140,6 +185,151 @@ describe("AuthContext", () => {
       });
     });
 
+    it("既存プロフィールの編集値を認証情報で上書きしない", async () => {
+      const mockUser = createMockUser();
+      (firestore.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => ({
+          uid: mockUser.uid,
+          email: "profile-contact@example.com",
+          emailVerified: mockUser.emailVerified,
+          displayName: "Edited Profile Name",
+          photoURL: "https://example.com/custom-profile.png",
+        }),
+      });
+      mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+        authStateCallback = callback;
+        setTimeout(() => callback(mockUser), 0);
+        return mockUnsubscribe;
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+        expect(result.current.loading).toBe(false);
+      });
+      expect(firestore.setDoc).toHaveBeenCalledWith(
+        { id: "test-doc" },
+        {
+          uid: mockUser.uid,
+          emailVerified: true,
+          updatedAt: expect.anything(),
+          username: "u_test-uid",
+        },
+        { merge: true },
+      );
+      const existingProfileUpdate = (firestore.setDoc as jest.Mock).mock
+        .calls[0][1];
+      expect(existingProfileUpdate).not.toHaveProperty("email");
+      expect(existingProfileUpdate).not.toHaveProperty("displayName");
+      expect(existingProfileUpdate).not.toHaveProperty("photoURL");
+    });
+
+    it("redirect結果とobserverが同じUIDを返しても同期は1回だけ行う", async () => {
+      const mockUser = createMockUser({ uid: "redirect-observer-uid" });
+      const redirectResult = createDeferred<{ user: firebaseAuth.User }>();
+      (firebaseAuth.getRedirectResult as jest.Mock).mockReturnValueOnce(
+        redirectResult.promise,
+      );
+      (firestore.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => ({ username: "123456789012" }),
+      });
+      mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+        authStateCallback = callback;
+        return mockUnsubscribe;
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+      await waitFor(() => expect(authStateCallback).toBeDefined());
+
+      await act(async () => {
+        emitAuthState(mockUser);
+        redirectResult.resolve({ user: mockUser });
+        await redirectResult.promise;
+      });
+      await waitFor(() => expect(result.current.user).toEqual(mockUser));
+
+      expect(firestore.getDoc).toHaveBeenCalledTimes(1);
+      expect(firestore.setDoc).toHaveBeenCalledTimes(1);
+    });
+
+    it("同期中にログアウトした場合は古いユーザーを復活させない", async () => {
+      const mockUser = createMockUser();
+      const profileWrite = createDeferred<void>();
+      (firestore.setDoc as jest.Mock).mockReturnValueOnce(profileWrite.promise);
+      mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+        authStateCallback = callback;
+        return mockUnsubscribe;
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+      await waitFor(() => expect(authStateCallback).toBeDefined());
+
+      act(() => {
+        emitAuthState(mockUser);
+      });
+      await waitFor(() => expect(firestore.setDoc).toHaveBeenCalledTimes(1));
+      expect(result.current.user).toBeNull();
+      expect(result.current.loading).toBe(true);
+
+      act(() => {
+        emitAuthState(null);
+      });
+      await act(async () => {
+        profileWrite.resolve();
+        await profileWrite.promise;
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(result.current.loading).toBe(false);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("明示サインインの同期中にログアウトしても古い結果を公開しない", async () => {
+      const mockUser = createMockUser({ uid: "interactive-stale-uid" });
+      const profileWrite = createDeferred<void>();
+      (firestore.setDoc as jest.Mock).mockReturnValueOnce(profileWrite.promise);
+      (firebaseAuth.signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
+        user: mockUser,
+      });
+      mockOnAuthStateChanged.mockImplementation((auth, callback) => {
+        authStateCallback = callback;
+        return mockUnsubscribe;
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+      await waitFor(() => expect(authStateCallback).toBeDefined());
+
+      let signInPromise!: Promise<void>;
+      act(() => {
+        signInPromise = result.current.signInWithEmail(
+          "test@example.com",
+          "password123",
+        );
+      });
+      await waitFor(() => expect(firestore.setDoc).toHaveBeenCalledTimes(1));
+
+      act(() => emitAuthState(null));
+      await act(async () => {
+        profileWrite.resolve();
+        await signInPromise;
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(result.current.loading).toBe(false);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
     it("コンポーネントのアンマウント時にunsubscribeを呼ぶ", () => {
       const { unmount } = renderHook(() => useAuth(), {
         wrapper: AuthProvider,
@@ -205,9 +395,11 @@ describe("AuthContext", () => {
         wrapper: AuthProvider,
       });
 
-      await expect(result.current.signInWithGoogle()).rejects.toThrow(
-        "ネットワークエラーが発生しました。接続を確認してください。",
-      );
+      await act(async () => {
+        await expect(result.current.signInWithGoogle()).rejects.toThrow(
+          "ネットワークエラーが発生しました。接続を確認してください。",
+        );
+      });
     });
   });
 
@@ -311,9 +503,11 @@ describe("AuthContext", () => {
         wrapper: AuthProvider,
       });
 
-      await expect(
-        result.current.signInWithEmail("user@example.com", "wrongpassword"),
-      ).rejects.toThrow("パスワードが間違っています。");
+      await act(async () => {
+        await expect(
+          result.current.signInWithEmail("user@example.com", "wrongpassword"),
+        ).rejects.toThrow("パスワードが間違っています。");
+      });
     });
 
     it("ユーザーが見つからない場合のエラー", async () => {
@@ -326,11 +520,13 @@ describe("AuthContext", () => {
         wrapper: AuthProvider,
       });
 
-      await expect(
-        result.current.signInWithEmail("notfound@example.com", "password123"),
-      ).rejects.toThrow(
-        "アカウントが見つかりません。新規登録をお試しください。",
-      );
+      await act(async () => {
+        await expect(
+          result.current.signInWithEmail("notfound@example.com", "password123"),
+        ).rejects.toThrow(
+          "アカウントが見つかりません。新規登録をお試しください。",
+        );
+      });
     });
   });
 
@@ -395,9 +591,11 @@ describe("AuthContext", () => {
         wrapper: AuthProvider,
       });
 
-      await expect(
-        result.current.signUpWithEmail("existing@example.com", "password123"),
-      ).rejects.toThrow("このメールアドレスは既に使用されています。");
+      await act(async () => {
+        await expect(
+          result.current.signUpWithEmail("existing@example.com", "password123"),
+        ).rejects.toThrow("このメールアドレスは既に使用されています。");
+      });
     });
 
     it("弱いパスワードでエラーを返す", async () => {
@@ -410,9 +608,11 @@ describe("AuthContext", () => {
         wrapper: AuthProvider,
       });
 
-      await expect(
-        result.current.signUpWithEmail("newuser@example.com", "123"),
-      ).rejects.toThrow("パスワードは6文字以上にしてください。");
+      await act(async () => {
+        await expect(
+          result.current.signUpWithEmail("newuser@example.com", "123"),
+        ).rejects.toThrow("パスワードは6文字以上にしてください。");
+      });
     });
   });
 
