@@ -19,11 +19,13 @@ POST http://<gateway>/v1/ocr/extract
 ## 2. リクエスト / レスポンス契約
 
 リクエスト:
+
 ```json
-{ "image": "<base64>", "mimeType": "image/png" }   // jpeg|png|webp
+{ "image": "<base64>", "mimeType": "image/png" } // jpeg|png|webp
 ```
 
 レスポンス(実測・HTTP 200):
+
 ```json
 {
   "success": true,
@@ -41,6 +43,7 @@ POST http://<gateway>/v1/ocr/extract
   }
 }
 ```
+
 監査ヘッダ: `x-cluster-served-model: PP-OCRv6_medium` / `-node-class: gb10` / `-egress: local` / `-fallback: false`。
 
 ## 3. クライアント側の実装指針(最重要)
@@ -69,10 +72,11 @@ POST http://<gateway>/v1/ocr/extract
 ## 5. A/B 用の在庫(semantic エンジン差し替え候補・ai-cluster が NAS 確保済)
 
 現状 semantic は `phi-4-multimodal-instruct`。名刺 IE により強い候補を評価したい場合、ai-cluster に依頼:
-| model | 特徴 | 状態 |
-|---|---|---|
-| `HunyuanOCR-1.5`(1B) | image→JSON 抽出(card IE 92.40)・313 t/s | NAS 済・GB10 :8094 予約(起動は人間ゲート) |
-| `PaddleOCR-VL-1.6`(0.9B) | Apache-2.0・撮影/傾きに強い・374 t/s | NAS 済・GB10 :8092 稼働 |
+
+| model                    | 特徴                                    | 状態                                      |
+| ------------------------ | --------------------------------------- | ----------------------------------------- |
+| `HunyuanOCR-1.5`(1B)     | image→JSON 抽出(card IE 92.40)・313 t/s | NAS 済・GB10 :8094 予約(起動は人間ゲート) |
+| `PaddleOCR-VL-1.6`(0.9B) | Apache-2.0・撮影/傾きに強い・374 t/s    | NAS 済・GB10 :8092 稼働                   |
 
 評価軸: 氏名/会社/email/phone/郵便 exact-match、住所 normalized、CER、hallucination 率、missing 率、p50/p95、VRAM。
 
