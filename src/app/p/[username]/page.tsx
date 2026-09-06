@@ -1,3 +1,7 @@
+import {
+  profileContactVcard,
+  customProfileContactVcard,
+} from "@/utils/profileContactVcard";
 import { ProfileAnalyticsTracker } from "@/components/profile/ProfileAnalyticsTracker";
 import { ProfileFloatingActions } from "@/components/profile/ProfileFloatingActions";
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
@@ -290,6 +294,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         />
         <ProfileFloatingActions
           username={publicUsername}
+          contactVCard={customProfileContactVcard(profileData.components)}
           photoURL={user.photoURL}
           variant="full"
         />
@@ -308,6 +313,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       />
       <ProfileFloatingActions
         username={publicUsername}
+        contactVCard={profileContactVcard(user)}
         photoURL={user.photoURL}
         variant="minimal"
       />

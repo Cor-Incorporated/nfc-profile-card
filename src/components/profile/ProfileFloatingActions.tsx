@@ -11,6 +11,7 @@ import { useState } from "react";
 interface ProfileFloatingActionsProps {
   username: string;
   photoURL?: string;
+  contactVCard?: string;
   variant?: "full" | "minimal";
 }
 
@@ -23,6 +24,7 @@ const QRCodeModal = dynamic(
 export function ProfileFloatingActions({
   username,
   photoURL,
+  contactVCard,
   variant = "full",
 }: ProfileFloatingActionsProps) {
   const router = useRouter();
@@ -128,6 +130,7 @@ export function ProfileFloatingActions({
           url={`${origin}/p/${username}`}
           username={username}
           logoUrl={photoURL}
+          contactVCard={contactVCard}
         />
       )}
     </>
