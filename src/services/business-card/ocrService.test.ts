@@ -68,7 +68,7 @@ describe("processBusinessCardImage Gemini model selection", () => {
 
     expect(result.success).toBe(true);
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-3.5-flash-lite",
     });
   });
 
@@ -128,7 +128,7 @@ describe("processBusinessCardImage Gemini model selection", () => {
   });
 
   it.each([
-    "[GoogleGenerativeAI Error]: [429 Too Many Requests] You exceeded your current quota for model gemini-3.1-flash-lite-preview",
+    "[GoogleGenerativeAI Error]: [429 Too Many Requests] You exceeded your current quota for model gemini-3.5-flash-lite",
     "Candidate was blocked due to SAFETY. The model returned no content.",
     "[503 Service Unavailable] The model is overloaded. Please try again later.",
     "[401 Unauthorized] API key not valid. Please pass a valid API key.",
