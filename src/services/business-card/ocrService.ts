@@ -14,7 +14,7 @@ import type { GenerateContentResult, Part } from "@google/generative-ai";
 // Actual validation happens at runtime in processBusinessCardImage
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 // Empty contact info template
