@@ -19,6 +19,7 @@ const successfulGeminiResponse = {
 
 let generateContentMock: jest.Mock;
 let getGenerativeModelMock: jest.Mock;
+let googleGenerativeAiMock: jest.Mock;
 
 async function loadOcrService() {
   jest.resetModules();
@@ -28,10 +29,12 @@ async function loadOcrService() {
     generateContent: generateContentMock,
   }));
 
+  googleGenerativeAiMock = jest.fn(() => ({
+    getGenerativeModel: getGenerativeModelMock,
+  }));
+
   jest.doMock("@google/generative-ai", () => ({
-    GoogleGenerativeAI: jest.fn(() => ({
-      getGenerativeModel: getGenerativeModelMock,
-    })),
+    GoogleGenerativeAI: googleGenerativeAiMock,
   }));
 
   jest.doMock("@/lib/logger", () => ({
@@ -49,12 +52,14 @@ async function loadOcrService() {
 describe("processBusinessCardImage Gemini model selection", () => {
   beforeEach(() => {
     process.env.GEMINI_API_KEY = "test-api-key";
+    delete process.env.NFC_GEMINI_API_KEY;
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
   });
 
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
+    delete process.env.NFC_GEMINI_API_KEY;
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
     jest.dontMock("@google/generative-ai");
@@ -70,6 +75,36 @@ describe("processBusinessCardImage Gemini model selection", () => {
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
       model: "gemini-3.5-flash-lite",
     });
+  });
+
+  it("uses the NFC key in preference to a configured legacy key", async () => {
+    process.env.NFC_GEMINI_API_KEY = " nfc-test-api-key ";
+    const { processBusinessCardImage } = await loadOcrService();
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(true);
+    expect(googleGenerativeAiMock).toHaveBeenCalledWith("nfc-test-api-key");
+  });
+
+  it("uses the legacy key only when the NFC key is absent", async () => {
+    const { processBusinessCardImage } = await loadOcrService();
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(true);
+    expect(googleGenerativeAiMock).toHaveBeenCalledWith("test-api-key");
+  });
+
+  it("rejects a blank NFC key instead of falling back to the legacy key", async () => {
+    process.env.NFC_GEMINI_API_KEY = "  ";
+    const { processBusinessCardImage } = await loadOcrService();
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("API key is missing");
+    expect(googleGenerativeAiMock).not.toHaveBeenCalled();
   });
 
   it("trims configured model names before calling Gemini", async () => {
