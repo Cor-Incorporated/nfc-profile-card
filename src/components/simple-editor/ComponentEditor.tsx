@@ -414,7 +414,9 @@ function ProfileEditor({
         ...profileData,
         name: fullName,
       }).filter(
-        ([_, value]) => value !== "" && value !== null && value !== undefined,
+        ([key, value]) =>
+          (value !== "" && value !== null && value !== undefined) ||
+          (value === "" && Object.prototype.hasOwnProperty.call(content, key)),
       ),
     );
 
