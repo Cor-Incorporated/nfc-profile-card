@@ -1,18 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { getDoc } from "firebase/firestore";
 import EditProfilePage from "./page";
 
 jest.mock("@/contexts/AuthContext", () => {
-  const auth = {
-    user: {
-      uid: "test-uid",
-      displayName: "Login Name",
-      email: "login@example.test",
-    },
-    loading: false,
-    getIdToken: jest.fn().mockResolvedValue(null),
-  };
-  return { useAuth: () => auth };
+  return { useAuth: jest.fn() };
 });
 
 jest.mock("@/contexts/LanguageContext", () => {
@@ -59,6 +51,15 @@ const emptyProfileContent = Object.fromEntries(
 describe("basic profile edit source", () => {
   beforeEach(() => {
     jest.mocked(getDoc).mockReset();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        uid: "test-uid",
+        displayName: "Login Name",
+        email: "login@example.test",
+      },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue(null),
+    });
   });
 
   it("keeps an explicitly empty public email empty on re-entry", async () => {
@@ -185,5 +186,76 @@ describe("basic profile edit source", () => {
     );
     expect(screen.getByLabelText("name *")).toHaveValue("");
     expect(screen.getByLabelText("email")).toHaveValue("");
+  });
+
+  it("sends the exact mixed-case UID mode selected in the editor", async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        uid: "MixCase",
+        displayName: "Login Name",
+        email: "login@example.test",
+      },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue("synthetic-token"),
+    });
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(snapshot({ username: "oldname" }) as never)
+      .mockResolvedValueOnce({ exists: () => false } as never);
+    jest.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ aliases: [], profile: { username: "u_MixCase" } }),
+    } as Response);
+    const confirm = jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    try {
+      render(<EditProfilePage />);
+      await waitFor(() =>
+        expect(screen.getByLabelText("username *")).toHaveValue("oldname"),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "useUidUsername" }));
+      expect(screen.getByLabelText("username *")).toHaveValue("u_MixCase");
+      fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+      await waitFor(() => {
+        const patch = jest
+          .mocked(fetch)
+          .mock.calls.find(
+            ([url, options]) =>
+              url === "/api/users/me/profile" && options?.method === "PATCH",
+          );
+        expect(patch).toBeDefined();
+        expect(JSON.parse(patch?.[1]?.body as string)).toMatchObject({
+          username: "u_MixCase",
+          usernameMode: "uid",
+        });
+      });
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it("disables UID selection when the UID cannot form its exact URL", async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        uid: "a:b",
+        displayName: "Login Name",
+        email: "login@example.test",
+      },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue(null),
+    });
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(snapshot({ username: "" }) as never)
+      .mockResolvedValueOnce({ exists: () => false } as never);
+
+    render(<EditProfilePage />);
+
+    expect(
+      await screen.findByRole("button", { name: "useUidUsername" }),
+    ).toBeDisabled();
+    expect(screen.getByLabelText("username *")).toHaveValue("");
   });
 });
