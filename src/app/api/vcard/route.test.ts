@@ -3,6 +3,18 @@ import { GET, POST } from "./route";
 import { adminDb } from "@/lib/firebase-admin";
 import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 
+const JPEG_PHOTO = [
+  "/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwg",
+  "IyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgo",
+  "KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QA",
+  "FQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAA",
+  "AAAAAAAAAAAAAf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJXAIf/Z",
+].join("");
+const PNG_PHOTO = [
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1Jr",
+  "AAAADElEQVR4nGNgZGIGAAAOAAfXb+R4AAAAAElFTkSuQmCC",
+].join("");
+
 // NextResponseのモック
 jest.mock("next/server", () => {
   class MockResponse {
@@ -325,7 +337,7 @@ describe("VCard API Routes", () => {
           twitter: "https://twitter.com/jane",
           instagram: "https://instagram.com/jane",
         },
-        photo: "data:image/jpeg;base64,/9j/4AAQSkZJRg",
+        photo: `data:image/jpeg;base64,${JPEG_PHOTO}`,
         note: "This is a test note",
       };
 
@@ -337,6 +349,74 @@ describe("VCard API Routes", () => {
 
       const body = await response.text();
       expect(body).toContain("BEGIN:VCARD");
+      expect(body.replace(/\r\n /g, "")).toContain(
+        `PHOTO;ENCODING=b;TYPE=JPEG:${JPEG_PHOTO}`,
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("公開HTTPS写真を取得せずにURIで記録する", async () => {
+      const photo = "https://cdn.example.com/photo.jpg?source=$&";
+      const response = await POST(createPostRequest({ photo }) as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain(`PHOTO;VALUE=uri:${photo}\r\nEND:VCARD`);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("長い写真URIを75オクテット以内で折り返す", async () => {
+      const photo = `https://cdn.example.com/${"a".repeat(100)}`;
+      const response = await POST(createPostRequest({ photo }) as any);
+      const body = await response.text();
+      const photoLines = body
+        .split("\r\n")
+        .filter(
+          (line: string) => line.startsWith("PHOTO;") || line.startsWith(" "),
+        );
+
+      expect(photoLines.length).toBeGreaterThan(1);
+      expect(photoLines.every((line: string) => line.length <= 75)).toBe(true);
+      expect(photoLines.map((line: string) => line.trimStart()).join("")).toBe(
+        `PHOTO;VALUE=uri:${photo}`,
+      );
+    });
+
+    it("PNG data URIを正しいTYPEで埋め込む", async () => {
+      const response = await POST(
+        createPostRequest({
+          photo: `data:image/png;base64,${PNG_PHOTO}`,
+        }) as any,
+      );
+      expect((await response.text()).replace(/\r\n /g, "")).toContain(
+        `PHOTO;ENCODING=b;TYPE=PNG:${PNG_PHOTO}`,
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["HTTP", "http://cdn.example.com/photo.jpg"],
+      ["localhost", "https://localhost/photo.jpg"],
+      ["loopback IP", "https://127.0.0.1/photo.jpg"],
+      ["metadata IP", "https://169.254.169.254/photo.jpg"],
+      ["private DNS", "https://metadata.google.internal/photo.jpg"],
+      ["local DNS", "https://private.local/photo.jpg"],
+      ["URL credentials", "https://user:pass@cdn.example.com/photo.jpg"],
+      ["CRLF", "https://cdn.example.com/photo.jpg\r\nFN:injected"],
+      ["HTML data", "data:text/html;base64,PGgxPg=="],
+      ["invalid base64", "data:image/png;base64,not-base64!"],
+      ["invalid padding", "data:image/png;base64,AA="],
+      ["truncated image", "data:image/png;base64,iVBORw0KGgo="],
+      ["MIME mismatch", `data:image/png;base64,${JPEG_PHOTO}`],
+      ["oversized data", `data:image/jpeg;base64,${"A".repeat(1_400_000)}`],
+    ])("不正な写真を省略し、外部取得しない: %s", async (_label, photo) => {
+      const response = await POST(createPostRequest({ photo }) as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toContain("PHOTO;");
+      expect(body).not.toContain("FN:injected");
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it("最小限のデータでもVCardを生成できる", async () => {
@@ -397,6 +477,59 @@ describe("VCard API Routes", () => {
   });
 
   describe("GET /api/vcard", () => {
+    function createGetRequest() {
+      return new MockNextRequest(
+        "http://localhost:3000/api/vcard?username=photo-user",
+      );
+    }
+
+    it("公開HTTPS写真を取得せずにURIで記録する", async () => {
+      const photoURL = "https://cdn.example.com/photo.jpg";
+      mockPublicProfile({ name: "Photo User", photoURL });
+
+      const response = await GET(createGetRequest() as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain(`PHOTO;VALUE=uri:${photoURL}\r\nEND:VCARD`);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("PNG data URIを正しいTYPEで埋め込む", async () => {
+      mockPublicProfile({
+        photoURL: `data:image/png;base64,${PNG_PHOTO}`,
+      });
+      const response = await GET(createGetRequest() as any);
+
+      expect((await response.text()).replace(/\r\n /g, "")).toContain(
+        `PHOTO;ENCODING=b;TYPE=PNG:${PNG_PHOTO}`,
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["HTTP", "http://cdn.example.com/photo.jpg"],
+      ["localhost", "https://localhost/photo.jpg"],
+      ["loopback IP", "https://127.0.0.1/photo.jpg"],
+      ["private DNS", "https://metadata.google.internal/photo.jpg"],
+      ["URL credentials", "https://user@cdn.example.com/photo.jpg"],
+      ["newline", "https://cdn.example.com/photo.jpg\nFN:injected"],
+      ["MIME mismatch", `data:image/jpeg;base64,${PNG_PHOTO}`],
+      ["invalid data", "data:image/png;base64,invalid!"],
+    ])(
+      "不正な公開写真を省略し、外部取得しない: %s",
+      async (_label, photoURL) => {
+        mockPublicProfile({ name: "Photo User", photoURL });
+        const response = await GET(createGetRequest() as any);
+        const body = await response.text();
+
+        expect(response.status).toBe(200);
+        expect(body).not.toContain("PHOTO;");
+        expect(body).not.toContain("FN:injected");
+        expect(global.fetch).not.toHaveBeenCalled();
+      },
+    );
+
     it("usernameパラメータでプロファイルを取得してVCardを生成", async () => {
       const mockProfile = {
         name: "John Doe",
