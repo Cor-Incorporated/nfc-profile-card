@@ -3,6 +3,7 @@ import { ProfileFloatingActions } from "@/components/profile/ProfileFloatingActi
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { TraditionalProfile } from "@/components/profile/TraditionalProfile";
 import { fetchPublicProfileByUsername } from "@/lib/profile/publicProfileData";
+import { resolvePublicProfilePresentation } from "@/lib/profile/publicProfilePresentation";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -19,7 +20,7 @@ const fetchUserData = cache(fetchPublicProfileByUsername);
 export async function generateMetadata({
   params,
 }: ProfilePageProps): Promise<Metadata> {
-  const { user } = await fetchUserData(params.username);
+  const { user, profileData } = await fetchUserData(params.username);
 
   if (!user) {
     return {
@@ -27,15 +28,19 @@ export async function generateMetadata({
     };
   }
 
+  const presentation = resolvePublicProfilePresentation(user, profileData);
+
   return {
-    title: `${user.name} - TapForge`,
+    title: `${presentation.name} - TapForge`,
     description:
-      user.bio ||
-      `${user.name}${user.company ? ` | ${user.company}` : ""}${user.position ? ` - ${user.position}` : ""}`,
+      presentation.bio ||
+      `${presentation.name}${presentation.company ? ` | ${presentation.company}` : ""}${presentation.position ? ` - ${presentation.position}` : ""}`,
     openGraph: {
-      title: user.name,
-      description: user.bio || undefined,
-      images: user.photoURL ? [{ url: user.photoURL }] : undefined,
+      title: presentation.name,
+      description: presentation.bio || undefined,
+      images: presentation.photoURL
+        ? [{ url: presentation.photoURL }]
+        : undefined,
     },
   };
 }
@@ -82,6 +87,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const publicUsername = user.username || params.username;
+  const presentation = resolvePublicProfilePresentation(user, profileData);
   const nameParts = user.name?.split(" ") || [];
   const vcardFirstName = nameParts[0] || "";
   const vcardLastName =
@@ -107,7 +113,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         />
         <ProfileFloatingActions
           username={publicUsername}
-          photoURL={user.photoURL}
+          photoURL={presentation.photoURL}
           variant="full"
         />
         <ProfileAnalyticsTracker username={publicUsername} />
@@ -125,7 +131,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       />
       <ProfileFloatingActions
         username={publicUsername}
-        photoURL={user.photoURL}
+        photoURL={presentation.photoURL}
         variant="minimal"
       />
       <ProfileAnalyticsTracker username={publicUsername} />
