@@ -1,6 +1,7 @@
 import vCardsJS from "vcards-js";
 import { GET, POST } from "./route";
-import { getDocs } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 
 // NextResponseのモック
 jest.mock("next/server", () => {
@@ -239,17 +240,11 @@ jest.mock("@/lib/rateLimit", () => ({
   standardRateLimit: jest.fn().mockResolvedValue(null),
 }));
 
-// firebase/firestoreのモック
-jest.mock("firebase/firestore", () => ({
-  ...jest.requireActual("firebase/firestore"),
-  collection: jest.fn(),
-  getDocs: jest.fn(),
-  query: jest.fn(),
-  where: jest.fn(),
+jest.mock("@/lib/firebase-admin", () => ({
+  adminDb: { collection: jest.fn(), getAll: jest.fn() },
 }));
-
-jest.mock("@/lib/firebase", () => ({
-  db: {},
+jest.mock("@/lib/profile/publicProfileData", () => ({
+  resolvePublicProfileOwner: jest.fn(),
 }));
 
 // fetchのモック
@@ -258,7 +253,17 @@ global.fetch = jest.fn();
 describe("VCard API Routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (adminDb.collection as jest.Mock).mockReturnValue({
+      doc: (id: string) => ({ id }),
+    });
   });
+
+  function mockPublicProfile(profile: Record<string, unknown>) {
+    (resolvePublicProfileOwner as jest.Mock).mockResolvedValueOnce("uid-1");
+    (adminDb.getAll as jest.Mock).mockResolvedValueOnce([
+      { exists: true, data: () => profile },
+    ]);
+  }
 
   describe("POST /api/vcard", () => {
     function createPostRequest(data: Record<string, unknown>) {
@@ -400,12 +405,10 @@ describe("VCard API Routes", () => {
         position: "Developer",
         phone: "03-1234-5678",
         website: "https://example.com",
+        bio: "Public note",
       };
 
-      (getDocs as jest.Mock).mockResolvedValueOnce({
-        empty: false,
-        docs: [{ data: () => mockProfile }],
-      });
+      mockPublicProfile(mockProfile);
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=johndoe",
@@ -427,6 +430,17 @@ describe("VCard API Routes", () => {
       expect(body).toContain("EMAIL:john@example.com");
       expect(body).toContain("ORG:Example Corp");
       expect(body).toContain("URL:https://example.com");
+      expect(body).toContain("NOTE:Public note");
+      expect(resolvePublicProfileOwner).toHaveBeenCalledWith("johndoe");
+      expect((adminDb.getAll as jest.Mock).mock.calls[0][0]).toEqual({
+        id: "uid-1",
+      });
+      expect(
+        (adminDb.getAll as jest.Mock).mock.calls[0][1].fieldMask,
+      ).toContain("bio");
+      expect(
+        (adminDb.getAll as jest.Mock).mock.calls[0][1].fieldMask,
+      ).not.toContain("privateNote");
     });
 
     it("X(旧Twitter)のURLを正しく処理する", async () => {
@@ -435,10 +449,7 @@ describe("VCard API Routes", () => {
         website: "https://x.com/testuser",
       };
 
-      (getDocs as jest.Mock).mockResolvedValueOnce({
-        empty: false,
-        docs: [{ data: () => mockProfile }],
-      });
+      mockPublicProfile(mockProfile);
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=testuser",
@@ -459,15 +470,7 @@ describe("VCard API Routes", () => {
         email: "john@example.com",
       };
 
-      // Mock Firestore getDocs to return profile data
-      (getDocs as jest.Mock).mockResolvedValueOnce({
-        empty: false,
-        docs: [
-          {
-            data: () => mockProfile,
-          },
-        ],
-      });
+      mockPublicProfile(mockProfile);
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=johndoe",
@@ -488,15 +491,7 @@ describe("VCard API Routes", () => {
     it("必須フィールドが存在しない場合でも処理できる", async () => {
       const mockProfile = {};
 
-      // Mock Firestore getDocs to return profile data
-      (getDocs as jest.Mock).mockResolvedValueOnce({
-        empty: false,
-        docs: [
-          {
-            data: () => mockProfile,
-          },
-        ],
-      });
+      mockPublicProfile(mockProfile);
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=emptyuser",
@@ -527,11 +522,7 @@ describe("VCard API Routes", () => {
     });
 
     it("プロファイルが見つからない場合404エラーを返す", async () => {
-      // Mock Firestore getDocs to return empty result
-      (getDocs as jest.Mock).mockResolvedValueOnce({
-        empty: true,
-        docs: [],
-      });
+      (resolvePublicProfileOwner as jest.Mock).mockResolvedValueOnce(null);
 
       const request = new MockNextRequest(
         "http://localhost:3000/api/vcard?username=notfound",
@@ -547,9 +538,22 @@ describe("VCard API Routes", () => {
       expect(data.error).toBe("Profile not found");
     });
 
+    it("URL解決後にユーザー文書が消えた場合も404を返す", async () => {
+      (resolvePublicProfileOwner as jest.Mock).mockResolvedValueOnce("uid-1");
+      (adminDb.getAll as jest.Mock).mockResolvedValueOnce([
+        { exists: false, data: () => undefined },
+      ]);
+      const request = new MockNextRequest(
+        "http://localhost:3000/api/vcard?username=u_uid-1",
+        { method: "GET" },
+      );
+
+      const response = await GET(request as any);
+      expect(response.status).toBe(404);
+    });
+
     it("プロファイルAPI呼び出しが失敗した場合500エラーを返す", async () => {
-      // Mock Firestore getDocs to throw an error
-      (getDocs as jest.Mock).mockRejectedValueOnce(
+      (resolvePublicProfileOwner as jest.Mock).mockRejectedValueOnce(
         new Error("Firestore Error"),
       );
 
@@ -568,7 +572,7 @@ describe("VCard API Routes", () => {
     });
 
     it("vCard生成中にエラーが発生した場合500エラーを返す", async () => {
-      (getDocs as jest.Mock).mockRejectedValueOnce(
+      (resolvePublicProfileOwner as jest.Mock).mockRejectedValueOnce(
         new Error("Firestore read error"),
       );
 

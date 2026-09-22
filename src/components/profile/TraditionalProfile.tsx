@@ -242,7 +242,7 @@ export function TraditionalProfile({
           isOpen={showQRCode}
           onClose={() => setShowQRCode(false)}
           url={`${origin}/p/${username}`}
-          username={user.username}
+          username={username}
           logoUrl={user.photoURL}
         />
       )}

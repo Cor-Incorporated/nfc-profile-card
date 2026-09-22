@@ -10,7 +10,9 @@ jest.mock("@/lib/profile/publicProfileData", () => ({
   fetchPublicProfileByUsername: jest.fn(),
 }));
 jest.mock("@/components/profile/ProfileAnalyticsTracker", () => ({
-  ProfileAnalyticsTracker: () => null,
+  ProfileAnalyticsTracker: ({ username }: { username: string }) => (
+    <span data-testid="analytics-identifier" data-username={username} />
+  ),
 }));
 jest.mock("@/components/profile/SimpleRenderer", () => ({
   SimpleRenderer: () => null,
@@ -19,8 +21,18 @@ jest.mock("@/components/profile/TraditionalProfile", () => ({
   TraditionalProfile: () => null,
 }));
 jest.mock("@/components/profile/ProfileFloatingActions", () => ({
-  ProfileFloatingActions: ({ photoURL }: { photoURL?: string }) => (
-    <span data-testid="qr-logo-source" data-photo-url={photoURL} />
+  ProfileFloatingActions: ({
+    photoURL,
+    username,
+  }: {
+    photoURL?: string;
+    username: string;
+  }) => (
+    <span
+      data-testid="qr-logo-source"
+      data-photo-url={photoURL}
+      data-username={username}
+    />
   ),
 }));
 
@@ -102,5 +114,23 @@ test("cleared card fields do not reappear in metadata or QR logo", async () => {
   expect(screen.getByTestId("qr-logo-source")).toHaveAttribute(
     "data-photo-url",
     "",
+  );
+});
+
+test("QR and analytics use the verified path instead of an editable user field", async () => {
+  mockFetch.mockResolvedValue({
+    user: { ...user, username: "untrusted-name" },
+    profileData: null,
+    redirectUsername: null,
+  });
+
+  render(await ProfilePage({ params: { username: "u_verified" } }));
+  expect(screen.getByTestId("qr-logo-source")).toHaveAttribute(
+    "data-username",
+    "u_verified",
+  );
+  expect(screen.getByTestId("analytics-identifier")).toHaveAttribute(
+    "data-username",
+    "u_verified",
   );
 });
