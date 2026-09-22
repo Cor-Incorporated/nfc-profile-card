@@ -3,6 +3,7 @@ import {
   getGeminiFallbackTimeoutMs,
   getInferenceBaseUrl,
   getInferenceTimeoutMs,
+  getOcrProvider,
   getOcrTotalTimeoutMs,
   getPpocrUrl,
   getVlmUrl,
@@ -20,6 +21,18 @@ describe("OCR inference URLs", () => {
     delete process.env.OCR_INFERENCE_TIMEOUT_MS;
     delete process.env.OCR_TOTAL_TIMEOUT_MS;
     delete process.env.OCR_GEMINI_FALLBACK_TIMEOUT_MS;
+    delete process.env.OCR_PROVIDER;
+  });
+
+  it("keeps Gemini as the scan default until local is explicitly selected", () => {
+    delete process.env.OCR_PROVIDER;
+    expect(getOcrProvider()).toBe("gemini");
+
+    process.env.OCR_PROVIDER = "local";
+    expect(getOcrProvider()).toBe("local");
+
+    process.env.OCR_PROVIDER = "locla";
+    expect(() => getOcrProvider()).toThrow(/OCR_PROVIDER/);
   });
 
   it("does not default a production request to private engine endpoints", () => {

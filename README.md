@@ -68,9 +68,9 @@
 ### 📸 名刺スキャン機能
 
 - ✅ 名刺OCR機能（カメラで撮影するだけで連絡先を自動保存）
-- ✅ **ローカル dual-pipeline** - PP-OCRv6_medium（生文字）+ PaddleOCR-VL-1.6（意味づけ）。メール/電話/URL/郵便番号は正規表現で検証し、VLMの創作を採用しない
-- ✅ **自己ホスト推論** - Vercel では VLM を動かさない。`services/ocr-inference` を参照
-- ✅ Gemini は `OCR_PROVIDER=gemini` または `OCR_ENABLE_GEMINI_FALLBACK=true` のときだけ
+- ⏳ **ローカル dual-pipeline 候補（本番未受入）** - PP-OCRv6_medium（生文字）+ PaddleOCR-VL-1.6（意味づけ）。メール/電話/URL/郵便番号は正規表現で検証し、VLMの創作を採用しない
+- ⏳ **自己ホスト推論候補** - Vercel では VLM を動かさない構成。`services/ocr-inference` を参照
+- ✅ Gemini が既定。gateway・認証・推論モデルの本番受入後に `OCR_PROVIDER=local` で切り替える。ローカルの一時障害から Gemini へ戻すには `OCR_ENABLE_GEMINI_FALLBACK=true` を設定する
 - ✅ 月間スキャン上限管理（Free: 10回、Pro: 無制限）
 - ✅ プロモーションコードによるProプランアップグレード
 - ✅ スキャン履歴の保存と管理

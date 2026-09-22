@@ -29,7 +29,9 @@ function requiredDirectEndpoint(name: "OCR_VLM_URL" | "OCR_PPOCR_URL") {
 
 export function getOcrProvider(): OcrProviderName {
   const value = process.env.OCR_PROVIDER?.trim().toLowerCase();
-  return value === "gemini" ? "gemini" : "local";
+  if (!value || value === "gemini") return "gemini";
+  if (value === "local") return "local";
+  throw new Error("OCR_PROVIDER must be gemini or local");
 }
 
 export function isGeminiFallbackEnabled(): boolean {
