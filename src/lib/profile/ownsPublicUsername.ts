@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { getUidFallbackUsername } from "@/lib/username";
 
 // Public lookup gives reservations precedence, then tries normalized and exact
 // legacy usernames. Verify against the same order before accepting a cached
@@ -14,6 +15,12 @@ export async function ownsPublicUsername(uid: string, username: unknown) {
     .doc(normalized)
     .get();
   if (reservation.exists) return reservation.data()?.uid === uid;
+
+  // The UID fallback is resolved before legacy username queries. A directly
+  // edited users.username may not claim another user's fallback URL.
+  if (username.startsWith("u_")) {
+    return username === getUidFallbackUsername(uid);
+  }
 
   const matchingNormalized = await adminDb
     .collection("users")

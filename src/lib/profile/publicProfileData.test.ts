@@ -397,3 +397,27 @@ test("a design read failure rejects so ISR does not cache an incomplete profile"
     log.mockRestore();
   }
 });
+
+test("UID fallback cannot be claimed through another user's username field", async () => {
+  const { userQuery } = installFirestoreFixture({
+    users: {
+      target: { name: "Target", username: "currentname" },
+      attacker: { name: "Attacker", username: "u_target" },
+    },
+  });
+
+  const result = await fetchPublicProfileByUsername("u_target");
+  expect(result.user?.name).toBe("Target");
+  expect(userQuery).not.toHaveBeenCalled();
+});
+
+test("a UID fallback alias still redirects after username rotation", async () => {
+  installFirestoreFixture({
+    aliases: { u_target: { uid: "target", status: "redirect" } },
+    users: { target: { name: "Target", username: "newname" } },
+  });
+
+  const result = await fetchPublicProfileByUsername("u_target");
+  expect(result.redirectUsername).toBe("newname");
+  expect(result.profileData).toBeNull();
+});

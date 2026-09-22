@@ -11,7 +11,11 @@ export function revalidatePublicProfiles(...usernames: unknown[]) {
     if (!/^[a-zA-Z0-9_-]{1,150}$/.test(username)) continue;
 
     paths.add(`/p/${encodeURIComponent(username)}`);
-    paths.add(`/p/${encodeURIComponent(username.toLowerCase())}`);
+    // Firebase UIDs are case sensitive; the lower-case variant could belong
+    // to a different user and must not be invalidated.
+    if (!username.startsWith("u_")) {
+      paths.add(`/p/${encodeURIComponent(username.toLowerCase())}`);
+    }
   }
 
   for (const path of paths) revalidatePath(path);
