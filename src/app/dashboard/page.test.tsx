@@ -128,4 +128,17 @@ describe("profile ID setup", () => {
     ).toBeNull();
     expect(screen.queryByText(/\/p\/u_ab/)).toBeNull();
   });
+
+  it("opens the verified profile path when a legacy ID contains a fragment", async () => {
+    jest.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ username: "foo#bar", usernameConfirmed: true }),
+    } as never);
+
+    render(<DashboardPage />);
+
+    expect(
+      await screen.findByRole("link", { name: "publicProfile" }),
+    ).toHaveAttribute("href", "/p/foo%23bar");
+  });
 });

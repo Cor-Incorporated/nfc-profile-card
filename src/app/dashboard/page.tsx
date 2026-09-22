@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getAnalyticsSummary } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
+import { publicProfilePath } from "@/lib/profile/publicProfileUrl";
 import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc } from "firebase/firestore";
 import {
@@ -469,7 +470,7 @@ export default function DashboardPage() {
           {/* 公開プロファイルを見る */}
           {!profileLoading && userProfile?.username && (
             <Link
-              href={`/p/${userProfile.username}`}
+              href={publicProfilePath(userProfile.username)}
               target="_blank"
               className="block w-full p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
