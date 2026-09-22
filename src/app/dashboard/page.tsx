@@ -44,6 +44,8 @@ export default function DashboardPage() {
   const [idSetupLoading, setIdSetupLoading] = useState(false);
   const [idSetupError, setIdSetupError] = useState("");
   const [idSetupSuccess, setIdSetupSuccess] = useState("");
+  const uidUsername = user ? getUidFallbackUsername(user.uid) : "";
+  const canUseUidUsername = Boolean(user && uidUsername === `u_${user.uid}`);
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -137,6 +139,10 @@ export default function DashboardPage() {
 
     if (idSetupMode === "custom" && !customUsername.trim()) {
       setIdSetupError(t("usernameRequired"));
+      return;
+    }
+    if (idSetupMode === "uid" && !canUseUidUsername) {
+      setIdSetupError(t("usernameInvalid"));
       return;
     }
 
@@ -293,12 +299,16 @@ export default function DashboardPage() {
                   description: t("profileIdCustomDescription"),
                   badge: "",
                 },
-                {
-                  mode: "uid" as const,
-                  title: t("profileIdUidTitle"),
-                  description: `${t("profileIdUidDescription")} /p/${getUidFallbackUsername(user.uid).toLowerCase()}`,
-                  badge: "",
-                },
+                ...(canUseUidUsername
+                  ? [
+                      {
+                        mode: "uid" as const,
+                        title: t("profileIdUidTitle"),
+                        description: `${t("profileIdUidDescription")} /p/${uidUsername}`,
+                        badge: "",
+                      },
+                    ]
+                  : []),
               ].map((option) => (
                 <button
                   key={option.mode}
