@@ -114,6 +114,9 @@ const OCR_PROMPT = `名刺画像に実際に見える情報だけを、指定さ
 function getGatewayConfig() {
   const rawUrl = process.env.NFC_OCR_OLLAMA_GATEWAY_URL?.trim();
   const token = process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN?.trim();
+  const accessClientId = process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID?.trim();
+  const accessClientSecret =
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET?.trim();
   if (!rawUrl) throw new Error("Ollama gateway URL is missing");
 
   let url: URL;
@@ -140,8 +143,26 @@ function getGatewayConfig() {
     process.env.NODE_ENV !== "production" &&
     loopback &&
     url.protocol === "http:";
+  const accessConfigured = !!accessClientId || !!accessClientSecret;
+  const completeAccessPair = !!accessClientId && !!accessClientSecret;
 
-  if (!localDevelopment) {
+  if (
+    (accessConfigured && !completeAccessPair) ||
+    (token && accessConfigured) ||
+    [token, accessClientId, accessClientSecret].some(
+      (value) => value && /\s/.test(value),
+    )
+  ) {
+    throw new Error("Ollama gateway authentication is invalid");
+  }
+
+  if (localDevelopment) {
+    if (token || accessConfigured) {
+      throw new Error(
+        "Ollama local endpoint must not receive gateway credentials",
+      );
+    }
+  } else {
     if (
       url.protocol !== "https:" ||
       (url.port && url.port !== "443") ||
@@ -151,8 +172,7 @@ function getGatewayConfig() {
       /(^|\.)(localhost|local|internal|lan|test|example|invalid)$/.test(
         hostname,
       ) ||
-      !token ||
-      /\s/.test(token)
+      (!token && !completeAccessPair)
     ) {
       throw new Error(
         "Ollama gateway must be an authenticated public HTTPS endpoint",
@@ -160,7 +180,14 @@ function getGatewayConfig() {
     }
   }
 
-  return { url: url.toString(), token };
+  const authHeaders: Record<string, string> = {};
+  if (token) {
+    authHeaders.Authorization = `Bearer ${token}`;
+  } else if (accessClientId && accessClientSecret) {
+    authHeaders["CF-Access-Client-Id"] = accessClientId;
+    authHeaders["CF-Access-Client-Secret"] = accessClientSecret;
+  }
+  return { url: url.toString(), authHeaders };
 }
 
 function base64Image(image: string, mimeType: string): string {
@@ -230,7 +257,7 @@ export async function processWithOllama(
   }
 
   try {
-    const { url, token } = getGatewayConfig();
+    const { url, authHeaders } = getGatewayConfig();
     const encoded = base64Image(image, mimeType);
     const timeoutMs = Math.min(OLLAMA_TIMEOUT_MS, deadlineAtMs - Date.now());
     if (timeoutMs < 1_000) return failed();
@@ -242,7 +269,7 @@ export async function processWithOllama(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           model: OLLAMA_MODEL,

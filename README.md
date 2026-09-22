@@ -76,7 +76,7 @@
 - ✅ スキャン履歴の保存と管理
 - ✅ VCardダウンロード機能
 
-Ollama実験はJPEG・PNG・WebP画像に対応します。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番では専用Bearer認証を検証する公開HTTPS gatewayと `NFC_OCR_OLLAMA_GATEWAY_TOKEN` が必須です。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。gateway経路・認証拒否・実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
+Ollama実験はJPEG・PNG・WebP画像に対応します。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番では公開HTTPS endpointと認証が必須です。独自gatewayの `NFC_OCR_OLLAMA_GATEWAY_TOKEN`（Bearer）、またはCloudflare Accessの `NFC_OCR_OLLAMA_ACCESS_CLIENT_ID` と `NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET`（service token）のどちらか一方を設定します。両方指定や片方だけのAccess設定は拒否されます。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。Access policy・upstreamの `/api/chat` 契約・認証拒否・実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
 
 ## 🔮 今後実装予定の機能
 

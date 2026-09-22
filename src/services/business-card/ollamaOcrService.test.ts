@@ -54,6 +54,8 @@ describe("experimental Ollama OCR gateway", () => {
     process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
       "https://ocr-gateway.example.com/api/chat";
     process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN = "test-gateway-token";
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
     fetchMock = jest.fn().mockResolvedValue(gatewayResponse());
     globalThis.fetch = fetchMock;
   });
@@ -87,6 +89,31 @@ describe("experimental Ollama OCR gateway", () => {
     });
     expect(body.messages[0].images).toEqual(["cG5n"]);
     expect(body.format.required).toContain("title");
+  });
+
+  it("uses a Cloudflare Access service-token pair without Bearer", async () => {
+    delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+
+    expect((await scan()).success).toBe(true);
+    const headers = (fetchMock.mock.calls[0][1] as RequestInit).headers;
+    expect(headers).toMatchObject({
+      "CF-Access-Client-Id": "synthetic-id.access",
+      "CF-Access-Client-Secret": "synthetic-secret",
+    });
+    expect(headers).not.toHaveProperty("Authorization");
+  });
+
+  it("rejects incomplete or conflicting authentication before dispatch", async () => {
+    delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    expect((await scan()).success).toBe(false);
+
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+    process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN = "test-gateway-token";
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -124,6 +151,13 @@ describe("experimental Ollama OCR gateway", () => {
     expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty(
       "Authorization",
     );
+  });
+
+  it("keeps gateway credentials off local loopback", async () => {
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL = "http://127.0.0.1:11434/api/chat";
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects loopback HTTP in production", async () => {
