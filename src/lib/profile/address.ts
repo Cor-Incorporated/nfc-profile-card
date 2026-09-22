@@ -8,42 +8,41 @@ function asText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function stripCityPrefix(
+function hasStoredFullAddressPrefix(
   address: string,
+  postalCode: string,
   city: string,
-  postalWasStripped: boolean,
-): string | null {
-  if (!postalWasStripped || !city || !address.startsWith(city)) return null;
-  const rest = address.slice(city.length);
-  if (/^[\s,，、]/.test(rest)) return rest.replace(/^[\s,，、]+/, "");
-  // Japanese addresses often join the city and street without a separator.
-  // Only infer that split after finding the postal code immediately before it.
-  if (/[\u3000-\u9fff]/.test(city)) return rest;
-  return rest === "" ? "" : null;
+): boolean {
+  if (!postalCode) return false;
+  const hasMark = address.startsWith("〒");
+  const withoutMark = hasMark ? address.slice(1).trimStart() : address;
+  if (!withoutMark.startsWith(postalCode)) return false;
+  const suffix = withoutMark.slice(postalCode.length);
+  if (/^\d/.test(suffix)) return false;
+  return city ? suffix.trimStart().startsWith(city) : hasMark;
 }
 
-function stripPostalPrefix(
+function stripRepeatedFullAddressPrefix(
   address: string,
   postalCode: string,
   city: string,
 ): string | null {
-  if (!postalCode) return null;
+  if (!postalCode || !city) return null;
   const hasMark = address.startsWith("〒");
   const withoutMark = hasMark ? address.slice(1).trimStart() : address;
   if (!withoutMark.startsWith(postalCode)) return null;
   const suffix = withoutMark.slice(postalCode.length);
   if (/^\d/.test(suffix)) return null;
-  const rest = suffix.trimStart();
-  // A matching city or explicit postal mark distinguishes an old full address
-  // from a street whose house number happens to equal the postal code.
-  if (
-    hasMark ||
-    (city && stripCityPrefix(rest, city, true) !== null) ||
-    (!city && rest.startsWith(postalCode))
-  ) {
-    return rest;
-  }
-  return null;
+  const afterPostal = suffix.trimStart();
+  if (!afterPostal.startsWith(city)) return null;
+  const afterCity = afterPostal.slice(city.length);
+  if (!/^[\s,，、]/.test(afterCity)) return null;
+  const remaining = afterCity.replace(/^[\s,，、]+/, "");
+  // A single postal+city prefix could be literal street text. Remove it only
+  // when another complete postal+city prefix immediately follows.
+  return hasStoredFullAddressPrefix(remaining, postalCode, city)
+    ? remaining
+    : null;
 }
 
 /** Remove only prefixes already represented by the structured fields. */
@@ -52,16 +51,13 @@ export function normalizeProfileAddress(parts: ProfileAddressParts) {
   const city = asText(parts.city);
   let address = asText(parts.address);
 
-  // Older basic-profile saves put the complete address back in `address` while
-  // retaining `postalCode` and `city`. A later save could do this repeatedly.
+  // Older basic-profile saves put complete addresses back in `address` while
+  // retaining split fields. Keep the final full address when its city/street
+  // boundary cannot be proved from the text alone.
   while (address) {
-    const before = address;
-    const withoutPostal = stripPostalPrefix(address, postalCode, city);
-    const postalWasStripped = withoutPostal !== null;
-    if (withoutPostal !== null) address = withoutPostal;
-    const withoutCity = stripCityPrefix(address, city, postalWasStripped);
-    if (withoutCity !== null) address = withoutCity;
-    if (address === before) break;
+    const remaining = stripRepeatedFullAddressPrefix(address, postalCode, city);
+    if (remaining === null || remaining === address) break;
+    address = remaining;
   }
 
   return { postalCode, city, address };
@@ -72,35 +68,18 @@ export function splitEditedProfileAddress(
   fullAddress: string,
   current: ProfileAddressParts,
 ) {
-  const { postalCode, city } = normalizeProfileAddress({
-    postalCode: current.postalCode,
-    city: current.city,
-  });
+  const normalizedCurrent = normalizeProfileAddress(current);
+  const { postalCode, city } = normalizedCurrent;
   const address = fullAddress.trim();
   if (!address) return { postalCode: "", city: "", address: "" };
+  // A no-op edit already has a known split. Retain it even when the Japanese
+  // city and street are joined without a provable text boundary.
+  if (address === formatProfileAddress(current)) return normalizedCurrent;
 
-  let remainder = address;
-  let postalWasStripped = false;
-  if (postalCode) {
-    const withoutPostal = stripPostalPrefix(remainder, postalCode, city);
-    if (withoutPostal === null) return { postalCode: "", city: "", address };
-    remainder = withoutPostal;
-    postalWasStripped = true;
+  if (hasStoredFullAddressPrefix(address, postalCode, city)) {
+    return { postalCode, city, address };
   }
-  if (city) {
-    const withoutCity = stripCityPrefix(remainder, city, postalWasStripped);
-    if (withoutCity === null) {
-      return { postalCode: "", city: "", address };
-    }
-    remainder = withoutCity;
-  }
-
-  return {
-    postalCode,
-    city,
-    address: normalizeProfileAddress({ postalCode, city, address: remainder })
-      .address,
-  };
+  return { postalCode: "", city: "", address };
 }
 
 export function formatProfileAddress(
@@ -108,10 +87,30 @@ export function formatProfileAddress(
   showPostalMark = false,
 ): string {
   const { postalCode, city, address } = normalizeProfileAddress(parts);
+  if (hasStoredFullAddressPrefix(address, postalCode, city)) {
+    return showPostalMark && !address.startsWith("〒")
+      ? `〒${address}`
+      : address;
+  }
   const postal = postalCode ? `${showPostalMark ? "〒" : ""}${postalCode}` : "";
   const japaneseCity = /[\u3000-\u9fff]/.test(city);
   const location = japaneseCity
     ? `${city}${address}`
     : [city, address].filter(Boolean).join(" ");
   return [postal, location].filter(Boolean).join(" ");
+}
+
+/** Keep ambiguous complete addresses intact in the vCard street field. */
+export function profileAddressForVCard(parts: ProfileAddressParts) {
+  const normalized = normalizeProfileAddress(parts);
+  if (
+    hasStoredFullAddressPrefix(
+      normalized.address,
+      normalized.postalCode,
+      normalized.city,
+    )
+  ) {
+    return { postalCode: "", city: "", address: normalized.address };
+  }
+  return normalized;
 }

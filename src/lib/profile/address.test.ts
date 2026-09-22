@@ -1,6 +1,7 @@
 import {
   formatProfileAddress,
   normalizeProfileAddress,
+  profileAddressForVCard,
   splitEditedProfileAddress,
 } from "./address";
 
@@ -26,11 +27,18 @@ describe("profile address", () => {
       address: "100-0001 東京都千代田区 〒100-0001 東京都千代田区千代田1-1",
     };
     const normalized = normalizeProfileAddress(duplicated);
-    expect(normalized.address).toBe("千代田1-1");
+    // The final unseparated city/street boundary is ambiguous, so retain
+    // the complete address instead of truncating a possible street name.
+    expect(normalized.address).toBe("〒100-0001 東京都千代田区千代田1-1");
     expect(normalizeProfileAddress(normalized)).toEqual(normalized);
     expect(formatProfileAddress(duplicated)).toBe(
-      "100-0001 東京都千代田区千代田1-1",
+      "〒100-0001 東京都千代田区千代田1-1",
     );
+    expect(profileAddressForVCard(duplicated)).toEqual({
+      postalCode: "",
+      city: "",
+      address: "〒100-0001 東京都千代田区千代田1-1",
+    });
   });
 
   it("is stable after loading the basic edit field more than once", () => {
@@ -77,6 +85,42 @@ describe("profile address", () => {
     ).toBe("12345 Main St");
   });
 
+  it("does not cut a facility name that begins with the city characters", () => {
+    const parts = {
+      postalCode: "12345",
+      city: "架空市",
+      address: "12345 架空市民会館5",
+    };
+    expect(normalizeProfileAddress(parts).address).toBe(parts.address);
+    expect(formatProfileAddress(parts)).toBe(parts.address);
+    expect(profileAddressForVCard(parts)).toEqual({
+      postalCode: "",
+      city: "",
+      address: parts.address,
+    });
+    expect(splitEditedProfileAddress(parts.address, parts)).toEqual(parts);
+  });
+
+  it("keeps a single full address without guessing its city/street split", () => {
+    expect(
+      normalizeProfileAddress({
+        postalCode: "12345",
+        city: "架空市",
+        address: "12345 架空市 中央町1",
+      }).address,
+    ).toBe("12345 架空市 中央町1");
+  });
+
+  it("removes only repeated complete prefixes before a city-like facility", () => {
+    const parts = {
+      postalCode: "12345",
+      city: "架空市",
+      address: "12345 架空市 12345 架空市民会館5",
+    };
+    expect(normalizeProfileAddress(parts).address).toBe("12345 架空市民会館5");
+    expect(formatProfileAddress(parts)).toBe("12345 架空市民会館5");
+  });
+
   it("removes all provable old prefixes even beyond ten saves", () => {
     const oldPrefix = "100-0001 東京都千代田区 ";
     expect(
@@ -85,6 +129,6 @@ describe("profile address", () => {
         city: "東京都千代田区",
         address: `${oldPrefix.repeat(12)}千代田1-1`,
       }),
-    ).toBe("100-0001 東京都千代田区千代田1-1");
+    ).toBe("100-0001 東京都千代田区 千代田1-1");
   });
 });

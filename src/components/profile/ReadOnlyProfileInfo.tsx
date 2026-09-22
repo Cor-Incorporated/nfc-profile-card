@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import {
   formatProfileAddress,
-  normalizeProfileAddress,
+  profileAddressForVCard,
 } from "@/lib/profile/address";
 
 export type PageBackground =
@@ -204,7 +204,7 @@ export function ReadOnlyProfileInfo({
   // 表示名の決定
   const displayName =
     name || `${lastName || ""} ${firstName || ""}`.trim() || "名前未設定";
-  const normalizedAddress = normalizeProfileAddress({
+  const normalizedAddress = profileAddressForVCard({
     postalCode,
     city,
     address,

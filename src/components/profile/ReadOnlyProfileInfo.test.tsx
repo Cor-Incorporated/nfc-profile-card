@@ -32,11 +32,38 @@ describe("ReadOnlyProfileInfo address", () => {
       jest.mocked(VCardButton).mock.calls[0][0].profileData?.workAddress,
     ).toEqual(
       expect.objectContaining({
-        postalCode: "100-0001",
-        city: "東京都千代田区",
-        street: "千代田1-1",
+        postalCode: "",
+        city: "",
+        street: "100-0001 東京都千代田区千代田1-1",
       }),
     );
+  });
+
+  it("keeps a city-like facility name intact in vCard street", () => {
+    render(
+      <ReadOnlyProfileInfo
+        component={{
+          id: "facility",
+          type: "profile",
+          order: 0,
+          content: {
+            postalCode: "12345",
+            city: "架空市",
+            address: "12345 架空市民会館5",
+          },
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "詳細情報を表示" }));
+    expect(screen.getByText("〒12345 架空市民会館5")).toBeInTheDocument();
+    expect(
+      jest.mocked(VCardButton).mock.calls.at(-1)?.[0].profileData?.workAddress,
+    ).toEqual({
+      postalCode: "",
+      city: "",
+      street: "12345 架空市民会館5",
+      countryRegion: "日本",
+    });
   });
 
   it("hides contact details removed by a basic edit", () => {

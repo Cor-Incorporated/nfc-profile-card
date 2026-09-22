@@ -27,6 +27,29 @@ describe("basic edit profile sync", () => {
     }
   });
 
+  it("collapses legacy repeated full addresses without losing the last one", () => {
+    let content: Record<string, unknown> = {
+      postalCode: "12345",
+      city: "架空市",
+      address: "12345 架空市 12345 架空市民会館5",
+    };
+
+    for (let save = 0; save < 3; save += 1) {
+      const editedAddress = formatProfileAddress(content);
+      content = syncBasicProfileContent(
+        content,
+        { address: editedAddress },
+        true,
+      );
+      expect(formatProfileAddress(content)).toBe("12345 架空市民会館5");
+      expect(content).toMatchObject({
+        postalCode: "12345",
+        city: "架空市",
+        address: "12345 架空市民会館5",
+      });
+    }
+  });
+
   it("clears an address in both basic and public profiles", () => {
     const content = syncBasicProfileContent(
       { postalCode: "100-0001", city: "東京都", address: "千代田1-1" },
