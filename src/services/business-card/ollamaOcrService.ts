@@ -2,7 +2,12 @@ import { ContactInfo } from "@/types/business-card";
 import { isIP } from "node:net";
 import { z } from "zod";
 
-const OLLAMA_MODEL = "gemma4:e4b";
+const ALLOWED_OLLAMA_MODELS = new Set([
+  "gemma4:e2b",
+  "gemma4:e4b",
+  "gemma4:12b",
+  "gemma4:31b",
+]);
 const ACCESS_HOST = "nfc-ocr.tapforge.org";
 const OLLAMA_TIMEOUT_MS = 24_000;
 const MAX_RESPONSE_BYTES = 64_000;
@@ -114,27 +119,21 @@ const OCR_PROMPT = `名刺画像に実際に見える情報だけを、指定さ
 
 function getGatewayConfig() {
   const rawUrl = process.env.NFC_OCR_OLLAMA_GATEWAY_URL?.trim();
+  const model = process.env.NFC_OCR_OLLAMA_MODEL?.trim();
   const token = process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN?.trim();
   const accessClientId = process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID?.trim();
   const accessClientSecret =
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET?.trim();
   if (!rawUrl) throw new Error("Ollama gateway URL is missing");
+  if (!model || !ALLOWED_OLLAMA_MODELS.has(model)) {
+    throw new Error("Ollama OCR model is missing or unsupported");
+  }
 
   let url: URL;
   try {
     url = new URL(rawUrl);
   } catch {
     throw new Error("Ollama gateway URL is invalid");
-  }
-
-  if (
-    url.pathname !== "/api/chat" ||
-    url.search ||
-    url.hash ||
-    url.username ||
-    url.password
-  ) {
-    throw new Error("Ollama gateway path is invalid");
   }
 
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -144,13 +143,22 @@ function getGatewayConfig() {
     process.env.NODE_ENV !== "production" &&
     loopback &&
     url.protocol === "http:";
+  if (
+    url.pathname !== (localDevelopment ? "/api/chat" : "/v1/ocr/ollama/chat") ||
+    url.search ||
+    url.hash ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error("Ollama gateway path is invalid");
+  }
   const accessConfigured = !!accessClientId || !!accessClientSecret;
   const completeAccessPair = !!accessClientId && !!accessClientSecret;
 
   if (
     (accessConfigured && !completeAccessPair) ||
-    (token && accessConfigured) ||
     (completeAccessPair && hostname !== ACCESS_HOST) ||
+    (hostname === ACCESS_HOST && !completeAccessPair) ||
     [token, accessClientId, accessClientSecret].some(
       (value) => value && /\s/.test(value),
     )
@@ -174,7 +182,7 @@ function getGatewayConfig() {
       /(^|\.)(localhost|local|internal|lan|test|example|invalid)$/.test(
         hostname,
       ) ||
-      (!token && !completeAccessPair)
+      !token
     ) {
       throw new Error(
         "Ollama gateway must be an authenticated public HTTPS endpoint",
@@ -185,11 +193,12 @@ function getGatewayConfig() {
   const authHeaders: Record<string, string> = {};
   if (token) {
     authHeaders.Authorization = `Bearer ${token}`;
-  } else if (accessClientId && accessClientSecret) {
+  }
+  if (accessClientId && accessClientSecret) {
     authHeaders["CF-Access-Client-Id"] = accessClientId;
     authHeaders["CF-Access-Client-Secret"] = accessClientSecret;
   }
-  return { url: url.toString(), authHeaders };
+  return { url: url.toString(), authHeaders, model };
 }
 
 function base64Image(image: string, mimeType: string): string {
@@ -259,7 +268,7 @@ export async function processWithOllama(
   }
 
   try {
-    const { url, authHeaders } = getGatewayConfig();
+    const { url, authHeaders, model } = getGatewayConfig();
     const encoded = base64Image(image, mimeType);
     const timeoutMs = Math.min(OLLAMA_TIMEOUT_MS, deadlineAtMs - Date.now());
     if (timeoutMs < 1_000) return failed();
@@ -274,7 +283,7 @@ export async function processWithOllama(
           ...authHeaders,
         },
         body: JSON.stringify({
-          model: OLLAMA_MODEL,
+          model,
           messages: [{ role: "user", content: OCR_PROMPT, images: [encoded] }],
           format: contactJsonSchema,
           options: { temperature: 0 },
@@ -297,7 +306,7 @@ export async function processWithOllama(
       };
       if (
         envelope.done !== true ||
-        envelope.model !== OLLAMA_MODEL ||
+        envelope.model !== model ||
         typeof envelope.message?.content !== "string"
       ) {
         return failed();
