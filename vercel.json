@@ -8,6 +8,9 @@
     "src/app/api/business-card/scan/route.ts": {
       "maxDuration": 30,
       "memory": 1024
+    },
+    "src/app/p/[username]/page.tsx": {
+      "regions": ["hnd1"]
     }
   },
   "env": {
