@@ -145,6 +145,24 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
   expect(events.lastIndexOf("read")).toBeLessThan(events.indexOf("write"));
 });
 
+test("UID形式の旧URLは回転後も利用されるため予約と別名だけを解除する", async () => {
+  docs.set("users/uid-a", { username: "u_uid-a" });
+  docs.delete("usernames/oldname1");
+  docs.set("usernames/u_uid-a", { uid: "uid-a" });
+  docs.set("usernameAliases/u_uid-a", {
+    uid: "uid-a",
+    status: "redirect",
+  });
+
+  const response = await rotate();
+
+  expect(response.status).toBe(200);
+  expect(response.body).toMatchObject({ previousUsername: "u_uid-a" });
+  expect(docs.has("usernames/u_uid-a")).toBe(false);
+  expect(docs.has("usernameAliases/u_uid-a")).toBe(false);
+  expect(docs.get("users/uid-a")?.username).toBe("731826405219");
+});
+
 test("redirect mode points the old URL at the new username", async () => {
   docs.set("usernameAliases/oldname1", {
     uid: "uid-a",
