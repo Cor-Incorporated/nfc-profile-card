@@ -689,6 +689,7 @@ function getDefaultContent(type: string, t: (key: string) => string) {
       return { url: "", label: t("newLink") };
     case "profile":
       return {
+        isInitialPlaceholder: true,
         firstName: "",
         lastName: "",
         phoneticFirstName: "",

@@ -1,5 +1,6 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
 import {
   generateDefaultUsername,
   getUidFallbackUsername,
@@ -187,11 +188,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
+      const profileDoc = await transaction.get(profileDocRef);
       const userExists = latestUserDoc.exists;
-
-      if (!isUsernameChanging) {
+      const saveUserAndProfile = () => {
         transaction.set(
           userRef,
           {
@@ -200,6 +202,30 @@ export async function PATCH(request: NextRequest) {
           },
           { merge: true },
         );
+
+        const profileData = profileDoc.exists ? profileDoc.data() : null;
+        if (Array.isArray(profileData?.components)) {
+          const components: any[] = profileData.components;
+          const updatedComponents = components.map((comp: any) => {
+            if (comp.type !== "profile") return comp;
+            return {
+              ...comp,
+              content: syncBasicProfileContent(
+                comp.content || {},
+                profileUpdates,
+                body.replaceComponentAddress === true,
+              ),
+            };
+          });
+          transaction.update(profileDocRef, {
+            components: updatedComponents,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      };
+
+      if (!isUsernameChanging) {
+        saveUserAndProfile();
         return;
       }
 
@@ -269,77 +295,8 @@ export async function PATCH(request: NextRequest) {
         username: requestedUsername,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      transaction.set(
-        userRef,
-        {
-          ...profileUpdates,
-          ...(!userExists ? { createdAt: FieldValue.serverTimestamp() } : {}),
-        },
-        { merge: true },
-      );
+      saveUserAndProfile();
     });
-
-    const syncFields = [
-      "name",
-      "bio",
-      "company",
-      "position",
-      "email",
-      "phone",
-      "website",
-      "address",
-      "photoURL",
-    ] as const;
-
-    try {
-      const profileDocRef = adminDb
-        .collection("users")
-        .doc(verification.uid)
-        .collection("profile")
-        .doc("data");
-      const profileDoc = await profileDocRef.get();
-
-      if (profileDoc.exists) {
-        const profileData = profileDoc.data();
-        const components: any[] = profileData?.components || [];
-
-        const updatedComponents = components.map((comp: any) => {
-          if (comp.type !== "profile") return comp;
-
-          const existing = { ...(comp.content || {}) };
-          const nameParts = String(profileUpdates.name || "").split(" ");
-          const firstName =
-            nameParts.length > 1
-              ? nameParts.slice(1).join(" ")
-              : nameParts[0] || "";
-          const lastName = nameParts.length > 1 ? nameParts[0] : "";
-
-          const updated: Record<string, unknown> = { ...existing };
-
-          for (const field of syncFields) {
-            const value = profileUpdates[field];
-            if (typeof value === "string" && value !== "") {
-              updated[field] = value;
-            }
-          }
-
-          if (profileUpdates.name) {
-            updated.firstName = firstName;
-            updated.lastName = lastName;
-            updated.name = profileUpdates.name;
-          }
-
-          return { ...comp, content: updated };
-        });
-
-        await profileDocRef.update({
-          components: updatedComponents,
-          updatedAt: new Date(),
-        });
-      }
-    } catch (syncError) {
-      console.error("Profile component sync failed:", syncError);
-    }
 
     return NextResponse.json({
       profile: {
