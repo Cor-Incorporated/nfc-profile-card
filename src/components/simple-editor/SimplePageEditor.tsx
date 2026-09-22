@@ -13,6 +13,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -181,6 +182,7 @@ export function SimplePageEditor({
 }: SimplePageEditorProps) {
   const router = useRouter();
   const { t } = useLanguage();
+  const { user: authUser } = useAuth();
   const [components, setComponents] = useState<ProfileComponent[]>(
     initialData?.components || [],
   );
@@ -358,47 +360,52 @@ export function SimplePageEditor({
     try {
       const docRef = doc(db, "users", userId, "profile", "data");
 
-      // updateDocを使用した差分更新
-      await updateDoc(docRef, {
-        components,
-        background,
-        updatedAt: new Date(),
+      try {
+        await updateDoc(docRef, {
+          components,
+          background,
+          updatedAt: new Date(),
+        });
+      } catch (error) {
+        // The first design save creates the document instead.
+        if (
+          !(error instanceof Error) ||
+          !("code" in error) ||
+          (error as { code?: string }).code !== "not-found"
+        ) {
+          throw error;
+        }
+        await setDoc(docRef, {
+          components,
+          background,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      // Firestore writes bypass Next.js, so invalidate the public HTML before
+      // telling the editor that the new design is visible.
+      if (!authUser || authUser.uid !== userId) {
+        throw new Error("Profile revalidation requires the current user");
+      }
+      const token = await authUser.getIdToken();
+      const response = await fetch("/api/users/me/profile", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) {
+        throw new Error(`Profile revalidation failed (${response.status})`);
+      }
 
       setSaveStatus("saved");
       setLastSaved(new Date());
       console.log("[SimplePageEditor] Profile saved successfully");
     } catch (error) {
-      // ドキュメントが存在しない場合はsetDocで作成
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        (error as any).code === "not-found"
-      ) {
-        try {
-          await setDoc(doc(db, "users", userId, "profile", "data"), {
-            components,
-            background,
-            updatedAt: serverTimestamp(),
-          });
-          setSaveStatus("saved");
-          setLastSaved(new Date());
-          console.log("[SimplePageEditor] Profile created successfully");
-        } catch (createError) {
-          console.error(
-            "[SimplePageEditor] Error creating profile:",
-            createError,
-          );
-          setSaveStatus("error");
-        }
-      } else {
-        console.error("[SimplePageEditor] Error saving profile:", error);
-        setSaveStatus("error");
-      }
+      console.error("[SimplePageEditor] Error saving profile:", error);
+      setSaveStatus("error");
     } finally {
       isSavingRef.current = false;
     }
-  }, [components, background, userId]);
+  }, [authUser, components, background, userId]);
 
   // デバウンス付き自動保存（3秒）
   const debouncedSave = React.useCallback(() => {

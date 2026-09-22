@@ -1,15 +1,21 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { formatProfileAddress } from "@/lib/profile/address";
-import { PATCH } from "./route";
+import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getUidFallbackUsername } from "@/lib/username";
+import { PATCH, POST } from "./route";
 
 jest.mock("@/lib/firebase-admin", () => ({
   adminDb: { collection: jest.fn(), runTransaction: jest.fn() },
   verifyIdToken: jest.fn(),
 }));
+jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
+  revalidatePublicProfiles: jest.fn(),
+}));
 
 jest.mock("next/server", () => ({
   NextResponse: {
     json: (body: unknown, options?: { status?: number }) => ({
+      body,
       status: options?.status || 200,
       json: async () => body,
     }),
@@ -76,7 +82,7 @@ function setupStore(failProfileWrite = false) {
   return state;
 }
 
-const request = {
+const patchRequest = {
   headers: { get: () => "Bearer test-token" },
   json: async () => ({
     username: "test-name",
@@ -97,7 +103,7 @@ describe("PATCH basic profile atomic sync", () => {
 
   it("commits user and public profile address together", async () => {
     const state = setupStore();
-    const response = await PATCH(request);
+    const response = await PATCH(patchRequest);
     expect(response.status).toBe(200);
     expect(state.user.address).toBe("100-0001 東京都千代田区千代田2-2");
     const content = (state.profile.components as any[])[0].content;
@@ -115,7 +121,7 @@ describe("PATCH basic profile atomic sync", () => {
     const state = setupStore(true);
     const log = jest.spyOn(console, "error").mockImplementation(() => {});
     try {
-      const response = await PATCH(request);
+      const response = await PATCH(patchRequest);
       expect(response.status).toBe(500);
       expect(state.user.address).toBe("Old address");
       expect((state.profile.components as any[])[0].content.address).toBe(
@@ -125,4 +131,47 @@ describe("PATCH basic profile atomic sync", () => {
       log.mockRestore();
     }
   });
+});
+
+function request(token?: string) {
+  return {
+    headers: { get: () => (token ? `Bearer ${token}` : null) },
+    // A client-supplied username must never determine which path is purged.
+    json: async () => ({ username: "another-user" }),
+  } as unknown as Parameters<typeof POST>[0];
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test("anonymous callers cannot invalidate public pages", async () => {
+  const response = await POST(request());
+  expect(response.status).toBe(401);
+  expect(verifyIdToken).not.toHaveBeenCalled();
+  expect(revalidatePublicProfiles).not.toHaveBeenCalled();
+});
+
+test("only the authenticated owner's stored profile IDs are invalidated", async () => {
+  (verifyIdToken as jest.Mock).mockResolvedValue({
+    success: true,
+    uid: "owner",
+  });
+  (adminDb.collection as jest.Mock).mockReturnValue({
+    doc: (uid: string) => ({
+      get: async () => ({
+        exists: true,
+        data: () => ({ username: uid === "owner" ? "alice" : "wrong" }),
+      }),
+    }),
+  });
+
+  const response = await POST(request("valid-token"));
+  expect(response.status).toBe(200);
+  expect(adminDb.collection).toHaveBeenCalledWith("users");
+  expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+    "alice",
+    getUidFallbackUsername("owner"),
+  );
+  expect(revalidatePublicProfiles).not.toHaveBeenCalledWith("another-user");
 });
