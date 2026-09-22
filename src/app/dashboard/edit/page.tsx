@@ -16,14 +16,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
+import { formatProfileAddress } from "@/lib/profile/address";
 import { getUidFallbackUsername } from "@/lib/username";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -48,6 +43,36 @@ interface UsernameAlias {
   username: string;
   status: "redirect" | "disabled";
   targetUsername: string;
+}
+
+// The design editor creates a profile placeholder with every public field
+// present and empty. Saving an intentionally cleared profile instead omits
+// those fields, so only the untouched placeholder may use the basic profile.
+const PLACEHOLDER_FIELDS = [
+  "firstName",
+  "lastName",
+  "phoneticFirstName",
+  "phoneticLastName",
+  "name",
+  "email",
+  "phone",
+  "cellPhone",
+  "company",
+  "position",
+  "department",
+  "address",
+  "city",
+  "postalCode",
+  "website",
+  "bio",
+  "photoURL",
+] as const;
+
+function isUntouchedProfilePlaceholder(content: Record<string, unknown>) {
+  return (
+    content.isInitialPlaceholder === true &&
+    PLACEHOLDER_FIELDS.every((field) => content[field] === "")
+  );
 }
 
 export default function EditProfilePage() {
@@ -86,6 +111,7 @@ export default function EditProfilePage() {
       const username = userData?.username || getUidFallbackUsername(user.uid);
 
       let fromComponent: Record<string, string> = {};
+      let hasProfileComponent = false;
       try {
         const profileDoc = await getDoc(
           doc(db, "users", user.uid, "profile", "data"),
@@ -98,6 +124,7 @@ export default function EditProfilePage() {
           const pc = comps.find((c: any) => c.type === "profile");
           if (pc?.content) {
             const c = pc.content;
+            hasProfileComponent = !isUntouchedProfilePlaceholder(c);
             fromComponent = {
               name: c.name || `${c.lastName || ""} ${c.firstName || ""}`.trim(),
               bio: c.bio || "",
@@ -106,38 +133,39 @@ export default function EditProfilePage() {
               email: c.email || "",
               phone: c.phone || c.cellPhone || "",
               website: c.website || "",
-              address:
-                [c.postalCode, c.city, c.address].filter(Boolean).join(" ") ||
-                "",
+              address: formatProfileAddress(c),
               photoURL: c.photoURL || "",
             };
           }
         }
       } catch {}
 
-      const hasComponentData = Object.values(fromComponent).some(
-        (v) => v !== "",
-      );
       const fallback = {
-        name: userData?.name || user.displayName || "",
+        name:
+          typeof userData?.name === "string"
+            ? userData.name
+            : user.displayName || "",
         bio: userData?.bio || "",
         company: userData?.company || "",
         position: userData?.position || "",
-        email: userData?.email || user.email || "",
+        email:
+          typeof userData?.email === "string"
+            ? userData.email
+            : user.email || "",
         phone: userData?.phone || "",
         website: userData?.website || "",
         address: userData?.address || "",
         photoURL: userData?.photoURL || "",
       };
-      const src = hasComponentData ? fromComponent : fallback;
+      const src = hasProfileComponent ? fromComponent : fallback;
 
       setProfile({
-        name: src.name || user.displayName || "",
+        name: src.name,
         username,
         bio: src.bio || "",
         company: src.company || "",
         position: src.position || "",
-        email: src.email || user.email || "",
+        email: src.email,
         phone: src.phone || "",
         website: src.website || "",
         address: src.address || "",
@@ -232,6 +260,7 @@ export default function EditProfilePage() {
         },
         body: JSON.stringify({
           ...profile,
+          replaceComponentAddress: true,
           legacyUrlAction,
         }),
       });
@@ -266,44 +295,6 @@ export default function EditProfilePage() {
         setProfile((prev) => ({ ...prev, username: data.profile.username }));
         setOriginalUsername(data.profile.username);
       }
-
-      try {
-        const profileDocRef = doc(db, "users", user.uid, "profile", "data");
-        const profileDoc = await getDoc(profileDocRef);
-        const nameParts = profile.name.split(" ");
-        const firstName =
-          nameParts.length > 1
-            ? nameParts.slice(1).join(" ")
-            : nameParts[0] || "";
-        const lastName = nameParts.length > 1 ? nameParts[0] : "";
-
-        if (profileDoc.exists()) {
-          const pd = profileDoc.data();
-          const components: any[] = Array.isArray(pd?.components)
-            ? pd.components
-            : [];
-          const updated = components.map((comp: any) => {
-            if (comp.type !== "profile") return comp;
-            return {
-              ...comp,
-              content: {
-                ...(comp.content || {}),
-                ...(profile.name
-                  ? { name: profile.name, firstName, lastName }
-                  : {}),
-                ...(profile.bio ? { bio: profile.bio } : {}),
-                ...(profile.company ? { company: profile.company } : {}),
-                ...(profile.position ? { position: profile.position } : {}),
-                ...(profile.email ? { email: profile.email } : {}),
-                ...(profile.phone ? { phone: profile.phone } : {}),
-                ...(profile.website ? { website: profile.website } : {}),
-                ...(profile.photoURL ? { photoURL: profile.photoURL } : {}),
-              },
-            };
-          });
-          await updateDoc(profileDocRef, { components: updated });
-        }
-      } catch {}
 
       toast({
         title: t("success"),
