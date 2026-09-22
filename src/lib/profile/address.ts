@@ -13,12 +13,12 @@ function stripCityPrefix(
   city: string,
   postalWasStripped: boolean,
 ): string | null {
-  if (!city || !address.startsWith(city)) return null;
+  if (!postalWasStripped || !city || !address.startsWith(city)) return null;
   const rest = address.slice(city.length);
   if (/^[\s,，、]/.test(rest)) return rest.replace(/^[\s,，、]+/, "");
   // Japanese addresses often join the city and street without a separator.
   // Only infer that split after finding the postal code immediately before it.
-  if (postalWasStripped && /[\u3000-\u9fff]/.test(city)) return rest;
+  if (/[\u3000-\u9fff]/.test(city)) return rest;
   return rest === "" ? "" : null;
 }
 

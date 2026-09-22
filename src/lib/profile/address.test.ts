@@ -52,9 +52,16 @@ describe("profile address", () => {
         .address,
     ).toBe("Yorkshire Road 5");
     expect(
+      normalizeProfileAddress({ city: "York", address: "York Road 5" }).address,
+    ).toBe("York Road 5");
+    expect(
       normalizeProfileAddress({ city: "架空市", address: "架空市民会館5" })
         .address,
     ).toBe("架空市民会館5");
+    expect(
+      normalizeProfileAddress({ city: "架空市", address: "架空市 中央1-1" })
+        .address,
+    ).toBe("架空市 中央1-1");
     expect(
       splitEditedProfileAddress("Yorkshire Road 5", { city: "York" }),
     ).toEqual({ postalCode: "", city: "", address: "Yorkshire Road 5" });
