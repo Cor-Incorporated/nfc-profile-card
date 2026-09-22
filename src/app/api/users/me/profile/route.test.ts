@@ -234,6 +234,7 @@ function request(token?: string) {
 beforeEach(() => {
   jest.clearAllMocks();
   (ownsPublicUsername as jest.Mock).mockResolvedValue(true);
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue([]);
 });
 
 test("anonymous callers cannot invalidate public pages", async () => {
@@ -265,6 +266,31 @@ test("only the authenticated owner's stored profile IDs are invalidated", async 
     getUidFallbackUsername("owner"),
   );
   expect(revalidatePublicProfiles).not.toHaveBeenCalledWith("another-user");
+});
+
+test("design saves also invalidate an owned alias that can render profile content", async () => {
+  (verifyIdToken as jest.Mock).mockResolvedValue({
+    success: true,
+    uid: "owner",
+  });
+  (adminDb.collection as jest.Mock).mockReturnValue({
+    doc: () => ({
+      get: async () => ({
+        exists: true,
+        data: () => ({ username: "alice" }),
+      }),
+    }),
+  });
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["oldalias"]);
+
+  const response = await POST(request("valid-token"));
+
+  expect(response.status).toBe(200);
+  expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+    "alice",
+    getUidFallbackUsername("owner"),
+    "oldalias",
+  );
 });
 
 test("a custom UID cannot purge another account's sanitized fallback URL", async () => {

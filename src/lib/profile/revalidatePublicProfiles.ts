@@ -20,7 +20,7 @@ export function revalidatePublicProfiles(...usernames: unknown[]) {
     paths.add(`/p/${encodeURIComponent(username)}`);
     // Firebase UIDs are case sensitive; the lower-case variant could belong
     // to a different user and must not be invalidated.
-    if (!username.startsWith("u_")) {
+    if (!/^u_/i.test(username)) {
       paths.add(`/p/${encodeURIComponent(username.toLowerCase())}`);
     }
   }

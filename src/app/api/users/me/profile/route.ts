@@ -375,9 +375,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ownedAliases = await getOwnedRedirectAliases(verification.uid);
     revalidatePublicProfiles(
       userDoc.data()?.username,
       getOwnedUidFallbackUsername(verification.uid),
+      ...ownedAliases,
     );
     return NextResponse.json({ revalidated: true });
   } catch (error) {

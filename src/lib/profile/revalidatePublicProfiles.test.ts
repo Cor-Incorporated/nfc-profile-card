@@ -9,9 +9,12 @@ jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 beforeEach(() => jest.clearAllMocks());
 
 test("invalidates only the exact URL for a mixed-case UID", () => {
-  revalidatePublicProfiles("u_AbC123", "u_AbC123", "");
+  revalidatePublicProfiles("u_AbC123", "u_AbC123", "U_MixCase", "");
 
-  expect((revalidatePath as jest.Mock).mock.calls).toEqual([["/p/u_AbC123"]]);
+  expect((revalidatePath as jest.Mock).mock.calls).toEqual([
+    ["/p/u_AbC123"],
+    ["/p/U_MixCase"],
+  ]);
 });
 
 test("ignores values outside a single safe public profile segment", () => {
