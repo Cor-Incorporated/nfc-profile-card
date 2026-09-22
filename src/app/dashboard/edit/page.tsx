@@ -69,10 +69,9 @@ const PLACEHOLDER_FIELDS = [
 ] as const;
 
 function isUntouchedProfilePlaceholder(content: Record<string, unknown>) {
-  return PLACEHOLDER_FIELDS.every(
-    (field) =>
-      Object.prototype.hasOwnProperty.call(content, field) &&
-      content[field] === "",
+  return (
+    content.isInitialPlaceholder === true &&
+    PLACEHOLDER_FIELDS.every((field) => content[field] === "")
   );
 }
 

@@ -408,11 +408,20 @@ function ProfileEditor({
     const fullName =
       profileData.name ||
       `${profileData.lastName || ""} ${profileData.firstName || ""}`.trim();
+    const hasPublicContent = Object.entries(profileData).some(
+      ([key, value]) =>
+        key !== "cardBackgroundColor" &&
+        key !== "cardBackgroundOpacity" &&
+        value !== "",
+    );
 
     const cleanContent = Object.fromEntries(
       Object.entries({
         ...profileData,
         name: fullName,
+        ...(content?.isInitialPlaceholder === true && !hasPublicContent
+          ? { isInitialPlaceholder: true }
+          : {}),
       }).filter(
         ([key, value]) =>
           (value !== "" && value !== null && value !== undefined) ||

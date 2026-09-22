@@ -16,6 +16,7 @@ export interface LinkContent {
 }
 
 export interface ProfileContent {
+  isInitialPlaceholder?: boolean;
   firstName?: string;
   lastName?: string;
   phoneticFirstName?: string;

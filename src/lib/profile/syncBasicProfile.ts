@@ -18,6 +18,7 @@ export function syncBasicProfileContent(
   replaceAllFields = false,
 ): Record<string, unknown> {
   const content = { ...existing };
+  if (replaceAllFields) delete content.isInitialPlaceholder;
   for (const field of SYNC_FIELDS) {
     const value = updates[field];
     if (typeof value === "string" && (replaceAllFields || value !== "")) {

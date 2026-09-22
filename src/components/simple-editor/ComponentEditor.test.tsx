@@ -46,6 +46,7 @@ describe("profile component style save", () => {
       <ComponentEditor
         component={profileComponent({
           ...blankPublicFields,
+          isInitialPlaceholder: true,
           cardBackgroundColor: "#ffffff",
           cardBackgroundOpacity: 95,
         })}
@@ -61,6 +62,7 @@ describe("profile component style save", () => {
     const persisted = sanitizeComponentContent("profile", saved.content);
     expect(persisted).toMatchObject({
       ...blankPublicFields,
+      isInitialPlaceholder: true,
       cardBackgroundColor: "#3b82f6",
     });
   });
@@ -87,5 +89,28 @@ describe("profile component style save", () => {
       cardBackgroundColor: "#3b82f6",
       cardBackgroundOpacity: 95,
     });
+  });
+
+  it("drops a stale placeholder marker once a public field has a value", () => {
+    const onSave = jest.fn();
+    render(
+      <ComponentEditor
+        component={profileComponent({
+          ...blankPublicFields,
+          name: "Fiction Person",
+          isInitialPlaceholder: true,
+          cardBackgroundColor: "#ffffff",
+          cardBackgroundOpacity: 95,
+        })}
+        onSave={onSave}
+        onClose={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    const saved = onSave.mock.calls[0][0] as ProfileComponent;
+    expect(saved.content).not.toHaveProperty("isInitialPlaceholder");
+    expect(saved.content).toHaveProperty("name", "Fiction Person");
   });
 });

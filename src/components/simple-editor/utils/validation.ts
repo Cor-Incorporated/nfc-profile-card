@@ -53,6 +53,7 @@ export const LinkContentSchema = z.object({
 
 // Profile content schema
 export const ProfileContentSchema = z.object({
+  isInitialPlaceholder: z.boolean().optional(),
   firstName: z.string().max(100).transform(sanitizeString).optional(),
   lastName: z.string().max(100).transform(sanitizeString).optional(),
   phoneticFirstName: z.string().max(100).transform(sanitizeString).optional(),

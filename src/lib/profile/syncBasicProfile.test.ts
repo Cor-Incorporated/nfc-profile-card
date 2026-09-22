@@ -93,6 +93,7 @@ describe("basic edit profile sync", () => {
   it("clears public contact fields and fallback name parts on full edit", () => {
     const content = syncBasicProfileContent(
       {
+        isInitialPlaceholder: true,
         name: "Old Name",
         firstName: "Old",
         lastName: "Name",
@@ -116,6 +117,7 @@ describe("basic edit profile sync", () => {
       bio: "",
       photoURL: "",
     });
+    expect(content).not.toHaveProperty("isInitialPlaceholder");
   });
 
   it("keeps a cell-only phone from appearing twice on an unrelated edit", () => {

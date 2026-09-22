@@ -34,6 +34,28 @@ const snapshot = (data: Record<string, unknown>) => ({
   data: () => data,
 });
 
+const emptyProfileContent = Object.fromEntries(
+  [
+    "firstName",
+    "lastName",
+    "phoneticFirstName",
+    "phoneticLastName",
+    "name",
+    "email",
+    "phone",
+    "cellPhone",
+    "company",
+    "position",
+    "department",
+    "address",
+    "city",
+    "postalCode",
+    "website",
+    "bio",
+    "photoURL",
+  ].map((field) => [field, ""]),
+);
+
 describe("basic profile edit source", () => {
   beforeEach(() => {
     jest.mocked(getDoc).mockReset();
@@ -80,27 +102,6 @@ describe("basic profile edit source", () => {
   });
 
   it("uses basic values for a newly created untouched placeholder", async () => {
-    const emptyContent = Object.fromEntries(
-      [
-        "firstName",
-        "lastName",
-        "phoneticFirstName",
-        "phoneticLastName",
-        "name",
-        "email",
-        "phone",
-        "cellPhone",
-        "company",
-        "position",
-        "department",
-        "address",
-        "city",
-        "postalCode",
-        "website",
-        "bio",
-        "photoURL",
-      ].map((field) => [field, ""]),
-    );
     jest
       .mocked(getDoc)
       .mockResolvedValueOnce(
@@ -113,7 +114,12 @@ describe("basic profile edit source", () => {
       )
       .mockResolvedValueOnce(
         snapshot({
-          components: [{ type: "profile", content: emptyContent }],
+          components: [
+            {
+              type: "profile",
+              content: { ...emptyProfileContent, isInitialPlaceholder: true },
+            },
+          ],
         }) as never,
       );
 
@@ -146,6 +152,30 @@ describe("basic profile edit source", () => {
               },
             },
           ],
+        }) as never,
+      );
+
+    render(<EditProfilePage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("username *")).toHaveValue("test-name"),
+    );
+    expect(screen.getByLabelText("name *")).toHaveValue("");
+    expect(screen.getByLabelText("email")).toHaveValue("");
+  });
+
+  it("keeps all cleared public fields empty after login restores root email", async () => {
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(
+        snapshot({
+          username: "test-name",
+          email: "login@example.test",
+          name: "Former Name",
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        snapshot({
+          components: [{ type: "profile", content: emptyProfileContent }],
         }) as never,
       );
 
