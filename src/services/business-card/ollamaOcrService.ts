@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { z } from "zod";
 
 const OLLAMA_MODEL = "gemma4:e4b";
+const ACCESS_HOST = "nfc-ocr.tapforge.org";
 const OLLAMA_TIMEOUT_MS = 24_000;
 const MAX_RESPONSE_BYTES = 64_000;
 const SUPPORTED_IMAGE_TYPES = [
@@ -149,6 +150,7 @@ function getGatewayConfig() {
   if (
     (accessConfigured && !completeAccessPair) ||
     (token && accessConfigured) ||
+    (completeAccessPair && hostname !== ACCESS_HOST) ||
     [token, accessClientId, accessClientSecret].some(
       (value) => value && /\s/.test(value),
     )

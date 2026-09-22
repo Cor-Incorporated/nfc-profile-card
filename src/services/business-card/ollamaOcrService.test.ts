@@ -92,6 +92,8 @@ describe("experimental Ollama OCR gateway", () => {
   });
 
   it("uses a Cloudflare Access service-token pair without Bearer", async () => {
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://nfc-ocr.tapforge.org/api/chat";
     delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
@@ -105,7 +107,18 @@ describe("experimental Ollama OCR gateway", () => {
     expect(headers).not.toHaveProperty("Authorization");
   });
 
+  it("does not send Access credentials to another public hostname", async () => {
+    delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("rejects incomplete or conflicting authentication before dispatch", async () => {
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://nfc-ocr.tapforge.org/api/chat";
     delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
     expect((await scan()).success).toBe(false);
