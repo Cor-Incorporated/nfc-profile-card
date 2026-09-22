@@ -133,10 +133,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updatedAt: serverTimestamp(),
       };
       const previous = userSnap.exists() ? userSnap.data() : null;
+      const fallbackUsername = clientUidUsername(user.uid);
       const publicFieldsChanged =
-        !previous ||
-        previous.email !== user.email ||
-        previous.photoURL !== user.photoURL;
+        !previous || (!previous.username && Boolean(fallbackUsername));
 
       if (!userSnap.exists()) {
         // 新規ユーザーの場合
@@ -165,7 +164,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         // 既存ユーザーの場合は更新
         const existingData = previous!;
-        const fallbackUsername = clientUidUsername(user.uid);
         await setDoc(
           userRef,
           {
