@@ -11,6 +11,7 @@ jest.mock("@/lib/firebase-admin", () => ({
   verifyIdToken: jest.fn(),
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
+  ...jest.requireActual("@/lib/profile/revalidatePublicProfiles"),
   revalidatePublicProfiles: jest.fn(),
 }));
 jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({
@@ -233,6 +234,26 @@ test("only the authenticated owner's stored profile IDs are invalidated", async 
     getUidFallbackUsername("owner"),
   );
   expect(revalidatePublicProfiles).not.toHaveBeenCalledWith("another-user");
+});
+
+test("a custom UID cannot purge another account's sanitized fallback URL", async () => {
+  (verifyIdToken as jest.Mock).mockResolvedValue({
+    success: true,
+    uid: "a:b",
+  });
+  (adminDb.collection as jest.Mock).mockReturnValue({
+    doc: () => ({
+      get: async () => ({
+        exists: true,
+        data: () => ({ username: "alice" }),
+      }),
+    }),
+  });
+
+  const response = await POST(request("valid-token"));
+  expect(response.status).toBe(200);
+  expect(revalidatePublicProfiles).toHaveBeenCalledWith("alice", null);
+  expect(revalidatePublicProfiles).not.toHaveBeenCalledWith("alice", "u_ab");
 });
 
 test("a forged stored username cannot purge another owner's page", async () => {

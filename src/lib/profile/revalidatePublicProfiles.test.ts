@@ -1,5 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { revalidatePublicProfiles } from "./revalidatePublicProfiles";
+import {
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "./revalidatePublicProfiles";
 
 jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 
@@ -14,4 +17,10 @@ test("invalidates only the exact URL for a mixed-case UID", () => {
 test("ignores values outside a single safe public profile segment", () => {
   revalidatePublicProfiles("..", "another/path", "x".repeat(151), "alice");
   expect((revalidatePath as jest.Mock).mock.calls).toEqual([["/p/alice"]]);
+});
+
+test("only exact, safe UIDs have an owned fallback URL", () => {
+  expect(getOwnedUidFallbackUsername("MixCase-1")).toBe("u_MixCase-1");
+  expect(getOwnedUidFallbackUsername("a:b")).toBeNull();
+  expect(getOwnedUidFallbackUsername("x".repeat(149))).toBeNull();
 });

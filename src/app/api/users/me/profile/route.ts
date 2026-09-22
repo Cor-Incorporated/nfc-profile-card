@@ -1,6 +1,9 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
-import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import {
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "@/lib/profile/revalidatePublicProfiles";
 import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
@@ -307,7 +310,7 @@ export async function PATCH(request: NextRequest) {
     revalidatePublicProfiles(
       currentUsernameRaw,
       requestedUsername,
-      getUidFallbackUsername(verification.uid),
+      getOwnedUidFallbackUsername(verification.uid),
       ...ownedAliases,
     );
 
@@ -371,7 +374,7 @@ export async function POST(request: NextRequest) {
 
     revalidatePublicProfiles(
       userDoc.data()?.username,
-      getUidFallbackUsername(verification.uid),
+      getOwnedUidFallbackUsername(verification.uid),
     );
     return NextResponse.json({ revalidated: true });
   } catch (error) {

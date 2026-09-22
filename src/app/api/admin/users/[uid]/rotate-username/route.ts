@@ -1,11 +1,11 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
-import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
-import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import {
-  generateDefaultUsername,
-  getUidFallbackUsername,
-} from "@/lib/username";
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
+import { generateDefaultUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         revalidatePublicProfiles(
           result.previousUsername,
           result.username,
-          getUidFallbackUsername(params.uid),
+          getOwnedUidFallbackUsername(params.uid),
           ...ownedAliases,
         );
         return NextResponse.json(result);

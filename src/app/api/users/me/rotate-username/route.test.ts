@@ -9,6 +9,7 @@ jest.mock("@/lib/firebase-admin", () => ({
   verifyIdToken: jest.fn(),
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
+  ...jest.requireActual("@/lib/profile/revalidatePublicProfiles"),
   revalidatePublicProfiles: jest.fn(),
 }));
 jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({

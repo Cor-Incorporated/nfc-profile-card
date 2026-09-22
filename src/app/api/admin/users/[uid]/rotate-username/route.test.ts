@@ -14,6 +14,7 @@ jest.mock("@/lib/username", () => ({
   getUidFallbackUsername: (uid: string) => `u_${uid}`,
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
+  ...jest.requireActual("@/lib/profile/revalidatePublicProfiles"),
   revalidatePublicProfiles: jest.fn(),
 }));
 jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({

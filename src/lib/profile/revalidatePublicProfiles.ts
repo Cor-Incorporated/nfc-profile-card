@@ -1,5 +1,12 @@
 import { revalidatePath } from "next/cache";
 
+// The public UID path is owned only when it contains the exact UID. The
+// legacy getUidFallbackUsername helper strips characters and can point at a
+// different account for custom UIDs.
+export function getOwnedUidFallbackUsername(uid: string): string | null {
+  return /^[a-zA-Z0-9_-]{1,148}$/.test(uid) ? `u_${uid}` : null;
+}
+
 export function revalidatePublicProfiles(...usernames: unknown[]) {
   const paths = new Set<string>();
 
