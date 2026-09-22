@@ -79,6 +79,8 @@ describe("experimental Ollama OCR gateway", () => {
     ["remote HTTP", "http://ocr-gateway.example.com/api/chat", "token"],
     ["private IP", "https://192.168.1.2/api/chat", "token"],
     ["loopback HTTPS", "https://127.0.0.1/api/chat", "token"],
+    ["trailing-dot loopback", "https://localhost./api/chat", "token"],
+    ["placeholder domain", "https://ocr-gateway.example.invalid/api/chat", "token"],
     ["wrong path", "https://ocr-gateway.example.com/api/generate", "token"],
     [
       "URL credentials",

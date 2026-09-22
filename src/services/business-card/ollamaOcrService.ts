@@ -137,6 +137,7 @@ function getGatewayConfig() {
     if (
       url.protocol !== "https:" ||
       (url.port && url.port !== "443") ||
+      hostname.endsWith(".") ||
       isIP(hostname) !== 0 ||
       !hostname.includes(".") ||
       /(^|\.)(localhost|local|internal|lan|test|example|invalid)$/.test(
