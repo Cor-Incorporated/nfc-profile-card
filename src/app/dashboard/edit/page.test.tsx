@@ -78,4 +78,82 @@ describe("basic profile edit source", () => {
     );
     expect(screen.getByLabelText("email")).toHaveValue("");
   });
+
+  it("uses basic values for a newly created untouched placeholder", async () => {
+    const emptyContent = Object.fromEntries(
+      [
+        "firstName",
+        "lastName",
+        "phoneticFirstName",
+        "phoneticLastName",
+        "name",
+        "email",
+        "phone",
+        "cellPhone",
+        "company",
+        "position",
+        "department",
+        "address",
+        "city",
+        "postalCode",
+        "website",
+        "bio",
+        "photoURL",
+      ].map((field) => [field, ""]),
+    );
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(
+        snapshot({
+          username: "test-name",
+          name: "Basic Name",
+          email: "basic@example.test",
+          address: "Fiction Street 5",
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        snapshot({
+          components: [{ type: "profile", content: emptyContent }],
+        }) as never,
+      );
+
+    render(<EditProfilePage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("name *")).toHaveValue("Basic Name"),
+    );
+    expect(screen.getByLabelText("email")).toHaveValue("basic@example.test");
+    expect(screen.getByLabelText("address")).toHaveValue("Fiction Street 5");
+  });
+
+  it("does not restore basic values after all public fields were cleared", async () => {
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(
+        snapshot({
+          username: "test-name",
+          name: "Former Name",
+          email: "former@example.test",
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        snapshot({
+          components: [
+            {
+              type: "profile",
+              content: {
+                cardBackgroundColor: "#ffffff",
+                cardBackgroundOpacity: 95,
+              },
+            },
+          ],
+        }) as never,
+      );
+
+    render(<EditProfilePage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("username *")).toHaveValue("test-name"),
+    );
+    expect(screen.getByLabelText("name *")).toHaveValue("");
+    expect(screen.getByLabelText("email")).toHaveValue("");
+  });
 });

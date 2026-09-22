@@ -45,6 +45,37 @@ interface UsernameAlias {
   targetUsername: string;
 }
 
+// The design editor creates a profile placeholder with every public field
+// present and empty. Saving an intentionally cleared profile instead omits
+// those fields, so only the untouched placeholder may use the basic profile.
+const PLACEHOLDER_FIELDS = [
+  "firstName",
+  "lastName",
+  "phoneticFirstName",
+  "phoneticLastName",
+  "name",
+  "email",
+  "phone",
+  "cellPhone",
+  "company",
+  "position",
+  "department",
+  "address",
+  "city",
+  "postalCode",
+  "website",
+  "bio",
+  "photoURL",
+] as const;
+
+function isUntouchedProfilePlaceholder(content: Record<string, unknown>) {
+  return PLACEHOLDER_FIELDS.every(
+    (field) =>
+      Object.prototype.hasOwnProperty.call(content, field) &&
+      content[field] === "",
+  );
+}
+
 export default function EditProfilePage() {
   const { user, loading, getIdToken } = useAuth();
   const router = useRouter();
@@ -93,8 +124,8 @@ export default function EditProfilePage() {
             : [];
           const pc = comps.find((c: any) => c.type === "profile");
           if (pc?.content) {
-            hasProfileComponent = true;
             const c = pc.content;
+            hasProfileComponent = !isUntouchedProfilePlaceholder(c);
             fromComponent = {
               name: c.name || `${c.lastName || ""} ${c.firstName || ""}`.trim(),
               bio: c.bio || "",
