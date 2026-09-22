@@ -86,7 +86,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     redirect(`/p/${redirectUsername}`);
   }
 
-  const publicUsername = user.username || params.username;
+  // The resolver verified this route; client-writable legacy fields are not
+  // authoritative for links or analytics.
+  const publicUsername = params.username;
   const presentation = resolvePublicProfilePresentation(user, profileData);
   const nameParts = user.name?.split(" ") || [];
   const vcardFirstName = nameParts[0] || "";
