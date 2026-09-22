@@ -221,6 +221,29 @@ describe("PATCH basic profile atomic sync", () => {
       getUidFallbackUsername("test-uid"),
     );
   });
+
+  it("invalidates an owned alias after a basic edit without a username change", async () => {
+    setupStore();
+    (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["older-name"]);
+
+    const response = await PATCH({
+      headers: { get: () => "Bearer test-token" },
+      json: async () => ({
+        username: "test-name",
+        phone: "",
+        address: "",
+      }),
+    } as never);
+
+    expect(response.status).toBe(200);
+    expect(getOwnedRedirectAliases).toHaveBeenCalledWith("test-uid");
+    expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+      "test-name",
+      "test-name",
+      getUidFallbackUsername("test-uid"),
+      "older-name",
+    );
+  });
 });
 
 function request(token?: string) {

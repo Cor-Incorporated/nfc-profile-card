@@ -197,9 +197,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const ownedAliases = isUsernameChanging
-      ? await getOwnedRedirectAliases(verification.uid)
-      : [];
+    // An alias may serve the profile body when its redirect target has no
+    // reservation, so basic edits must invalidate it even without a rename.
+    const ownedAliases = await getOwnedRedirectAliases(verification.uid);
     const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
