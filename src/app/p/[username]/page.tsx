@@ -3,6 +3,7 @@ import { ProfileFloatingActions } from "@/components/profile/ProfileFloatingActi
 import { SimpleRenderer } from "@/components/profile/SimpleRenderer";
 import { TraditionalProfile } from "@/components/profile/TraditionalProfile";
 import { fetchPublicProfileByUsername } from "@/lib/profile/publicProfileData";
+import { publicProfilePath } from "@/lib/profile/publicProfileUrl";
 import { resolvePublicProfilePresentation } from "@/lib/profile/publicProfilePresentation";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -83,7 +84,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   if (redirectUsername) {
-    redirect(`/p/${redirectUsername}`);
+    redirect(publicProfilePath(redirectUsername));
   }
 
   // The resolver verified this route; client-writable legacy fields are not

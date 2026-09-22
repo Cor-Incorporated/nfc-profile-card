@@ -11,6 +11,7 @@ import {
   SUCCESS_MESSAGES,
 } from "@/lib/constants/error-messages";
 import { db } from "@/lib/firebase";
+import { publicProfilePath } from "@/lib/profile/publicProfileUrl";
 import { Crown } from "lucide-react";
 import {
   getScanQuota,
@@ -332,7 +333,9 @@ export default function BusinessCardScanPage() {
 
           {userProfile?.username && (
             <button
-              onClick={() => router.push(`/p/${userProfile.username}`)}
+              onClick={() =>
+                router.push(publicProfilePath(userProfile.username))
+              }
               className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 touch-manipulation"
             >
               <svg
