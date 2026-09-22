@@ -18,15 +18,30 @@ function gatewayResponse(
   contact: unknown = syntheticContact,
   model = "gemma4:e4b",
 ) {
+  const bytes = Buffer.from(
+    JSON.stringify({
+      model,
+      done: true,
+      message: { content: JSON.stringify(contact) },
+    }),
+  );
   return {
     ok: true,
     headers: { get: () => null },
-    text: async () =>
-      JSON.stringify({
-        model,
-        done: true,
-        message: { content: JSON.stringify(contact) },
-      }),
+    body: {
+      getReader: () => {
+        let offset = 0;
+        return {
+          read: async () => {
+            if (offset >= bytes.length) return { done: true };
+            const value = bytes.subarray(offset, offset + 45);
+            offset += value.length;
+            return { done: false, value };
+          },
+          releaseLock: () => undefined,
+        };
+      },
+    },
   } as unknown as Response;
 }
 
@@ -120,8 +135,28 @@ describe("experimental Ollama OCR gateway", () => {
   });
 
   it("rejects unsupported input without dispatch", async () => {
-    expect((await scan("image/heic")).success).toBe(false);
+    const result = await scan("image/heic");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("JPEG、PNG、WebP");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("aborts a response that exceeds 64k bytes before buffering it", async () => {
+    const read = jest
+      .fn()
+      .mockResolvedValueOnce({ done: false, value: Buffer.alloc(64_001) })
+      .mockResolvedValue({ done: true });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => null },
+      body: { getReader: () => ({ read, releaseLock: () => undefined }) },
+    });
+
+    expect((await scan()).success).toBe(false);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal?.aborted).toBe(
+      true,
+    );
   });
 
   it("accepts the JPEG MIME alias used by the scan route", async () => {
@@ -151,7 +186,7 @@ describe("experimental Ollama OCR gateway", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("aborts an unanswered gateway request after fifteen seconds", async () => {
+  it("aborts an unanswered gateway request after twenty-four seconds", async () => {
     jest.useFakeTimers();
     const aborted = jest.fn();
     fetchMock.mockImplementationOnce(
@@ -165,7 +200,7 @@ describe("experimental Ollama OCR gateway", () => {
     );
 
     const pending = scan();
-    await jest.advanceTimersByTimeAsync(15_000);
+    await jest.advanceTimersByTimeAsync(24_000);
 
     expect((await pending).success).toBe(false);
     expect(aborted).toHaveBeenCalledTimes(1);

@@ -3,10 +3,18 @@ import { isIP } from "node:net";
 import { z } from "zod";
 
 const OLLAMA_MODEL = "gemma4:e4b";
-const OLLAMA_TIMEOUT_MS = 15_000;
-const MAX_RESPONSE_CHARS = 64_000;
+const OLLAMA_TIMEOUT_MS = 24_000;
+const MAX_RESPONSE_BYTES = 64_000;
+const SUPPORTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 const ERROR_MESSAGE =
   "実験的なローカルOCRを利用できません。設定・接続を確認してください。";
+const IMAGE_FORMAT_ERROR =
+  "実験的なローカルOCRはJPEG、PNG、WebP形式の画像に対応しています。";
 
 const boundedText = z.string().max(500);
 const contactSchema = z
@@ -156,13 +164,6 @@ function getGatewayConfig() {
 }
 
 function base64Image(image: string, mimeType: string): string {
-  if (
-    !["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(
-      mimeType.toLowerCase(),
-    )
-  ) {
-    throw new Error("Ollama OCR image format is unsupported");
-  }
   const dataUrl = /^data:(image\/[a-z]+);base64,/i.exec(image);
   if (
     image.startsWith("data:") &&
@@ -181,6 +182,32 @@ function base64Image(image: string, mimeType: string): string {
   return encoded;
 }
 
+async function readBoundedResponse(
+  response: Response,
+  controller: AbortController,
+): Promise<string | null> {
+  const reader = response.body?.getReader();
+  if (!reader) return null;
+
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let raw = "";
+  let bytesRead = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return raw + decoder.decode();
+      bytesRead += value.byteLength;
+      if (bytesRead > MAX_RESPONSE_BYTES) {
+        controller.abort();
+        return null;
+      }
+      raw += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function processWithOllama(
   image: string,
   mimeType: string,
@@ -197,6 +224,10 @@ export async function processWithOllama(
     processingTime: Date.now() - startedAtMs,
     error: ERROR_MESSAGE,
   });
+
+  if (!SUPPORTED_IMAGE_TYPES.includes(mimeType.toLowerCase())) {
+    return { ...failed(), error: IMAGE_FORMAT_ERROR };
+  }
 
   try {
     const { url, token } = getGatewayConfig();
@@ -224,11 +255,12 @@ export async function processWithOllama(
         signal: controller.signal,
       });
       if (!response.ok) return failed();
-      if (Number(response.headers.get("content-length")) > MAX_RESPONSE_CHARS) {
+      if (Number(response.headers.get("content-length")) > MAX_RESPONSE_BYTES) {
+        controller.abort();
         return failed();
       }
-      const raw = await response.text();
-      if (raw.length > MAX_RESPONSE_CHARS) return failed();
+      const raw = await readBoundedResponse(response, controller);
+      if (raw === null) return failed();
       const envelope = JSON.parse(raw) as {
         done?: unknown;
         model?: unknown;
