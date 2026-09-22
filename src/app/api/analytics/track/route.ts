@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 import { standardRateLimit } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -26,24 +27,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const usersRef = adminDb.collection("users");
-    const snapshot = await usersRef
-      .where("username", "==", username)
-      .limit(1)
-      .get();
-
-    let userRef = snapshot.docs[0]?.ref;
-
-    if (!userRef && username.startsWith("u_")) {
-      const uidDoc = await usersRef.doc(username.slice(2)).get();
-      if (uidDoc.exists) {
-        userRef = uidDoc.ref;
-      }
-    }
-
-    if (!userRef) {
+    const userId = await resolvePublicProfileOwner(username);
+    if (!userId) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+    const userRef = adminDb.collection("users").doc(userId);
 
     const safeReferrer =
       request.headers.get("referer")?.slice(0, 500) || "direct";

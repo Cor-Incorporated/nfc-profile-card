@@ -1,3 +1,5 @@
+import { publicProfilePath } from "@/lib/profile/publicProfileUrl";
+
 /**
  * アプリケーション内で使用するルート定数
  * タイポ防止と型安全性のために定義
@@ -15,7 +17,7 @@ export const ROUTES = {
   DASHBOARD_BUSINESS_CARDS_SCAN: "/dashboard/business-cards/scan",
 
   // 公開プロフィール
-  PUBLIC_PROFILE: (username: string) => `/p/${username}`,
+  PUBLIC_PROFILE: publicProfilePath,
 
   // ホーム
   HOME: "/",

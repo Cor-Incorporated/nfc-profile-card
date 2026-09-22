@@ -2,6 +2,7 @@
 
 import { VCardButton } from "@/components/profile/VCardButton";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { publicProfileUrl } from "@/lib/profile/publicProfileUrl";
 import { QrCode } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -241,8 +242,8 @@ export function TraditionalProfile({
         <QRCodeModal
           isOpen={showQRCode}
           onClose={() => setShowQRCode(false)}
-          url={`${origin}/p/${username}`}
-          username={user.username}
+          url={publicProfileUrl(origin, username)}
+          username={username}
           logoUrl={user.photoURL}
         />
       )}

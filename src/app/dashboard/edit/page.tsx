@@ -85,6 +85,7 @@ export default function EditProfilePage() {
   const [isUpdatingAlias, setIsUpdatingAlias] = useState<string | null>(null);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [originalUsername, setOriginalUsername] = useState("");
+  const [uidUsernameSelected, setUidUsernameSelected] = useState(false);
   const [legacyUrlAction, setLegacyUrlAction] =
     useState<LegacyUrlAction>("redirect");
   const [usernameAliases, setUsernameAliases] = useState<UsernameAlias[]>([]);
@@ -100,6 +101,8 @@ export default function EditProfilePage() {
     address: "",
     photoURL: "",
   });
+  const uidUsername = user ? getUidFallbackUsername(user.uid) : "";
+  const canUseUidUsername = Boolean(user && uidUsername === `u_${user.uid}`);
 
   const loadProfile = useCallback(async () => {
     if (!user) return;
@@ -108,7 +111,10 @@ export default function EditProfilePage() {
     try {
       const userDoc = await getDoc(doc(db, "users", user.uid));
       const userData = userDoc.exists() ? userDoc.data() : null;
-      const username = userData?.username || getUidFallbackUsername(user.uid);
+      const fallbackUsername = getUidFallbackUsername(user.uid);
+      const username =
+        userData?.username ||
+        (fallbackUsername === `u_${user.uid}` ? fallbackUsername : "");
 
       let fromComponent: Record<string, string> = {};
       let hasProfileComponent = false;
@@ -172,6 +178,7 @@ export default function EditProfilePage() {
         photoURL: src.photoURL || "",
       });
       setOriginalUsername(username);
+      setUidUsernameSelected(false);
     } catch (error) {
       console.error("Error loading profile:", error);
       toast({
@@ -217,6 +224,7 @@ export default function EditProfilePage() {
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     if (field === "username") {
       setUsernameSuggestions([]);
+      setUidUsernameSelected(false);
     }
 
     setProfile((prev) => ({
@@ -239,8 +247,10 @@ export default function EditProfilePage() {
 
     const usernameChanged =
       originalUsername &&
-      profile.username.trim().toLowerCase() !==
-        originalUsername.trim().toLowerCase();
+      (uidUsernameSelected
+        ? profile.username !== originalUsername
+        : profile.username.trim().toLowerCase() !==
+          originalUsername.trim().toLowerCase());
     if (usernameChanged && !window.confirm(t("profileUrlChangeConfirm"))) {
       return;
     }
@@ -260,6 +270,7 @@ export default function EditProfilePage() {
         },
         body: JSON.stringify({
           ...profile,
+          usernameMode: uidUsernameSelected ? "uid" : "custom",
           replaceComponentAddress: true,
           legacyUrlAction,
         }),
@@ -294,6 +305,7 @@ export default function EditProfilePage() {
       if (data.profile?.username) {
         setProfile((prev) => ({ ...prev, username: data.profile.username }));
         setOriginalUsername(data.profile.username);
+        setUidUsernameSelected(false);
       }
 
       toast({
@@ -497,12 +509,15 @@ export default function EditProfilePage() {
                       variant="outline"
                       size="sm"
                       className="mt-2 h-8 bg-white"
-                      onClick={() =>
-                        handleInputChange(
-                          "username",
-                          getUidFallbackUsername(user.uid).toLowerCase(),
-                        )
-                      }
+                      disabled={!canUseUidUsername || isSaving}
+                      onClick={() => {
+                        setUsernameSuggestions([]);
+                        setProfile((prev) => ({
+                          ...prev,
+                          username: uidUsername,
+                        }));
+                        setUidUsernameSelected(true);
+                      }}
                     >
                       {t("useUidUsername")}
                     </Button>

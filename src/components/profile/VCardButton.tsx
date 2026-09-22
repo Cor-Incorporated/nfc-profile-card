@@ -63,7 +63,9 @@ export function VCardButton({
           body: JSON.stringify(profileData),
         });
       } else if (username) {
-        response = await fetch(`/api/vcard?username=${username}`);
+        response = await fetch(
+          `/api/vcard?username=${encodeURIComponent(username)}`,
+        );
       } else {
         throw new Error("No username or profile data provided");
       }

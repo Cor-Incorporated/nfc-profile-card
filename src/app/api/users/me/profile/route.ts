@@ -30,11 +30,19 @@ function isReservedUsername(username: string) {
   return username.startsWith("u_");
 }
 
+function getExactUidUsername(uid: string) {
+  const fallback = getUidFallbackUsername(uid);
+  return fallback === `u_${uid}` ? fallback : "";
+}
+
 function isValidUsername(username: string, uid?: string) {
-  const ownUidUsername = uid ? getUidFallbackUsername(uid).toLowerCase() : "";
+  const ownUidUsername = uid ? getExactUidUsername(uid) : "";
+  const isOwnUidUsername = Boolean(
+    ownUidUsername && username === ownUidUsername,
+  );
   return (
-    USERNAME_PATTERN.test(username) &&
-    (!isReservedUsername(username) || username === ownUidUsername)
+    (USERNAME_PATTERN.test(username) || isOwnUidUsername) &&
+    (!isReservedUsername(username) || isOwnUidUsername)
   );
 }
 
@@ -48,6 +56,13 @@ function normalizeLegacyUrlAction(value: unknown) {
 
 async function isUsernameAvailable(username: string, uid: string) {
   const usernameKey = username.toLowerCase();
+  if (usernameKey.startsWith("u_")) {
+    const directUidDoc = await adminDb
+      .collection("users")
+      .doc(usernameKey.slice(2))
+      .get();
+    if (directUidDoc.exists && directUidDoc.id !== uid) return false;
+  }
   const reservation = await adminDb
     .collection("usernames")
     .doc(usernameKey)
@@ -135,11 +150,17 @@ export async function PATCH(request: NextRequest) {
       usernameMode === "random"
         ? await generateUniqueUsername(verification.uid)
         : usernameMode === "uid"
-          ? getUidFallbackUsername(verification.uid).toLowerCase()
+          ? getExactUidUsername(verification.uid)
           : normalizeUsername(body.username);
 
     if (!requestedUsername) {
-      return NextResponse.json({ error: "username_required" }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            usernameMode === "uid" ? "username_invalid" : "username_required",
+        },
+        { status: 400 },
+      );
     }
 
     const userRef = adminDb.collection("users").doc(verification.uid);
@@ -149,7 +170,10 @@ export async function PATCH(request: NextRequest) {
         ? userDoc.data()?.username
         : "";
     const currentUsername = normalizeUsername(currentUsernameRaw);
-    const isUsernameChanging = requestedUsername !== currentUsername;
+    const isUsernameChanging =
+      usernameMode === "uid"
+        ? requestedUsername !== currentUsernameRaw
+        : normalizeUsername(requestedUsername) !== currentUsername;
 
     if (
       isUsernameChanging &&
@@ -237,6 +261,16 @@ export async function PATCH(request: NextRequest) {
         throw new Error("USERNAME_TAKEN");
       }
 
+      if (requestedUsername.startsWith("u_")) {
+        const directUidRef = adminDb
+          .collection("users")
+          .doc(requestedUsername.toLowerCase().slice(2));
+        const directUidDoc = await transaction.get(directUidRef);
+        if (directUidDoc.exists && directUidDoc.id !== verification.uid) {
+          throw new Error("USERNAME_TAKEN");
+        }
+      }
+
       const exactUsernameSnapshot = await transaction.get(
         adminDb
           .collection("users")
@@ -253,7 +287,10 @@ export async function PATCH(request: NextRequest) {
       const previousUsername = normalizeUsername(
         latestUserDoc.data()?.username,
       );
-      if (previousUsername && previousUsername !== requestedUsername) {
+      if (
+        previousUsername &&
+        previousUsername !== normalizeUsername(requestedUsername)
+      ) {
         const previousRef = adminDb
           .collection("usernames")
           .doc(previousUsername.toLowerCase());
