@@ -14,6 +14,10 @@ import {
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import {
+  formatProfileAddress,
+  profileAddressForVCard,
+} from "@/lib/profile/address";
 
 export type PageBackground =
   | { type?: "solid" | "color"; color?: string }
@@ -200,6 +204,15 @@ export function ReadOnlyProfileInfo({
   // 表示名の決定
   const displayName =
     name || `${lastName || ""} ${firstName || ""}`.trim() || "名前未設定";
+  const normalizedAddress = profileAddressForVCard({
+    postalCode,
+    city,
+    address,
+  });
+  const formattedAddress = formatProfileAddress(
+    { postalCode, city, address },
+    true,
+  );
 
   // VCard用データの準備
   const vCardData = {
@@ -214,9 +227,9 @@ export function ReadOnlyProfileInfo({
     cellPhone: cellPhone || "",
     url: website || "",
     workAddress: {
-      street: address || "",
-      city: city || "",
-      postalCode: postalCode || "",
+      street: normalizedAddress.address,
+      city: normalizedAddress.city,
+      postalCode: normalizedAddress.postalCode,
       countryRegion: "日本",
     },
     photo: photoURL || "",
@@ -377,13 +390,10 @@ export function ReadOnlyProfileInfo({
             </div>
           )}
 
-          {(address || city || postalCode) && (
+          {formattedAddress && (
             <div className="flex items-center space-x-3">
               <MapPin className={`w-5 h-5 ${iconClass}`} />
-              <span className={bodyTextClass}>
-                {postalCode && `〒${postalCode} `}
-                {city} {address}
-              </span>
+              <span className={bodyTextClass}>{formattedAddress}</span>
             </div>
           )}
         </div>
