@@ -157,7 +157,11 @@ export default function DashboardPage() {
           bio: userProfile?.bio || "",
           company: userProfile?.company || "",
           position: userProfile?.position || "",
-          email: userProfile?.email || user.email || "",
+          // Preserve an explicitly cleared public address during ID setup.
+          email:
+            typeof userProfile?.email === "string"
+              ? userProfile.email
+              : user.email || "",
           phone: userProfile?.phone || "",
           website: userProfile?.website || "",
           address: userProfile?.address || "",
