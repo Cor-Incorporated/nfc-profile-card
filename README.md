@@ -78,6 +78,8 @@
 
 Ollama実験はJPEG・PNG・WebP画像に対応します。`NFC_OCR_OLLAMA_MODEL` は許可リストの `gemma4:e2b`、`gemma4:e4b`、`gemma4:12b`、`gemma4:31b` から選び、実際の接続先に存在することを確認します。Mac Studioには現在e4bがありません。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番ではOCR専用の公開HTTPS gateway route `/v1/ocr/ollama/chat` と `NFC_OCR_OLLAMA_GATEWAY_TOKEN`（OCR限定Bearer）が必須です。既存の `nfc-ocr.tapforge.org` を使う場合は、さらにCloudflare Accessの `NFC_OCR_OLLAMA_ACCESS_CLIENT_ID` と `NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET`（service token）が必要です。このAccess資格情報は確認済みホスト以外へ送信されません。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。現在の既存gatewayにはOllama routeがなく、`/api/chat` は404です。専用routeの受入、Access policy、認証成功・拒否、実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
 
+既存のCloudflare Access appはホスト全体を保護していますが、gatewayの汎用チャット経路には呼出者認証がありません。OCR用service tokenを既存policyへ追加する前に、AccessでOCR専用pathを分離するか専用hostname/originを用意して、汎用経路へ到達できないことを検証する必要があります。
+
 ## 🔮 今後実装予定の機能
 
 - 🏷️ **NFCカード管理** - 物理カードの登録・管理
