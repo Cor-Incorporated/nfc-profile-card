@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ROUTES, createAuthRedirectUrl } from "@/lib/constants/routes";
+import { publicProfileUrl } from "@/lib/profile/publicProfileUrl";
 import { Camera, Globe, QrCode } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -125,7 +126,7 @@ export function ProfileFloatingActions({
         <QRCodeModal
           isOpen={showQRCode}
           onClose={() => setShowQRCode(false)}
-          url={`${origin}/p/${username}`}
+          url={publicProfileUrl(origin, username)}
           username={username}
           logoUrl={photoURL}
         />

@@ -112,6 +112,22 @@ describe("VCardButton", () => {
       expect(screen.getByText("連絡先を保存")).toBeInTheDocument();
     });
 
+    it("URL区切り文字を含む公開IDを1つの検索値として送る", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        blob: async () => new Blob(["vcard data"], { type: "text/vcard" }),
+      });
+
+      render(<VCardButton username="foo#bar?baz" />);
+      fireEvent.click(screen.getByRole("button"));
+
+      await waitFor(() =>
+        expect(fetch).toHaveBeenCalledWith(
+          "/api/vcard?username=foo%23bar%3Fbaz",
+        ),
+      );
+    });
+
     it("profileDataを使用してVCardをダウンロードできる", async () => {
       const profileData = {
         firstName: "Test",
