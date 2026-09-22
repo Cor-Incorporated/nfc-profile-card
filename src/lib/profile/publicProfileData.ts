@@ -78,14 +78,15 @@ async function fetchUserByUid(
 
 async function fetchUserByUsername(
   username: string,
-): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
+): Promise<QueryDocumentSnapshot<DocumentData> | null | undefined> {
   const snapshot = await adminDb
     .collection("users")
     .where("username", "==", username)
     .select(...PUBLIC_USER_FIELDS)
-    .limit(1)
+    .limit(2)
     .get();
 
+  if (snapshot.docs.length > 1) return null;
   return snapshot.docs[0];
 }
 
@@ -113,8 +114,14 @@ async function fetchProfileDataOrNull(userId: string) {
 
 async function fetchUserAndProfileByUid(
   uid: string,
+  loadProfile: boolean,
 ): Promise<ResolvedUserDoc | null> {
-  // Start both independent reads together once the reservation gives us a UID.
+  if (!loadProfile) {
+    const userDoc = await fetchUserByUid(uid);
+    return userDoc ? { userDoc } : null;
+  }
+
+  // Start both independent reads together once we have a trusted UID.
   const [userDoc, profileData] = await Promise.all([
     fetchUserByUid(uid),
     fetchProfileDataOrNull(uid),
@@ -122,27 +129,97 @@ async function fetchUserAndProfileByUid(
   return userDoc ? { userDoc, profileData } : null;
 }
 
+async function verifiedAliasTarget(
+  uid: string,
+  requestedUsername: string,
+  aliasData: DocumentData,
+  userDoc: UserProfileDoc,
+) {
+  // users/{uid}.username is client writable in existing deployments. Only
+  // redirect to a server-owned reservation for the same UID.
+  for (const value of [userDoc.data()?.username, aliasData.targetUsername]) {
+    if (typeof value !== "string") continue;
+    const target = normalizeUsername(value);
+    if (target === requestedUsername || !/^[a-z0-9_-]{3,150}$/.test(target)) {
+      continue;
+    }
+    const reservation = await adminDb.collection("usernames").doc(target).get();
+    if (!reservation.exists || reservation.data()?.uid !== uid) continue;
+    if (target.startsWith("u_")) {
+      const directUidOwner = await fetchUserByUid(target.slice(2));
+      if (directUidOwner && directUidOwner.id !== uid) continue;
+    }
+    return target;
+  }
+  return undefined;
+}
+
 async function resolveUserDoc(
   username: string,
+  loadProfile = false,
 ): Promise<ResolvedUserDoc | null> {
   const normalizedUsername = normalizeUsername(username);
+  if (
+    username !== username.trim() ||
+    !normalizedUsername ||
+    normalizedUsername.includes("/") ||
+    normalizedUsername.length > 150
+  ) {
+    return null;
+  }
+
+  // A UID fallback path belongs to its document ID even if another user's
+  // editable username field or a stale reservation contains the same text.
+  if (normalizedUsername.startsWith("u_")) {
+    const [fallback, fallbackAlias, fallbackReservation] = await Promise.all([
+      fetchUserAndProfileByUid(username.slice(2), loadProfile),
+      adminDb.collection("usernameAliases").doc(normalizedUsername).get(),
+      adminDb.collection("usernames").doc(normalizedUsername).get(),
+    ]);
+    const reservationUid = fallbackReservation.exists
+      ? fallbackReservation.data()?.uid
+      : null;
+    if (fallback) {
+      if (
+        fallbackReservation.exists &&
+        reservationUid !== fallback.userDoc.id
+      ) {
+        return null;
+      }
+      const alias = fallbackAlias.exists ? fallbackAlias.data() : null;
+      if (alias?.status === "redirect" && alias.uid === fallback.userDoc.id) {
+        const redirectUsername = await verifiedAliasTarget(
+          fallback.userDoc.id,
+          normalizedUsername,
+          alias,
+          fallback.userDoc,
+        );
+        if (redirectUsername) {
+          return { userDoc: fallback.userDoc, redirectUsername };
+        }
+      }
+      return fallback;
+    }
+    // A deleted UID's fixed URL must not be inherited by an alias or an
+    // unreserved client-writable username. Only a case-normalized reservation
+    // for that same UID may resolve it.
+    if (
+      typeof reservationUid !== "string" ||
+      reservationUid.toLowerCase() !== username.slice(2).toLowerCase()
+    )
+      return null;
+    return fetchUserAndProfileByUid(reservationUid, loadProfile);
+  }
+
   const usernameDoc = await adminDb
     .collection("usernames")
     .doc(normalizedUsername)
     .get();
   const reservedUid = usernameDoc.exists ? usernameDoc.data()?.uid : null;
 
-  if (typeof reservedUid === "string" && reservedUid) {
-    const reserved = await fetchUserAndProfileByUid(reservedUid);
-    if (reserved) return reserved;
-  }
-
-  const normalizedUserDoc = await fetchUserByUsername(normalizedUsername);
-  if (normalizedUserDoc) return { userDoc: normalizedUserDoc };
-
-  if (username !== normalizedUsername) {
-    const exactUserDoc = await fetchUserByUsername(username);
-    if (exactUserDoc) return { userDoc: exactUserDoc };
+  if (usernameDoc.exists) {
+    if (typeof reservedUid !== "string" || !reservedUid) return null;
+    return fetchUserAndProfileByUid(reservedUid, loadProfile);
   }
 
   const aliasDoc = await adminDb
@@ -150,34 +227,58 @@ async function resolveUserDoc(
     .doc(normalizedUsername)
     .get();
   const aliasData = aliasDoc.exists ? aliasDoc.data() : null;
-  const aliasUid = aliasData?.status === "redirect" ? aliasData?.uid : null;
-  if (typeof aliasUid === "string" && aliasUid) {
+  if (aliasDoc.exists) {
+    const aliasUid = aliasData?.status === "redirect" ? aliasData?.uid : null;
+    if (typeof aliasUid !== "string" || !aliasUid) return null;
     const aliasUserDoc = await fetchUserByUid(aliasUid);
     if (aliasUserDoc) {
-      const currentUsername = normalizeUsername(
-        aliasUserDoc.data()?.username || "",
+      const redirectUsername = await verifiedAliasTarget(
+        aliasUid,
+        normalizedUsername,
+        aliasData || {},
+        aliasUserDoc,
       );
       return {
         userDoc: aliasUserDoc,
-        redirectUsername:
-          currentUsername && currentUsername !== normalizedUsername
-            ? currentUsername
-            : undefined,
+        redirectUsername,
       };
     }
+    return null;
   }
 
-  if (username.startsWith("u_")) {
-    const uidUserDoc = await fetchUserAndProfileByUid(username.slice(2));
-    if (uidUserDoc) return uidUserDoc;
+  const normalizedUserDoc = await fetchUserByUsername(normalizedUsername);
+  if (normalizedUserDoc === null) return null;
+  const exactUserDoc =
+    username !== normalizedUsername
+      ? await fetchUserByUsername(username)
+      : undefined;
+  if (exactUserDoc === null) return null;
+  if (username !== normalizedUsername && normalizedUserDoc && !exactUserDoc) {
+    // An unreserved mixed-case URL must not silently select another user's
+    // lowercase field when no exact legacy owner exists.
+    return null;
   }
+  if (
+    normalizedUserDoc &&
+    exactUserDoc &&
+    normalizedUserDoc.id !== exactUserDoc.id
+  ) {
+    return null;
+  }
+  const legacyUserDoc = normalizedUserDoc || exactUserDoc;
+  if (legacyUserDoc) return { userDoc: legacyUserDoc };
 
   return null;
 }
 
+export async function resolvePublicProfileOwner(username: string) {
+  const resolved = await resolveUserDoc(username);
+  return resolved?.userDoc.id || null;
+}
+
 export async function fetchPublicProfileByUsername(username: string) {
   try {
-    const resolved = await resolveUserDoc(username);
+    const resolved = await resolveUserDoc(username, true);
     if (!resolved) {
       return { user: null, profileData: null, redirectUsername: null };
     }

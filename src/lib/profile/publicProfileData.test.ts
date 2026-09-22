@@ -1,5 +1,8 @@
 import { adminDb } from "@/lib/firebase-admin";
-import { fetchPublicProfileByUsername } from "./publicProfileData";
+import {
+  fetchPublicProfileByUsername,
+  resolvePublicProfileOwner,
+} from "./publicProfileData";
 
 jest.mock("@/lib/firebase-admin", () => ({
   adminDb: { collection: jest.fn(), getAll: jest.fn() },
@@ -132,6 +135,7 @@ test("legacy username lookup still loads its design document", async () => {
 
 test("an old URL redirects without reading unused design data", async () => {
   installFirestoreFixture({
+    reservations: { newname: { uid: "uid-2" } },
     aliases: { oldname: { uid: "uid-2", status: "redirect" } },
     users: { "uid-2": { name: "Renamed", username: "newname" } },
     profiles: { "uid-2": { components: [{ id: "unused" }] } },
@@ -141,6 +145,235 @@ test("an old URL redirects without reading unused design data", async () => {
   expect(result.redirectUsername).toBe("newname");
   expect(result.profileData).toBeNull();
   expect(mockGetAll).toHaveBeenCalledTimes(1);
+});
+
+test("a reservation wins over a forged user username", async () => {
+  installFirestoreFixture({
+    reservations: { alice: { uid: "owner" } },
+    users: {
+      owner: { name: "Alice", username: "alice" },
+      attacker: { name: "Attacker", username: "alice" },
+    },
+  });
+
+  expect((await fetchPublicProfileByUsername("alice")).user?.name).toBe(
+    "Alice",
+  );
+  expect(await resolvePublicProfileOwner("alice")).toBe("owner");
+});
+
+test("an alias wins over a forged user username and redirects only to its owner's reservation", async () => {
+  installFirestoreFixture({
+    reservations: { newname: { uid: "owner" } },
+    aliases: {
+      oldname: { uid: "owner", status: "redirect", targetUsername: "newname" },
+    },
+    users: {
+      owner: { name: "Alice", username: "newname" },
+      attacker: { name: "Attacker", username: "oldname" },
+    },
+  });
+
+  const result = await fetchPublicProfileByUsername("oldname");
+  expect(result.user?.name).toBe("Alice");
+  expect(result.redirectUsername).toBe("newname");
+  expect(await resolvePublicProfileOwner("oldname")).toBe("owner");
+});
+
+test("a client-edited alias target cannot redirect to another user's profile", async () => {
+  installFirestoreFixture({
+    reservations: { stolen: { uid: "attacker" } },
+    aliases: {
+      oldname: { uid: "owner", status: "redirect", targetUsername: "stolen" },
+    },
+    users: {
+      owner: { name: "Alice", username: "stolen" },
+      attacker: { name: "Attacker", username: "stolen" },
+    },
+  });
+
+  const result = await fetchPublicProfileByUsername("oldname");
+  expect(result.user?.name).toBe("Alice");
+  expect(result.redirectUsername).toBeNull();
+});
+
+test("a disabled alias cannot fall through to a forged legacy username", async () => {
+  installFirestoreFixture({
+    aliases: { oldname: { uid: "owner", status: "disabled" } },
+    users: { attacker: { name: "Attacker", username: "oldname" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("oldname")).user).toBeNull();
+});
+
+test("a UID fallback resolves its own document before a forged legacy username", async () => {
+  installFirestoreFixture({
+    users: {
+      owner: { name: "Alice", username: "alice" },
+      attacker: { name: "Attacker", username: "u_owner" },
+    },
+  });
+
+  expect((await fetchPublicProfileByUsername("u_owner")).user?.name).toBe(
+    "Alice",
+  );
+  expect(await resolvePublicProfileOwner("u_owner")).toBe("owner");
+});
+
+test("a UID document and a different reserved owner fail closed", async () => {
+  installFirestoreFixture({
+    reservations: { u_owner: { uid: "attacker" } },
+    users: {
+      owner: { name: "Alice", username: "alice" },
+      attacker: { name: "Attacker", username: "u_owner" },
+    },
+  });
+
+  expect((await fetchPublicProfileByUsername("u_owner")).user).toBeNull();
+  expect(await resolvePublicProfileOwner("u_owner")).toBeNull();
+});
+
+test("a missing UID document cannot fall through to another user's reservation", async () => {
+  installFirestoreFixture({
+    reservations: { u_owner: { uid: "attacker" } },
+    users: { attacker: { name: "Attacker", username: "u_owner" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("u_owner")).user).toBeNull();
+  expect(await resolvePublicProfileOwner("u_owner")).toBeNull();
+});
+
+test("a missing UID document cannot be replaced by another user's alias", async () => {
+  installFirestoreFixture({
+    aliases: { u_owner: { uid: "attacker", status: "redirect" } },
+    users: { attacker: { name: "Attacker", username: "elsewhere" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("u_owner")).user).toBeNull();
+});
+
+test("a missing UID document cannot be replaced by a legacy username", async () => {
+  installFirestoreFixture({
+    users: { attacker: { name: "Attacker", username: "u_owner" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("u_owner")).user).toBeNull();
+});
+
+test("mixed-case UID fallback and normalized server reservation resolve the same owner", async () => {
+  installFirestoreFixture({
+    reservations: { u_mixcase: { uid: "MixCase" } },
+    users: { MixCase: { name: "Alice", username: "u_mixcase" } },
+  });
+
+  expect(await resolvePublicProfileOwner("u_MixCase")).toBe("MixCase");
+  expect(await resolvePublicProfileOwner("u_mixcase")).toBe("MixCase");
+});
+
+test("case-sensitive UID collisions with a different normalized reservation fail closed", async () => {
+  installFirestoreFixture({
+    reservations: { u_mixcase: { uid: "MixCase" } },
+    users: {
+      MixCase: { name: "Alice", username: "u_mixcase" },
+      mixcase: { name: "Other", username: "u_mixcase" },
+    },
+  });
+
+  expect(await resolvePublicProfileOwner("u_MixCase")).toBe("MixCase");
+  expect(await resolvePublicProfileOwner("u_mixcase")).toBeNull();
+});
+
+test("a UID fallback alias redirects only to an owned reservation", async () => {
+  installFirestoreFixture({
+    reservations: { newname: { uid: "owner" } },
+    aliases: {
+      u_owner: { uid: "owner", status: "redirect", targetUsername: "newname" },
+    },
+    users: { owner: { name: "Alice", username: "newname" } },
+  });
+
+  const result = await fetchPublicProfileByUsername("u_owner");
+  expect(result.user?.name).toBe("Alice");
+  expect(result.redirectUsername).toBe("newname");
+});
+
+test("an alias cannot redirect to a reserved UID path owned directly by another document", async () => {
+  installFirestoreFixture({
+    reservations: { u_mixcase: { uid: "MixCase" } },
+    aliases: {
+      oldname: {
+        uid: "MixCase",
+        status: "redirect",
+        targetUsername: "u_mixcase",
+      },
+    },
+    users: {
+      MixCase: { name: "Alice", username: "u_mixcase" },
+      mixcase: { name: "Other", username: "u_mixcase" },
+    },
+  });
+
+  const result = await fetchPublicProfileByUsername("oldname");
+  expect(result.user?.name).toBe("Alice");
+  expect(result.redirectUsername).toBeNull();
+});
+
+test("UID fallback reads its alias without adding a serial lookup", async () => {
+  installFirestoreFixture({
+    users: { owner: { name: "Alice", username: "u_owner" } },
+  });
+  let finishUserRead!: (value: TestDoc[]) => void;
+  mockGetAll.mockImplementation((reference: { path: string }) =>
+    reference.path === "users/owner"
+      ? new Promise<TestDoc[]>((resolve) => {
+          finishUserRead = resolve;
+        })
+      : Promise.resolve([doc("data")]),
+  );
+
+  const pending = fetchPublicProfileByUsername("u_owner");
+  await Promise.resolve();
+  expect(mockCollection.mock.calls.map(([name]) => name)).toContain(
+    "usernameAliases",
+  );
+  expect(mockCollection.mock.calls.map(([name]) => name)).toContain(
+    "usernames",
+  );
+  finishUserRead([doc("owner", { name: "Alice", username: "u_owner" })]);
+  expect((await pending).user?.name).toBe("Alice");
+});
+
+test("ambiguous legacy usernames fail closed", async () => {
+  installFirestoreFixture({
+    users: {
+      first: { name: "First", username: "legacy" },
+      second: { name: "Second", username: "legacy" },
+    },
+  });
+
+  expect((await fetchPublicProfileByUsername("legacy")).user).toBeNull();
+  expect(await resolvePublicProfileOwner("legacy")).toBeNull();
+});
+
+test("normalized and exact legacy owners must agree", async () => {
+  installFirestoreFixture({
+    users: {
+      first: { name: "First", username: "legacy" },
+      second: { name: "Second", username: "Legacy" },
+    },
+  });
+
+  expect((await fetchPublicProfileByUsername("Legacy")).user).toBeNull();
+  expect((await fetchPublicProfileByUsername("LEGACY")).user).toBeNull();
+});
+
+test("a stale reservation cannot fall through to a client-edited username", async () => {
+  installFirestoreFixture({
+    reservations: { alice: { uid: "deleted" } },
+    users: { attacker: { name: "Attacker", username: "alice" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("alice")).user).toBeNull();
 });
 
 test("a design read failure still returns the basic user profile", async () => {

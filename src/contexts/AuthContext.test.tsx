@@ -312,7 +312,7 @@ describe("AuthContext", () => {
       expect(firestore.setDoc).toHaveBeenCalledWith(
         { id: "test-doc" },
         expect.objectContaining({
-          username: expect.stringMatching(/^[1-9][0-9]{11}$/),
+          username: "u_new-uid",
         }),
       );
       expect(firestore.setDoc).not.toHaveBeenCalledWith(
@@ -320,6 +320,34 @@ describe("AuthContext", () => {
         expect.objectContaining({ username: "newuser" }),
       );
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    });
+
+    it("URLに使えない文字を含むcustom UIDはクライアントで名前を予約しない", async () => {
+      const mockUser = {
+        uid: "custom:uid",
+        email: "custom@example.com",
+        emailVerified: false,
+      } as firebaseAuth.User;
+      (
+        firebaseAuth.createUserWithEmailAndPassword as jest.Mock
+      ).mockResolvedValue({ user: mockUser });
+      (firebaseAuth.updateProfile as jest.Mock).mockResolvedValue(undefined);
+      (firebaseAuth.sendEmailVerification as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+      await act(async () => {
+        await result.current.signUpWithEmail(
+          "custom@example.com",
+          "password123",
+        );
+      });
+
+      expect(firestore.setDoc).toHaveBeenCalledWith(
+        { id: "test-doc" },
+        expect.objectContaining({ username: "" }),
+      );
     });
 
     it("既に使用されているメールアドレスでエラーを返す", async () => {
