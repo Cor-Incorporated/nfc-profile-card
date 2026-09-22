@@ -8,6 +8,44 @@ function asText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function stripCityPrefix(
+  address: string,
+  city: string,
+  postalWasStripped: boolean,
+): string | null {
+  if (!city || !address.startsWith(city)) return null;
+  const rest = address.slice(city.length);
+  if (/^[\s,，、]/.test(rest)) return rest.replace(/^[\s,，、]+/, "");
+  // Japanese addresses often join the city and street without a separator.
+  // Only infer that split after finding the postal code immediately before it.
+  if (postalWasStripped && /[\u3000-\u9fff]/.test(city)) return rest;
+  return rest === "" ? "" : null;
+}
+
+function stripPostalPrefix(
+  address: string,
+  postalCode: string,
+  city: string,
+): string | null {
+  if (!postalCode) return null;
+  const hasMark = address.startsWith("〒");
+  const withoutMark = hasMark ? address.slice(1).trimStart() : address;
+  if (!withoutMark.startsWith(postalCode)) return null;
+  const suffix = withoutMark.slice(postalCode.length);
+  if (/^\d/.test(suffix)) return null;
+  const rest = suffix.trimStart();
+  // A matching city or explicit postal mark distinguishes an old full address
+  // from a street whose house number happens to equal the postal code.
+  if (
+    hasMark ||
+    (city && stripCityPrefix(rest, city, true) !== null) ||
+    (!city && rest.startsWith(postalCode))
+  ) {
+    return rest;
+  }
+  return null;
+}
+
 /** Remove only prefixes already represented by the structured fields. */
 export function normalizeProfileAddress(parts: ProfileAddressParts) {
   const postalCode = asText(parts.postalCode).replace(/^〒\s*/, "");
@@ -16,20 +54,13 @@ export function normalizeProfileAddress(parts: ProfileAddressParts) {
 
   // Older basic-profile saves put the complete address back in `address` while
   // retaining `postalCode` and `city`. A later save could do this repeatedly.
-  for (let attempt = 0; attempt < 10; attempt += 1) {
+  while (address) {
     const before = address;
-    if (postalCode) {
-      const withoutMark = address.startsWith("〒")
-        ? address.slice(1).trimStart()
-        : address;
-      if (withoutMark.startsWith(postalCode)) {
-        const rest = withoutMark.slice(postalCode.length);
-        if (!/^\d/.test(rest)) address = rest.trimStart();
-      }
-    }
-    if (city && address.startsWith(city)) {
-      address = address.slice(city.length).trimStart();
-    }
+    const withoutPostal = stripPostalPrefix(address, postalCode, city);
+    const postalWasStripped = withoutPostal !== null;
+    if (withoutPostal !== null) address = withoutPostal;
+    const withoutCity = stripCityPrefix(address, city, postalWasStripped);
+    if (withoutCity !== null) address = withoutCity;
     if (address === before) break;
   }
 
@@ -48,23 +79,20 @@ export function splitEditedProfileAddress(
   const address = fullAddress.trim();
   if (!address) return { postalCode: "", city: "", address: "" };
 
-  let remainder =
-    postalCode && address.startsWith("〒")
-      ? address.slice(1).trimStart()
-      : address;
+  let remainder = address;
+  let postalWasStripped = false;
   if (postalCode) {
-    if (!remainder.startsWith(postalCode)) {
-      return { postalCode: "", city: "", address };
-    }
-    const rest = remainder.slice(postalCode.length);
-    if (/^\d/.test(rest)) return { postalCode: "", city: "", address };
-    remainder = rest.trimStart();
+    const withoutPostal = stripPostalPrefix(remainder, postalCode, city);
+    if (withoutPostal === null) return { postalCode: "", city: "", address };
+    remainder = withoutPostal;
+    postalWasStripped = true;
   }
   if (city) {
-    if (!remainder.startsWith(city)) {
+    const withoutCity = stripCityPrefix(remainder, city, postalWasStripped);
+    if (withoutCity === null) {
       return { postalCode: "", city: "", address };
     }
-    remainder = remainder.slice(city.length).trimStart();
+    remainder = withoutCity;
   }
 
   return {
