@@ -1,10 +1,7 @@
 "use client";
 
 import { auth, db } from "@/lib/firebase";
-import {
-  generateDefaultUsername,
-  getUidFallbackUsername,
-} from "@/lib/username";
+import { getUidFallbackUsername } from "@/lib/username";
 import {
   AuthError,
   GoogleAuthProvider,
@@ -53,6 +50,13 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   getIdToken: async () => null,
 });
+
+function clientUidUsername(uid: string) {
+  const fallback = getUidFallbackUsername(uid);
+  // Firestore rules can prove ownership only when the URL contains the exact
+  // UID. Other custom UIDs need a server-assigned username at profile save.
+  return fallback === `u_${uid}` ? fallback : "";
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -133,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // 新規ユーザーの場合
         await setDoc(userRef, {
           ...userData,
-          username: generateDefaultUsername(),
+          username: clientUidUsername(user.uid),
           createdAt: serverTimestamp(),
           name: user.displayName || "",
           bio: "",
@@ -153,12 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         // 既存ユーザーの場合は更新
         const existingData = userSnap.data();
+        const fallbackUsername = clientUidUsername(user.uid);
         await setDoc(
           userRef,
           {
             ...userData,
-            ...(!existingData.username
-              ? { username: getUidFallbackUsername(user.uid) }
+            ...(!existingData.username && fallbackUsername
+              ? { username: fallbackUsername }
               : {}),
           },
           { merge: true },
