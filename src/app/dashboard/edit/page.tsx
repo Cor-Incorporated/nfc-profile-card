@@ -16,14 +16,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { BIO_MAX_LENGTH, BIO_WARNING_THRESHOLD } from "@/lib/constants/profile";
 import { db } from "@/lib/firebase";
+import { formatProfileAddress } from "@/lib/profile/address";
 import { getUidFallbackUsername } from "@/lib/username";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  setDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Loader2, Palette, RefreshCw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -106,9 +101,7 @@ export default function EditProfilePage() {
               email: c.email || "",
               phone: c.phone || c.cellPhone || "",
               website: c.website || "",
-              address:
-                [c.postalCode, c.city, c.address].filter(Boolean).join(" ") ||
-                "",
+              address: formatProfileAddress(c),
               photoURL: c.photoURL || "",
             };
           }
@@ -232,6 +225,7 @@ export default function EditProfilePage() {
         },
         body: JSON.stringify({
           ...profile,
+          replaceComponentAddress: true,
           legacyUrlAction,
         }),
       });
@@ -266,44 +260,6 @@ export default function EditProfilePage() {
         setProfile((prev) => ({ ...prev, username: data.profile.username }));
         setOriginalUsername(data.profile.username);
       }
-
-      try {
-        const profileDocRef = doc(db, "users", user.uid, "profile", "data");
-        const profileDoc = await getDoc(profileDocRef);
-        const nameParts = profile.name.split(" ");
-        const firstName =
-          nameParts.length > 1
-            ? nameParts.slice(1).join(" ")
-            : nameParts[0] || "";
-        const lastName = nameParts.length > 1 ? nameParts[0] : "";
-
-        if (profileDoc.exists()) {
-          const pd = profileDoc.data();
-          const components: any[] = Array.isArray(pd?.components)
-            ? pd.components
-            : [];
-          const updated = components.map((comp: any) => {
-            if (comp.type !== "profile") return comp;
-            return {
-              ...comp,
-              content: {
-                ...(comp.content || {}),
-                ...(profile.name
-                  ? { name: profile.name, firstName, lastName }
-                  : {}),
-                ...(profile.bio ? { bio: profile.bio } : {}),
-                ...(profile.company ? { company: profile.company } : {}),
-                ...(profile.position ? { position: profile.position } : {}),
-                ...(profile.email ? { email: profile.email } : {}),
-                ...(profile.phone ? { phone: profile.phone } : {}),
-                ...(profile.website ? { website: profile.website } : {}),
-                ...(profile.photoURL ? { photoURL: profile.photoURL } : {}),
-              },
-            };
-          });
-          await updateDoc(profileDocRef, { components: updated });
-        }
-      } catch {}
 
       toast({
         title: t("success"),

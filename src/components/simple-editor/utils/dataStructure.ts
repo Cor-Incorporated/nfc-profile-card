@@ -27,6 +27,8 @@ export interface ProfileContent {
   phone?: string;
   website?: string;
   address?: string;
+  city?: string;
+  postalCode?: string;
   bio?: string;
   photoURL?: string;
   cardBackgroundColor?: string;
