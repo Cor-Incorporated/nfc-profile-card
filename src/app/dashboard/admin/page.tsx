@@ -12,6 +12,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AdminRotationImpact,
+  getAdminRotationImpact,
+} from "@/components/admin/AdminRotationImpact";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertTriangle, Loader2, RotateCcw, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -85,7 +89,7 @@ export default function AdminPage() {
     if (!targetUser) return;
 
     const confirmed = window.confirm(
-      `公開URL IDを変更します。古いURL /p/${targetUser.username} は使えなくなります。続行しますか？`,
+      `公開URL IDを変更します。${getAdminRotationImpact(targetUser.uid, targetUser.username)}続行しますか？`,
     );
     if (!confirmed) return;
 
@@ -113,7 +117,7 @@ export default function AdminPage() {
         current ? { ...current, username: data.username } : current,
       );
       setMessage(
-        `公開URL IDを ${data.previousUsername || "(未設定)"} から ${data.username} に変更しました。`,
+        `公開URL IDを ${data.previousUsername || "(未設定)"} から ${data.username} に変更しました。${getAdminRotationImpact(targetUser.uid, data.previousUsername || "")}`,
       );
     } catch (err: any) {
       setError(err.message || "公開URL IDの変更に失敗しました。");
@@ -214,6 +218,11 @@ export default function AdminPage() {
                   </dd>
                 </div>
               </dl>
+
+              <AdminRotationImpact
+                uid={targetUser.uid}
+                username={targetUser.username}
+              />
 
               <Button
                 onClick={rotateUsername}
