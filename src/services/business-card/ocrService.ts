@@ -9,13 +9,15 @@ import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { GenerateContentResult, Part } from "@google/generative-ai";
 
-// Initialize Gemini AI with API key from environment
-// Use empty string as fallback to avoid build-time errors
-// Actual validation happens at runtime in processBusinessCardImage
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
+
+function getGeminiApiKey(): string | undefined {
+  // An explicitly configured NFC key must never silently fall back to a
+  // potentially stale shared key, even if the NFC value is blank.
+  const nfcKey = process.env.NFC_GEMINI_API_KEY;
+  return (nfcKey === undefined ? process.env.GEMINI_API_KEY : nfcKey)?.trim();
+}
 
 // Empty contact info template
 const emptyContactInfo: ContactInfo = {
@@ -123,7 +125,11 @@ function isModelAvailabilityError(error: unknown) {
   return referencesModel && (modelNotFound || modelMethodUnsupported);
 }
 
-async function generateOcrContent(modelName: string, imagePart: Part) {
+async function generateOcrContent(
+  genAI: GoogleGenerativeAI,
+  modelName: string,
+  imagePart: Part,
+) {
   const model = genAI.getGenerativeModel({ model: modelName });
 
   return model.generateContent({
@@ -214,9 +220,10 @@ export async function processBusinessCardImage(
 
   try {
     // Check API key at runtime
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
       ocrLogger.error(
-        "❌ GEMINI_API_KEY is missing from environment variables",
+        "❌ NFC_GEMINI_API_KEY or GEMINI_API_KEY is missing from environment variables",
       );
       return {
         success: false,
@@ -224,6 +231,7 @@ export async function processBusinessCardImage(
         error: "OCR service is not properly configured. API key is missing.",
       };
     }
+    const genAI = new GoogleGenerativeAI(apiKey);
     ocrLogger.debug("✅ Starting OCR processing");
 
     // Remove data URL prefix if present
@@ -248,7 +256,7 @@ export async function processBusinessCardImage(
 
     try {
       ocrLogger.info("Calling Gemini API with model:", primaryModelName);
-      result = await generateOcrContent(primaryModelName, imagePart);
+      result = await generateOcrContent(genAI, primaryModelName, imagePart);
     } catch (primaryError) {
       if (!fallbackModelName || !isModelAvailabilityError(primaryError)) {
         throw primaryError;
@@ -264,7 +272,7 @@ export async function processBusinessCardImage(
           ? primaryError.message
           : String(primaryError),
       );
-      result = await generateOcrContent(fallbackModelName, imagePart);
+      result = await generateOcrContent(genAI, fallbackModelName, imagePart);
     }
 
     if (!result || !result.response) {

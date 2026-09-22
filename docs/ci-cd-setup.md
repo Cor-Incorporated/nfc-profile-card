@@ -89,7 +89,16 @@ Vercelダッシュボードで以下の環境変数を設定：
 - `NEXT_PUBLIC_FIREBASE_*`: Firebase設定
 - `FIREBASE_SERVICE_ACCOUNT`: サーバーサイド認証用
 - `NEXT_PUBLIC_APP_URL`: アプリケーションURL
-- `GEMINI_API_KEY`: Google Gemini API
+- `NFC_GEMINI_API_KEY`: 名刺OCR用のGoogle Gemini APIキー（サーバー側のみ）
+- `GEMINI_API_KEY`: 既存環境向けの互換名。`NFC_GEMINI_API_KEY` が定義されている場合は使用しない
+- `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL`: OCRモデル名（未設定ならコードの既定値）
+
+Vercelの環境変数変更は既存のデプロイへ遡及しない。キーを変更した場合は対象環境へ設定し、
+[新しいデプロイを作成する](https://vercel.com/docs/environment-variables)。
+現行実装の名刺OCRはVercel上のNext.js API RouteからGeminiを呼び出すため、
+GCP Secret ManagerやCloudflareの環境変数を直接参照しない。
+既定の`gemini-3.5-flash-lite`は[Google公式モデル仕様](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite)にある画像入力対応モデル。
+環境変数の値やその一部をログ・PR本文・検証結果へ出力しない。
 
 ### 📚 参考リンク
 
