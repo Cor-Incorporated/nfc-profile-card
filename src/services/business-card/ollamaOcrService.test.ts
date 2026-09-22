@@ -52,11 +52,12 @@ describe("experimental Ollama OCR gateway", () => {
 
   beforeEach(() => {
     process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
-      "https://ocr-gateway.example.com/v1/ocr/ollama/chat";
+      "https://nfc-ocr.tapforge.org/v1/ocr/ollama/chat";
     process.env.NFC_OCR_OLLAMA_MODEL = "gemma4:e4b";
     process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN = "test-gateway-token";
-    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID;
-    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME;
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
     fetchMock = jest.fn().mockResolvedValue(gatewayResponse());
     globalThis.fetch = fetchMock;
   });
@@ -77,7 +78,7 @@ describe("experimental Ollama OCR gateway", () => {
     expect(result.contactInfo).toEqual(syntheticContact);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://ocr-gateway.example.com/v1/ocr/ollama/chat");
+    expect(url).toBe("https://nfc-ocr.tapforge.org/v1/ocr/ollama/chat");
     expect(init.redirect).toBe("error");
     expect(init.headers).toMatchObject({
       Authorization: "Bearer test-gateway-token",
@@ -108,6 +109,53 @@ describe("experimental Ollama OCR gateway", () => {
   });
 
   it("does not send Access credentials to another public hostname", async () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://attacker.example.org/v1/ocr/ollama/chat";
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends Access credentials to a matching explicit TapForge OCR hostname", async () => {
+    process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = "preview-ocr.tapforge.org";
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://preview-ocr.tapforge.org/v1/ocr/ollama/chat";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+
+    expect((await scan()).success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0][1] as RequestInit).headers).toMatchObject({
+      Authorization: "Bearer test-gateway-token",
+      "CF-Access-Client-Id": "synthetic-id.access",
+      "CF-Access-Client-Secret": "synthetic-secret",
+    });
+  });
+
+  it("requires an Access pair for an explicitly selected OCR hostname", async () => {
+    process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = "preview-ocr.tapforge.org";
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://preview-ocr.tapforge.org/v1/ocr/ollama/chat";
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects another first-party hostname without explicit selection", async () => {
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://www.tapforge.org/v1/ocr/ollama/chat";
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects Access hostname and endpoint mismatch before sending credentials", async () => {
+    process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = "preview-ocr.tapforge.org";
+    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
+      "https://other-ocr.tapforge.org/v1/ocr/ollama/chat";
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
 
@@ -115,18 +163,48 @@ describe("experimental Ollama OCR gateway", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("requires the Access pair for the existing OCR hostname", async () => {
+  it("rejects a non-HTTPS port even when the Access hostname matches", async () => {
+    process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = "preview-ocr.tapforge.org";
     process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
-      "https://nfc-ocr.tapforge.org/v1/ocr/ollama/chat";
+      "https://preview-ocr.tapforge.org:444/v1/ocr/ollama/chat";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+
+    expect((await scan()).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["nfc-ocr.tapforge.org.evil.com", "nfc-ocr.tapforge.org.evil.com"],
+    ["tapforge.org", "tapforge.org"],
+    ["127.0.0.1", "127.0.0.1"],
+    ["preview-ocr.tapforge.org.", "preview-ocr.tapforge.org."],
+    ["preview-ocr.tapforge.org:443", "preview-ocr.tapforge.org"],
+    ["xn--9ca.tapforge.org", "xn--9ca.tapforge.org"],
+    ["\u00e9.tapforge.org", "\u00e9.tapforge.org"],
+  ])(
+    "rejects an unsafe Access hostname: %s",
+    async (accessHostname, urlHost) => {
+      process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = accessHostname;
+      process.env.NFC_OCR_OLLAMA_GATEWAY_URL = `https://${urlHost}/v1/ocr/ollama/chat`;
+      process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+      process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
+
+      expect((await scan()).success).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("requires the Access pair for the existing OCR hostname", async () => {
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
 
     expect((await scan()).success).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects incomplete Access or missing gateway Bearer before dispatch", async () => {
-    process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
-      "https://nfc-ocr.tapforge.org/v1/ocr/ollama/chat";
-    process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID = "synthetic-id.access";
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
     expect((await scan()).success).toBe(false);
 
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET = "synthetic-secret";
@@ -136,7 +214,7 @@ describe("experimental Ollama OCR gateway", () => {
   });
 
   it.each([
-    ["missing token", "https://ocr-gateway.example.com/v1/ocr/ollama/chat", ""],
+    ["missing token", "https://nfc-ocr.tapforge.org/v1/ocr/ollama/chat", ""],
     [
       "remote HTTP",
       "http://ocr-gateway.example.com/v1/ocr/ollama/chat",
@@ -168,6 +246,8 @@ describe("experimental Ollama OCR gateway", () => {
   it("permits loopback HTTP only for local development", async () => {
     process.env.NFC_OCR_OLLAMA_GATEWAY_URL = "http://127.0.0.1:11434/api/chat";
     delete process.env.NFC_OCR_OLLAMA_GATEWAY_TOKEN;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID;
+    delete process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET;
 
     const result = await scan();
 

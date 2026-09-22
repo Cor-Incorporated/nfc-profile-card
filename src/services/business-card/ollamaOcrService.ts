@@ -9,6 +9,9 @@ const ALLOWED_OLLAMA_MODELS = new Set([
   "gemma4:31b",
 ]);
 const ACCESS_HOST = "nfc-ocr.tapforge.org";
+// Access credentials may only be sent to an explicitly selected TapForge host.
+const TAPFORGE_ACCESS_HOST =
+  /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tapforge\.org$/;
 const OLLAMA_TIMEOUT_MS = 24_000;
 const MAX_RESPONSE_BYTES = 64_000;
 const SUPPORTED_IMAGE_TYPES = [
@@ -124,6 +127,11 @@ function getGatewayConfig() {
   const accessClientId = process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_ID?.trim();
   const accessClientSecret =
     process.env.NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET?.trim();
+  const accessHostnameSetting = process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME;
+  const accessHostname =
+    accessHostnameSetting === undefined
+      ? ACCESS_HOST
+      : accessHostnameSetting.trim().toLowerCase();
   if (!rawUrl) throw new Error("Ollama gateway URL is missing");
   if (!model || !ALLOWED_OLLAMA_MODELS.has(model)) {
     throw new Error("Ollama OCR model is missing or unsupported");
@@ -152,13 +160,12 @@ function getGatewayConfig() {
   ) {
     throw new Error("Ollama gateway path is invalid");
   }
-  const accessConfigured = !!accessClientId || !!accessClientSecret;
   const completeAccessPair = !!accessClientId && !!accessClientSecret;
 
   if (
-    (accessConfigured && !completeAccessPair) ||
-    (completeAccessPair && hostname !== ACCESS_HOST) ||
-    (hostname === ACCESS_HOST && !completeAccessPair) ||
+    !TAPFORGE_ACCESS_HOST.test(accessHostname) ||
+    accessHostname.length > 253 ||
+    accessHostname.split(".").some((label) => label.startsWith("xn--")) ||
     [token, accessClientId, accessClientSecret].some(
       (value) => value && /\s/.test(value),
     )
@@ -167,7 +174,12 @@ function getGatewayConfig() {
   }
 
   if (localDevelopment) {
-    if (token || accessConfigured) {
+    if (
+      token ||
+      accessClientId ||
+      accessClientSecret ||
+      accessHostnameSetting !== undefined
+    ) {
       throw new Error(
         "Ollama local endpoint must not receive gateway credentials",
       );
@@ -182,7 +194,9 @@ function getGatewayConfig() {
       /(^|\.)(localhost|local|internal|lan|test|example|invalid)$/.test(
         hostname,
       ) ||
-      !token
+      !token ||
+      !completeAccessPair ||
+      hostname !== accessHostname
     ) {
       throw new Error(
         "Ollama gateway must be an authenticated public HTTPS endpoint",

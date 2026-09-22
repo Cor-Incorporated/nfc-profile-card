@@ -76,9 +76,11 @@
 - ✅ スキャン履歴の保存と管理
 - ✅ VCardダウンロード機能
 
-Ollama実験はJPEG・PNG・WebP画像に対応します。`NFC_OCR_OLLAMA_MODEL` は許可リストの `gemma4:e2b`、`gemma4:e4b`、`gemma4:12b`、`gemma4:31b` から選び、実際の接続先に存在することを確認します。Mac Studioには現在e4bがありません。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番ではOCR専用の公開HTTPS gateway route `/v1/ocr/ollama/chat` と `NFC_OCR_OLLAMA_GATEWAY_TOKEN`（OCR限定Bearer）が必須です。既存の `nfc-ocr.tapforge.org` を使う場合は、さらにCloudflare Accessの `NFC_OCR_OLLAMA_ACCESS_CLIENT_ID` と `NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET`（service token）が必要です。このAccess資格情報は確認済みホスト以外へ送信されません。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。現在デプロイ済みのgatewayにはOllama routeがなく、`/api/chat` は404です。専用routeの受入、Access policy、認証成功・拒否、実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
+Ollama実験はJPEG・PNG・WebP画像に対応します。`NFC_OCR_OLLAMA_MODEL` は許可リストの `gemma4:e2b`、`gemma4:e4b`、`gemma4:12b`、`gemma4:31b` から選び、実際の接続先に存在することを確認します。Mac Studioには現在e4bがありません。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番ではOCR専用の公開HTTPS gateway route `/v1/ocr/ollama/chat` と `NFC_OCR_OLLAMA_GATEWAY_TOKEN`（OCR限定Bearer）が必須です。本番の遠隔経路では、Cloudflare Accessの `NFC_OCR_OLLAMA_ACCESS_CLIENT_ID` と `NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET`（service token）も必須です。このAccess資格情報は確認済みホスト以外へ送信されません。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。現在デプロイ済みのgatewayにはOllama routeがなく、`/api/chat` は404です。専用routeの受入、Access policy、認証成功・拒否、実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
 
 TapForgeの `NFC_OCR_OLLAMA_GATEWAY_TOKEN` はgateway側の `NFC_OCR_GATEWAY_BEARER_TOKEN` と対応し、`NFC_OCR_OLLAMA_MODEL` は両側で一致させます。値はサーバー環境のみに置き、ブラウザへ渡しません。
+
+遠隔経路はTapForge管理下の正確なhostnameへのAccess認証とgateway Bearerの二層認証を必須とします。Access資格情報と画像の送信先は、既定では確認済みの `nfc-ocr.tapforge.org` に限定します。OCR専用hostnameとAccess appを用意した後に切り替える場合は、サーバー環境で `NFC_OCR_OLLAMA_ACCESS_HOSTNAME` をその正確な `*.tapforge.org` hostnameに設定し、`NFC_OCR_OLLAMA_GATEWAY_URL` のhostnameと一致させます。別ドメイン、IPアドレス、末尾のドット、IDNA名、URLとの不一致は送信前に拒否します。hostnameの設定だけではAccess認証は成立しないため、実tokenを使ったOCR許可と汎用経路拒否を確認するまで本番フラグを有効にしません。
 
 既存のCloudflare Access appはホスト全体を保護していますが、gatewayの汎用チャット経路には呼出者認証がありません。OCR用service tokenを既存policyへ追加する前に、AccessでOCR専用pathを分離するか専用hostname/originを用意して、汎用経路へ到達できないことを検証する必要があります。
 
