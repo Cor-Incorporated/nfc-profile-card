@@ -429,7 +429,8 @@ export function SimplePageEditor({
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveProfile();
+      saveTimeoutRef.current = null;
+      void saveProfile();
     }, 3000); // 3秒後に保存
   }, [saveProfile]);
 
@@ -440,7 +441,8 @@ export function SimplePageEditor({
       // 保留中の変更がある場合は保存
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        saveProfile(); // 即座に保存を実行
+        saveTimeoutRef.current = null;
+        void saveProfile(); // 即座に保存を実行
       }
 
       // 保存状態が「保存中」の場合は警告を表示
@@ -458,7 +460,8 @@ export function SimplePageEditor({
         // ページが非表示になった時、保留中の保存を即座に実行
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
-          saveProfile();
+          saveTimeoutRef.current = null;
+          void saveProfile();
         }
       }
     };
@@ -472,10 +475,11 @@ export function SimplePageEditor({
       // コンポーネントアンマウント時に保存タイマーをクリア
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
         // 最後の保存を実行（フラグをチェックして重複を防ぐ）
         if (!isSavingRef.current) {
           // 非同期処理をブロックしないように
-          saveProfile();
+          void saveProfile();
         }
       }
 
