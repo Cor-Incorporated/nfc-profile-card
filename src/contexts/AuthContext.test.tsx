@@ -154,6 +154,74 @@ describe("AuthContext", () => {
   });
 
   describe("signInWithGoogle", () => {
+    it.each([
+      { label: "cleared", email: "", photoURL: "" },
+      {
+        label: "customized",
+        email: "public@example.test",
+        photoURL: "https://example.test/public.png",
+      },
+    ])("keeps $label public contact fields on sign-in", async (existing) => {
+      const authUser = {
+        uid: "existing-uid",
+        email: "login@example.test",
+        photoURL: "https://example.test/login.png",
+        emailVerified: true,
+        displayName: "Login Name",
+      } as firebaseAuth.User;
+      let stored = { username: "public-name", ...existing };
+      (firestore.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => stored,
+      });
+      (firestore.setDoc as jest.Mock).mockImplementation(
+        async (_ref, updates: Record<string, unknown>) => {
+          stored = { ...stored, ...updates } as typeof stored;
+        },
+      );
+      (firebaseAuth.signInWithPopup as jest.Mock).mockResolvedValue({
+        user: authUser,
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+      await act(async () => result.current.signInWithGoogle());
+
+      expect(stored.email).toBe(existing.email);
+      expect(stored.photoURL).toBe(existing.photoURL);
+      expect(
+        (firestore.setDoc as jest.Mock).mock.calls[0][1],
+      ).not.toHaveProperty("email");
+      expect(
+        (firestore.setDoc as jest.Mock).mock.calls[0][1],
+      ).not.toHaveProperty("photoURL");
+    });
+
+    it("keeps the initial public profile defaults for a new user", async () => {
+      const authUser = {
+        uid: "new-uid",
+        email: "login@example.test",
+        photoURL: "https://example.test/login.png",
+        emailVerified: true,
+        displayName: "Login Name",
+      } as firebaseAuth.User;
+      (firebaseAuth.signInWithPopup as jest.Mock).mockResolvedValue({
+        user: authUser,
+      });
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: AuthProvider,
+      });
+      await act(async () => result.current.signInWithGoogle());
+
+      expect((firestore.setDoc as jest.Mock).mock.calls[0][1]).toMatchObject({
+        email: "login@example.test",
+        photoURL: "https://example.test/login.png",
+        name: "Login Name",
+      });
+    });
+
     it("Googleサインインが成功する", async () => {
       const mockUser = {
         uid: "google-uid",
