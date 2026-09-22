@@ -1,7 +1,6 @@
 /**
- * Last-resort Gemini OCR provider.
- * Not used on the default scan path. Enable only with OCR_PROVIDER=gemini
- * or OCR_ENABLE_GEMINI_FALLBACK=true.
+ * Gemini OCR provider. Used by default and as an optional fallback for
+ * transient failures when OCR_PROVIDER=local.
  */
 
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";

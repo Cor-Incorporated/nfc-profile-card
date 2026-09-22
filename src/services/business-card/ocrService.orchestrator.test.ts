@@ -48,7 +48,25 @@ describe("processBusinessCardImage orchestrator", () => {
     jest.dontMock("@/lib/logger");
   });
 
-  it("uses the local mock pipeline by default and does not call Gemini", async () => {
+  it("uses Gemini by default without contacting local inference", async () => {
+    delete process.env.OCR_PROVIDER;
+    const { processBusinessCardImage } = await loadOrchestrator();
+    processWithGeminiMock.mockResolvedValue({
+      success: true,
+      contactInfo: { email: "gemini@example.com" },
+      processingTime: 10,
+    });
+
+    const result = await processBusinessCardImage("base64-image", "image/png");
+
+    expect(result.success).toBe(true);
+    expect(result.engine).toBe("gemini");
+    expect(processWithGeminiMock).toHaveBeenCalledTimes(1);
+    expect(callInferenceServiceMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the local mock pipeline only when explicitly selected", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "mock";
     const { processBusinessCardImage } = await loadOrchestrator();
 
@@ -62,7 +80,19 @@ describe("processBusinessCardImage orchestrator", () => {
     expect(callInferenceServiceMock).not.toHaveBeenCalled();
   });
 
-  it("calls the inference sidecar on the default live path", async () => {
+  it("does not send the image to either provider for an invalid setting", async () => {
+    process.env.OCR_PROVIDER = "locla";
+    const { processBusinessCardImage } = await loadOrchestrator();
+
+    await expect(
+      processBusinessCardImage("base64-image", "image/png"),
+    ).rejects.toThrow(/OCR_PROVIDER/);
+    expect(processWithGeminiMock).not.toHaveBeenCalled();
+    expect(callInferenceServiceMock).not.toHaveBeenCalled();
+  });
+
+  it("calls the inference sidecar on the explicitly selected live path", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     const { processBusinessCardImage } = await loadOrchestrator();
     callInferenceServiceMock.mockResolvedValue(createMockDualPipeline());
@@ -79,6 +109,7 @@ describe("processBusinessCardImage orchestrator", () => {
   });
 
   it("does not fall back to Gemini when the sidecar is down", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     const { processBusinessCardImage } = await loadOrchestrator();
     isTransientOcrInferenceErrorMock.mockReturnValue(true);
@@ -110,6 +141,7 @@ describe("processBusinessCardImage orchestrator", () => {
   });
 
   it("falls back to Gemini after a transient local failure when opted in", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     process.env.OCR_ENABLE_GEMINI_FALLBACK = "true";
     const { processBusinessCardImage } = await loadOrchestrator();
@@ -134,6 +166,7 @@ describe("processBusinessCardImage orchestrator", () => {
   });
 
   it("does not send card data to Gemini after a permanent local failure", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     process.env.OCR_ENABLE_GEMINI_FALLBACK = "true";
     const { processBusinessCardImage } = await loadOrchestrator();
@@ -148,6 +181,7 @@ describe("processBusinessCardImage orchestrator", () => {
   });
 
   it("does not start Gemini after the total route budget is exhausted", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     process.env.OCR_ENABLE_GEMINI_FALLBACK = "true";
     const now = jest
@@ -167,6 +201,7 @@ describe("processBusinessCardImage orchestrator", () => {
   });
 
   it("honors a route deadline that started before OCR dispatch", async () => {
+    process.env.OCR_PROVIDER = "local";
     process.env.OCR_INFERENCE_MODE = "live";
     const now = jest.spyOn(Date, "now").mockReturnValue(1000);
     const { processBusinessCardImage } = await loadOrchestrator();

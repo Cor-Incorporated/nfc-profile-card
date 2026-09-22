@@ -1,7 +1,8 @@
 /**
  * Business-card OCR orchestrator.
- * Default path: local dual pipeline (PP-OCRv6 + PaddleOCR-VL).
- * Gemini is last-resort only (OCR_PROVIDER=gemini or OCR_ENABLE_GEMINI_FALLBACK).
+ * Gemini remains the default until the local gateway is explicitly enabled.
+ * OCR_PROVIDER=local opts into the dual pipeline; transient failures may
+ * use Gemini only when OCR_ENABLE_GEMINI_FALLBACK=true.
  */
 
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
@@ -206,7 +207,7 @@ export async function processBusinessCardImage(
   const provider = getOcrProvider();
 
   if (provider === "gemini") {
-    ocrLogger.warn("Gemini OCR requested explicitly via OCR_PROVIDER=gemini");
+    ocrLogger.info("Gemini OCR selected");
     return processWithGeminiFallback(image, mimeType, startTime, deadlineAtMs);
   }
 
