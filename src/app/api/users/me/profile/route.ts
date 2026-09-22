@@ -156,6 +156,9 @@ export async function PATCH(request: NextRequest) {
         : "";
     const currentUsername = normalizeUsername(currentUsernameRaw);
     const isUsernameChanging = requestedUsername !== currentUsername;
+    const currentUsernameOwned = currentUsernameRaw
+      ? await ownsPublicUsername(verification.uid, currentUsernameRaw)
+      : false;
 
     if (
       isUsernameChanging &&
@@ -308,8 +311,8 @@ export async function PATCH(request: NextRequest) {
     });
 
     revalidatePublicProfiles(
-      currentUsernameRaw,
-      requestedUsername,
+      currentUsernameOwned ? currentUsernameRaw : null,
+      currentUsernameOwned || isUsernameChanging ? requestedUsername : null,
       getOwnedUidFallbackUsername(verification.uid),
       ...ownedAliases,
     );

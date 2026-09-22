@@ -190,6 +190,37 @@ describe("PATCH basic profile atomic sync", () => {
       "very-old",
     );
   });
+
+  it("does not purge an unowned stored old name while retaining owned alias invalidation", async () => {
+    setupStore();
+    (ownsPublicUsername as jest.Mock).mockResolvedValue(false);
+    (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["owned-alias"]);
+    const response = await PATCH({
+      headers: { get: () => "Bearer test-token" },
+      json: async () => ({ username: "new-name", name: "Test Person" }),
+    } as never);
+
+    expect(response.status).toBe(200);
+    expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+      null,
+      "new-name",
+      getUidFallbackUsername("test-uid"),
+      "owned-alias",
+    );
+  });
+
+  it("does not purge an unowned unchanged name", async () => {
+    setupStore();
+    (ownsPublicUsername as jest.Mock).mockResolvedValue(false);
+
+    const response = await PATCH(patchRequest);
+    expect(response.status).toBe(200);
+    expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+      null,
+      null,
+      getUidFallbackUsername("test-uid"),
+    );
+  });
 });
 
 function request(token?: string) {

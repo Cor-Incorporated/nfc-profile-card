@@ -2,6 +2,7 @@ import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
 import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { generateDefaultUsername } from "@/lib/username";
 import { POST } from "./route";
 
@@ -20,6 +21,9 @@ jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
 jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({
   getOwnedRedirectAliases: jest.fn(),
 }));
+jest.mock("@/lib/profile/ownsPublicUsername", () => ({
+  ownsPublicUsername: jest.fn(),
+}));
 jest.mock("firebase-admin/firestore", () => ({
   FieldValue: {
     arrayUnion: (value: string) => ({ arrayUnion: value }),
@@ -36,7 +40,7 @@ jest.mock("next/server", () => ({
 }));
 
 type Data = Record<string, unknown>;
-type Ref = { path: string };
+type Ref = { path: string; get?: () => Promise<unknown> };
 type Query = { usernameQuery: string };
 type Write = { type: "set" | "update" | "delete"; path: string; value?: Data };
 
@@ -46,7 +50,10 @@ const transactions: Array<{ events: string[]; writes: Write[] }> = [];
 function installFirestoreFixture() {
   (adminDb.collection as jest.Mock).mockImplementation(
     (collection: string) => ({
-      doc: (id: string): Ref => ({ path: `${collection}/${id}` }),
+      doc: (id: string): Ref => ({
+        path: `${collection}/${id}`,
+        get: async () => ({ data: () => docs.get(`${collection}/${id}`) }),
+      }),
       where: (_field: string, _operator: string, username: string) => ({
         limit: (_count: number): Query => ({ usernameQuery: username }),
       }),
@@ -126,6 +133,7 @@ beforeEach(() => {
   });
   (generateDefaultUsername as jest.Mock).mockReturnValue("731826405219");
   (getOwnedRedirectAliases as jest.Mock).mockResolvedValue([]);
+  (ownsPublicUsername as jest.Mock).mockResolvedValue(true);
   docs.set("users/uid-a", { username: "oldname1" });
   docs.set("usernames/oldname1", { uid: "uid-a" });
 });
@@ -163,6 +171,21 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
   });
   const { events } = transactions[0];
   expect(events.lastIndexOf("read")).toBeLessThan(events.indexOf("write"));
+});
+
+test("admin rotation does not purge an unowned stored old name", async () => {
+  (ownsPublicUsername as jest.Mock).mockResolvedValue(false);
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["owned-alias"]);
+
+  const response = await rotate();
+
+  expect(response.status).toBe(200);
+  expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+    null,
+    "731826405219",
+    "u_uid-a",
+    "owned-alias",
+  );
 });
 
 test("UID形式の旧URLは回転後も利用されるため予約と別名だけを解除する", async () => {
