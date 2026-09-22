@@ -21,6 +21,7 @@ interface QRCodeModalProps {
   url: string;
   logoUrl?: string;
   username: string;
+  contactVCard?: string;
 }
 
 export function QRCodeModal({
@@ -29,29 +30,41 @@ export function QRCodeModal({
   url,
   logoUrl,
   username,
+  contactVCard,
 }: QRCodeModalProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
+  const [mode, setMode] = useState<"url" | "contact">("url");
+  const [qrError, setQrError] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
+    let active = true;
 
     const generateQRCode = async () => {
       setIsGenerating(true);
+      setQrCodeUrl("");
+      setQrError(false);
       try {
         // QRコードをDataURLとして生成
-        const dataUrl = await QRCode.toDataURL(url, {
-          width: 300,
-          margin: 2,
-          color: {
-            dark: "#2563eb",
-            light: "#ffffff",
+        const dataUrl = await QRCode.toDataURL(
+          mode === "contact" ? contactVCard! : url,
+          {
+            width: 900,
+            margin: 4,
+            errorCorrectionLevel: "M",
+            color: {
+              dark: "#000000",
+              light: "#ffffff",
+            },
           },
-        });
-        setQrCodeUrl(dataUrl);
+        );
+        if (active) setQrCodeUrl(dataUrl);
       } catch (error) {
+        if (!active) return;
+        setQrError(true);
         console.error("Failed to generate QR code:", error);
         toast({
           title: t("error"),
@@ -60,18 +73,21 @@ export function QRCodeModal({
           variant: "destructive",
         });
       } finally {
-        setIsGenerating(false);
+        if (active) setIsGenerating(false);
       }
     };
 
     generateQRCode();
-  }, [url, isOpen, toast, t]);
+    return () => {
+      active = false;
+    };
+  }, [url, contactVCard, mode, isOpen, toast, t]);
 
   const handleDownload = () => {
     if (qrCodeUrl) {
       // DataURLから画像をダウンロード
       const link = document.createElement("a");
-      link.download = `qrcode_${username}.png`;
+      link.download = `qrcode_${mode}_${username}.png`;
       link.href = qrCodeUrl;
       link.click();
 
@@ -110,6 +126,39 @@ export function QRCodeModal({
         </DialogHeader>
 
         <div className="flex flex-col items-center space-y-4">
+          {contactVCard && (
+            <div className="w-full space-y-2">
+              <label htmlFor="qr-content" className="text-sm">
+                QRの内容 / QR content
+              </label>
+              <select
+                id="qr-content"
+                value={mode}
+                onChange={(event) =>
+                  setMode(event.target.value as "url" | "contact")
+                }
+                className="w-full rounded-md border p-2"
+              >
+                <option value="url">プロフィールURL / Profile URL</option>
+                <option value="contact">
+                  連絡先・通信不要 / Offline contact
+                </option>
+              </select>
+              {mode === "contact" && (
+                <p className="text-sm text-pretty">
+                  連絡先を直接含むQRです。画像を保存すれば、交換時にWeb接続は不要です。対応するカメラ・連絡先アプリで読み取ってください。公開プロフィール変更後は保存し直してください。
+                  <br />
+                  Save this image before going offline. A compatible contact
+                  scanner is required.
+                </p>
+              )}
+            </div>
+          )}
+          {qrError && (
+            <p role="alert" className="text-sm text-red-600">
+              QRを生成できませんでした。情報量を減らすか、連絡先ファイルを保存してください。
+            </p>
+          )}
           <div className="bg-white p-4 rounded-lg shadow-lg min-h-[250px] sm:min-h-[300px] w-full max-w-[300px] flex items-center justify-center">
             {isGenerating ? (
               <div className="text-gray-400 animate-pulse">
@@ -146,7 +195,19 @@ export function QRCodeModal({
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground text-center">{url}</div>
+          {mode === "contact" && contactVCard ? (
+            <a
+              className="text-sm underline"
+              href={`data:text/vcard;charset=utf-8,${encodeURIComponent(contactVCard)}`}
+              download={`contact_${username}.vcf`}
+            >
+              連絡先ファイルを保存 / Save contact file
+            </a>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center">
+              {url}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
