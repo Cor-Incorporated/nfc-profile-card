@@ -106,8 +106,19 @@ describe("PATCH basic profile atomic sync", () => {
 
   it("commits user and public profile address together", async () => {
     const state = setupStore();
+    (revalidatePublicProfiles as jest.Mock).mockImplementation(() => {
+      expect(state.user.address).toBe("100-0001 東京都千代田区千代田2-2");
+      expect((state.profile.components as any[])[0].content.address).toBe(
+        "100-0001 東京都千代田区千代田2-2",
+      );
+    });
     const response = await PATCH(patchRequest);
     expect(response.status).toBe(200);
+    expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+      "test-name",
+      "test-name",
+      getUidFallbackUsername("test-uid"),
+    );
     expect(state.user.address).toBe("100-0001 東京都千代田区千代田2-2");
     const content = (state.profile.components as any[])[0].content;
     expect(content).toMatchObject({
@@ -126,6 +137,7 @@ describe("PATCH basic profile atomic sync", () => {
     try {
       const response = await PATCH(patchRequest);
       expect(response.status).toBe(500);
+      expect(revalidatePublicProfiles).not.toHaveBeenCalled();
       expect(state.user.address).toBe("Old address");
       expect((state.profile.components as any[])[0].content.address).toBe(
         "千代田1-1",

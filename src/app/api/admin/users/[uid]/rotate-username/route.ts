@@ -1,7 +1,10 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
-import { generateDefaultUsername, getUidFallbackUsername } from "@/lib/username";
+import {
+  generateDefaultUsername,
+  getUidFallbackUsername,
+} from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 

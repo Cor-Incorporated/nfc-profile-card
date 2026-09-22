@@ -1,5 +1,6 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
+import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
 import { generateDefaultUsername } from "@/lib/username";
 import { POST } from "./route";
 
@@ -7,7 +8,13 @@ jest.mock("@/lib/admin", () => ({ verifyAdminRequest: jest.fn() }));
 jest.mock("@/lib/firebase-admin", () => ({
   adminDb: { collection: jest.fn(), runTransaction: jest.fn() },
 }));
-jest.mock("@/lib/username", () => ({ generateDefaultUsername: jest.fn() }));
+jest.mock("@/lib/username", () => ({
+  generateDefaultUsername: jest.fn(),
+  getUidFallbackUsername: (uid: string) => `u_${uid}`,
+}));
+jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
+  revalidatePublicProfiles: jest.fn(),
+}));
 jest.mock("firebase-admin/firestore", () => ({
   FieldValue: {
     arrayUnion: (value: string) => ({ arrayUnion: value }),
@@ -131,6 +138,11 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
     previousUsername: "oldname1",
     username: "731826405219",
   });
+  expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+    "oldname1",
+    "731826405219",
+    "u_uid-a",
+  );
   expect(docs.has("usernames/oldname1")).toBe(false);
   expect(docs.has("usernameAliases/oldname1")).toBe(false);
   expect(docs.get("usernames/731826405219")?.uid).toBe("uid-a");
@@ -227,6 +239,7 @@ test.each(["usernames", "usernameAliases"])(
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({ error: "alias_conflict" });
+    expect(revalidatePublicProfiles).not.toHaveBeenCalled();
     expect(transactions[0].writes).toHaveLength(0);
     expect(docs.get(path)?.uid).toBe("uid-b");
   },
