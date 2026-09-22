@@ -80,7 +80,11 @@ describe("experimental Ollama OCR gateway", () => {
     ["private IP", "https://192.168.1.2/api/chat", "token"],
     ["loopback HTTPS", "https://127.0.0.1/api/chat", "token"],
     ["trailing-dot loopback", "https://localhost./api/chat", "token"],
-    ["placeholder domain", "https://ocr-gateway.example.invalid/api/chat", "token"],
+    [
+      "placeholder domain",
+      "https://ocr-gateway.example.invalid/api/chat",
+      "token",
+    ],
     ["wrong path", "https://ocr-gateway.example.com/api/generate", "token"],
     [
       "URL credentials",
@@ -118,6 +122,11 @@ describe("experimental Ollama OCR gateway", () => {
   it("rejects unsupported input without dispatch", async () => {
     expect((await scan("image/heic")).success).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts the JPEG MIME alias used by the scan route", async () => {
+    expect((await scan("image/jpg")).success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects malformed model fields and wrong model responses", async () => {

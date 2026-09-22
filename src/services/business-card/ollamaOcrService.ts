@@ -157,7 +157,9 @@ function getGatewayConfig() {
 
 function base64Image(image: string, mimeType: string): string {
   if (
-    !["image/jpeg", "image/png", "image/webp"].includes(mimeType.toLowerCase())
+    !["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(
+      mimeType.toLowerCase(),
+    )
   ) {
     throw new Error("Ollama OCR image format is unsupported");
   }
