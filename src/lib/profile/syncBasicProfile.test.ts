@@ -66,4 +66,42 @@ describe("basic edit profile sync", () => {
     );
     expect(content.address).toBe("〒530-0001 大阪府大阪市北区梅田1-1");
   });
+
+  it("clears public contact fields and fallback name parts on full edit", () => {
+    const content = syncBasicProfileContent(
+      {
+        name: "Old Name",
+        firstName: "Old",
+        lastName: "Name",
+        email: "old@example.test",
+        phone: "000-1111",
+        cellPhone: "000-2222",
+        bio: "Old bio",
+        photoURL: "https://example.test/old.png",
+      },
+      { name: "", email: "", phone: "", bio: "", photoURL: "" },
+      true,
+    );
+
+    expect(content).toMatchObject({
+      name: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      cellPhone: "",
+      bio: "",
+      photoURL: "",
+    });
+  });
+
+  it("keeps a cell-only phone from appearing twice on an unrelated edit", () => {
+    const content = syncBasicProfileContent(
+      { phone: "", cellPhone: "000-2222" },
+      { phone: "000-2222", bio: "Updated" },
+      true,
+    );
+    expect(content.phone).toBe("");
+    expect(content.cellPhone).toBe("000-2222");
+  });
 });

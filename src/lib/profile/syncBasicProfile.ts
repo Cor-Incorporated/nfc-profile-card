@@ -11,19 +11,21 @@ const SYNC_FIELDS = [
   "photoURL",
 ] as const;
 
-/** A basic edit's address is complete; keep split fields only when they match. */
+/** A basic edit replaces present fields, including explicit empty values. */
 export function syncBasicProfileContent(
   existing: Record<string, unknown>,
   updates: Record<string, unknown>,
-  replaceAddress = false,
+  replaceAllFields = false,
 ): Record<string, unknown> {
   const content = { ...existing };
   for (const field of SYNC_FIELDS) {
     const value = updates[field];
-    if (typeof value === "string" && value !== "") content[field] = value;
+    if (typeof value === "string" && (replaceAllFields || value !== "")) {
+      content[field] = value;
+    }
   }
 
-  if (replaceAddress && typeof updates.address === "string") {
+  if (replaceAllFields && typeof updates.address === "string") {
     const addressParts = splitEditedProfileAddress(updates.address, existing);
     content.address = addressParts.address;
     if (addressParts.postalCode) {
@@ -38,7 +40,20 @@ export function syncBasicProfileContent(
     }
   }
 
-  if (typeof updates.name === "string" && updates.name) {
+  if (replaceAllFields && typeof updates.phone === "string") {
+    const primaryPhone =
+      typeof existing.phone === "string" ? existing.phone : "";
+    const cellPhone =
+      typeof existing.cellPhone === "string" ? existing.cellPhone : "";
+    const displayedPhone = primaryPhone || cellPhone;
+    if (!primaryPhone && cellPhone && updates.phone === cellPhone) {
+      content.phone = "";
+    } else if (updates.phone !== displayedPhone) {
+      content.cellPhone = "";
+    }
+  }
+
+  if (typeof updates.name === "string" && (replaceAllFields || updates.name)) {
     const nameParts = updates.name.split(" ");
     content.firstName =
       nameParts.length > 1 ? nameParts.slice(1).join(" ") : nameParts[0] || "";

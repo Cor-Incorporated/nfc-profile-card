@@ -81,6 +81,7 @@ export default function EditProfilePage() {
       const username = userData?.username || getUidFallbackUsername(user.uid);
 
       let fromComponent: Record<string, string> = {};
+      let hasProfileComponent = false;
       try {
         const profileDoc = await getDoc(
           doc(db, "users", user.uid, "profile", "data"),
@@ -92,6 +93,7 @@ export default function EditProfilePage() {
             : [];
           const pc = comps.find((c: any) => c.type === "profile");
           if (pc?.content) {
+            hasProfileComponent = true;
             const c = pc.content;
             fromComponent = {
               name: c.name || `${c.lastName || ""} ${c.firstName || ""}`.trim(),
@@ -108,29 +110,32 @@ export default function EditProfilePage() {
         }
       } catch {}
 
-      const hasComponentData = Object.values(fromComponent).some(
-        (v) => v !== "",
-      );
       const fallback = {
-        name: userData?.name || user.displayName || "",
+        name:
+          typeof userData?.name === "string"
+            ? userData.name
+            : user.displayName || "",
         bio: userData?.bio || "",
         company: userData?.company || "",
         position: userData?.position || "",
-        email: userData?.email || user.email || "",
+        email:
+          typeof userData?.email === "string"
+            ? userData.email
+            : user.email || "",
         phone: userData?.phone || "",
         website: userData?.website || "",
         address: userData?.address || "",
         photoURL: userData?.photoURL || "",
       };
-      const src = hasComponentData ? fromComponent : fallback;
+      const src = hasProfileComponent ? fromComponent : fallback;
 
       setProfile({
-        name: src.name || user.displayName || "",
+        name: src.name,
         username,
         bio: src.bio || "",
         company: src.company || "",
         position: src.position || "",
-        email: src.email || user.email || "",
+        email: src.email,
         phone: src.phone || "",
         website: src.website || "",
         address: src.address || "",

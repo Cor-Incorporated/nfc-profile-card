@@ -188,11 +188,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
+      const profileDoc = await transaction.get(profileDocRef);
       const userExists = latestUserDoc.exists;
-
-      if (!isUsernameChanging) {
+      const saveUserAndProfile = () => {
         transaction.set(
           userRef,
           {
@@ -201,6 +202,30 @@ export async function PATCH(request: NextRequest) {
           },
           { merge: true },
         );
+
+        const profileData = profileDoc.exists ? profileDoc.data() : null;
+        if (Array.isArray(profileData?.components)) {
+          const components: any[] = profileData.components;
+          const updatedComponents = components.map((comp: any) => {
+            if (comp.type !== "profile") return comp;
+            return {
+              ...comp,
+              content: syncBasicProfileContent(
+                comp.content || {},
+                profileUpdates,
+                body.replaceComponentAddress === true,
+              ),
+            };
+          });
+          transaction.update(profileDocRef, {
+            components: updatedComponents,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+      };
+
+      if (!isUsernameChanging) {
+        saveUserAndProfile();
         return;
       }
 
@@ -270,50 +295,8 @@ export async function PATCH(request: NextRequest) {
         username: requestedUsername,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      transaction.set(
-        userRef,
-        {
-          ...profileUpdates,
-          ...(!userExists ? { createdAt: FieldValue.serverTimestamp() } : {}),
-        },
-        { merge: true },
-      );
+      saveUserAndProfile();
     });
-
-    try {
-      const profileDocRef = adminDb
-        .collection("users")
-        .doc(verification.uid)
-        .collection("profile")
-        .doc("data");
-      const profileDoc = await profileDocRef.get();
-
-      if (profileDoc.exists) {
-        const profileData = profileDoc.data();
-        const components: any[] = profileData?.components || [];
-
-        const updatedComponents = components.map((comp: any) => {
-          if (comp.type !== "profile") return comp;
-
-          return {
-            ...comp,
-            content: syncBasicProfileContent(
-              comp.content || {},
-              profileUpdates,
-              body.replaceComponentAddress === true,
-            ),
-          };
-        });
-
-        await profileDocRef.update({
-          components: updatedComponents,
-          updatedAt: new Date(),
-        });
-      }
-    } catch (syncError) {
-      console.error("Profile component sync failed:", syncError);
-      if (body.replaceComponentAddress === true) throw syncError;
-    }
 
     return NextResponse.json({
       profile: {

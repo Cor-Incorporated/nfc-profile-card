@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ProfileComponent } from "../simple-editor/utils/dataStructure";
 import { ReadOnlyProfileInfo } from "./ReadOnlyProfileInfo";
 import { VCardButton } from "./VCardButton";
+import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
 
 jest.mock("./VCardButton", () => ({
   VCardButton: jest.fn(() => <button>Download contact</button>),
@@ -36,5 +37,37 @@ describe("ReadOnlyProfileInfo address", () => {
         street: "千代田1-1",
       }),
     );
+  });
+
+  it("hides contact details removed by a basic edit", () => {
+    const content = syncBasicProfileContent(
+      {
+        name: "Old Name",
+        email: "old@example.test",
+        phone: "000-1111",
+        cellPhone: "000-2222",
+        bio: "Old bio",
+        photoURL: "https://example.test/old.png",
+      },
+      { name: "", email: "", phone: "", bio: "", photoURL: "" },
+      true,
+    );
+    render(
+      <ReadOnlyProfileInfo
+        component={{
+          id: "cleared",
+          type: "profile",
+          order: 0,
+          content: content as ProfileComponent["content"],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("名前未設定")).toBeInTheDocument();
+    expect(screen.queryByText("old@example.test")).not.toBeInTheDocument();
+    expect(screen.queryByText("000-1111")).not.toBeInTheDocument();
+    expect(screen.queryByText("000-2222")).not.toBeInTheDocument();
+    expect(screen.queryByText("Old bio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 });
