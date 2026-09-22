@@ -1,6 +1,7 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import {
   generateDefaultUsername,
   getUidFallbackUsername,
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     }
     const legacyUrlAction = normalizeLegacyUrlAction(body.legacyUrlAction);
     const userRef = adminDb.collection("users").doc(params.uid);
+    const ownedAliases = await getOwnedRedirectAliases(params.uid);
 
     for (let attempt = 0; attempt < MAX_USERNAME_ATTEMPTS; attempt += 1) {
       const username = generateDefaultUsername();
@@ -169,6 +171,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
           result.previousUsername,
           result.username,
           getUidFallbackUsername(params.uid),
+          ...ownedAliases,
         );
         return NextResponse.json(result);
       } catch (error) {

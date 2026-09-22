@@ -1,5 +1,6 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import { getUidFallbackUsername } from "@/lib/username";
 import { POST } from "./route";
 
@@ -9,6 +10,9 @@ jest.mock("@/lib/firebase-admin", () => ({
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
   revalidatePublicProfiles: jest.fn(),
+}));
+jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({
+  getOwnedRedirectAliases: jest.fn(),
 }));
 jest.mock("@/lib/username", () => ({
   generateDefaultUsername: () => "newname",
@@ -24,6 +28,7 @@ jest.mock("next/server", () => ({
 }));
 
 test("rotation invalidates the old, new, and UID fallback paths", async () => {
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["very-old"]);
   (verifyIdToken as jest.Mock).mockResolvedValue({
     success: true,
     uid: "owner",
@@ -68,5 +73,6 @@ test("rotation invalidates the old, new, and UID fallback paths", async () => {
     "oldname",
     "newname",
     getUidFallbackUsername("owner"),
+    "very-old",
   );
 });

@@ -1,6 +1,7 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import { generateDefaultUsername } from "@/lib/username";
 import { POST } from "./route";
 
@@ -14,6 +15,9 @@ jest.mock("@/lib/username", () => ({
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
   revalidatePublicProfiles: jest.fn(),
+}));
+jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({
+  getOwnedRedirectAliases: jest.fn(),
 }));
 jest.mock("firebase-admin/firestore", () => ({
   FieldValue: {
@@ -120,11 +124,13 @@ beforeEach(() => {
     decodedToken: { uid: "admin-1" },
   });
   (generateDefaultUsername as jest.Mock).mockReturnValue("731826405219");
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue([]);
   docs.set("users/uid-a", { username: "oldname1" });
   docs.set("usernames/oldname1", { uid: "uid-a" });
 });
 
 test("body-free admin rotation disables the old URL and reserves the new one atomically", async () => {
+  (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["very-old"]);
   docs.set("usernameAliases/oldname1", {
     uid: "uid-a",
     status: "redirect",
@@ -142,6 +148,7 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
     "oldname1",
     "731826405219",
     "u_uid-a",
+    "very-old",
   );
   expect(docs.has("usernames/oldname1")).toBe(false);
   expect(docs.has("usernameAliases/oldname1")).toBe(false);

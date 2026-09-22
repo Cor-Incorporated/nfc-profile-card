@@ -1,6 +1,7 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
 import {
@@ -190,6 +191,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const ownedAliases = isUsernameChanging
+      ? await getOwnedRedirectAliases(verification.uid)
+      : [];
     const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
@@ -304,6 +308,7 @@ export async function PATCH(request: NextRequest) {
       currentUsernameRaw,
       requestedUsername,
       getUidFallbackUsername(verification.uid),
+      ...ownedAliases,
     );
 
     return NextResponse.json({

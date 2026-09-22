@@ -1,6 +1,7 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { formatProfileAddress } from "@/lib/profile/address";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
 import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { getUidFallbackUsername } from "@/lib/username";
 import { PATCH, POST } from "./route";
@@ -11,6 +12,9 @@ jest.mock("@/lib/firebase-admin", () => ({
 }));
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
   revalidatePublicProfiles: jest.fn(),
+}));
+jest.mock("@/lib/profile/getOwnedRedirectAliases", () => ({
+  getOwnedRedirectAliases: jest.fn(),
 }));
 jest.mock("@/lib/profile/ownsPublicUsername", () => ({
   ownsPublicUsername: jest.fn(),
@@ -57,15 +61,34 @@ function setupStore(failProfileWrite = false) {
     get: async () => makeSnapshot(state.user),
     collection: () => ({ doc: () => profileRef }),
   };
-  (adminDb.collection as jest.Mock).mockReturnValue({ doc: () => userRef });
+  (adminDb.collection as jest.Mock).mockImplementation((collection: string) => {
+    if (collection === "users") {
+      return {
+        doc: () => userRef,
+        where: () => ({
+          limit: () => ({ get: async () => ({ empty: true }) }),
+        }),
+      };
+    }
+    return {
+      doc: () => ({
+        key: collection,
+        get: async () => ({ exists: false }),
+      }),
+    };
+  });
   (adminDb.runTransaction as jest.Mock).mockImplementation(
     async (callback: (transaction: unknown) => Promise<unknown>) => {
       const writes: Array<() => void> = [];
       const transaction = {
-        get: async (ref: unknown) =>
-          ref === userRef
-            ? makeSnapshot(state.user)
-            : makeSnapshot(state.profile),
+        get: async (ref: unknown) => {
+          if (ref === userRef) return makeSnapshot(state.user);
+          if (ref === profileRef) return makeSnapshot(state.profile);
+          if (ref && typeof ref === "object" && "get" in ref) {
+            return { empty: true };
+          }
+          return { exists: false };
+        },
         set: (_ref: unknown, value: Record<string, unknown>) => {
           writes.push(() => {
             state.user = { ...state.user, ...value };
@@ -77,6 +100,7 @@ function setupStore(failProfileWrite = false) {
             state.profile = { ...state.profile, ...value };
           });
         },
+        delete: jest.fn(),
       };
       await callback(transaction);
       writes.forEach((write) => write());
@@ -98,6 +122,7 @@ const patchRequest = {
 describe("PATCH basic profile atomic sync", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (getOwnedRedirectAliases as jest.Mock).mockResolvedValue([]);
     jest.mocked(verifyIdToken).mockResolvedValue({
       success: true,
       uid: "test-uid",
@@ -145,6 +170,24 @@ describe("PATCH basic profile atomic sync", () => {
     } finally {
       log.mockRestore();
     }
+  });
+
+  it("invalidates owned older redirects after a username change", async () => {
+    setupStore();
+    (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["very-old"]);
+    const response = await PATCH({
+      headers: { get: () => "Bearer test-token" },
+      json: async () => ({ username: "new-name", name: "Test Person" }),
+    } as never);
+
+    expect(response.status).toBe(200);
+    expect(getOwnedRedirectAliases).toHaveBeenCalledWith("test-uid");
+    expect(revalidatePublicProfiles).toHaveBeenCalledWith(
+      "test-name",
+      "new-name",
+      getUidFallbackUsername("test-uid"),
+      "very-old",
+    );
   });
 });
 
