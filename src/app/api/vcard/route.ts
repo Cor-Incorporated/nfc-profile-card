@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import vCardsJS from "vcards-js";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 import { standardRateLimit } from "@/lib/rateLimit";
 
 export interface VCardData {
@@ -178,28 +171,34 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log("Fetching profile for username:", username);
-
-    // Firebaseから直接ユーザープロファイルを取得
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", username));
-    const snapshot = await getDocs(q);
-
-    let profile = snapshot.docs[0]?.data();
-
-    if (!profile && username.startsWith("u_")) {
-      const userDoc = await getDoc(doc(db, "users", username.slice(2)));
-      if (userDoc.exists()) {
-        profile = userDoc.data();
-      }
-    }
-
-    if (!profile) {
-      console.error("Profile not found for username:", username);
+    const userId = await resolvePublicProfileOwner(username);
+    if (!userId) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
+    const [userDoc] = await adminDb.getAll(
+      adminDb.collection("users").doc(userId),
+      {
+        fieldMask: [
+          "name",
+          "bio",
+          "company",
+          "position",
+          "email",
+          "phone",
+          "mobile",
+          "website",
+          "address",
+          "photoURL",
+          "avatarUrl",
+          "image",
+        ],
+      },
+    );
+    const profile = userDoc.exists ? userDoc.data() : null;
 
-    console.log("Profile data:", profile);
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
 
     // シンプルなVCardフォーマットで直接生成
     const vcardLines = [];
@@ -275,7 +274,6 @@ export async function GET(request: NextRequest) {
     vcardLines.push("END:VCARD");
 
     const vcardString = vcardLines.join("\r\n");
-    console.log("Generated VCard:", vcardString);
 
     // ファイル名をASCII文字のみに変換
     const safeFileName =
@@ -291,10 +289,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("VCard generation error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to generate VCard",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Failed to generate VCard" },
       { status: 500 },
     );
   }

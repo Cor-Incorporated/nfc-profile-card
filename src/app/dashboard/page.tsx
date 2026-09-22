@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getAnalyticsSummary } from "@/lib/analytics";
 import { db } from "@/lib/firebase";
+import { publicProfilePath } from "@/lib/profile/publicProfileUrl";
 import { getUidFallbackUsername } from "@/lib/username";
 import { doc, getDoc } from "firebase/firestore";
 import {
@@ -44,6 +45,8 @@ export default function DashboardPage() {
   const [idSetupLoading, setIdSetupLoading] = useState(false);
   const [idSetupError, setIdSetupError] = useState("");
   const [idSetupSuccess, setIdSetupSuccess] = useState("");
+  const uidUsername = user ? getUidFallbackUsername(user.uid) : "";
+  const canUseUidUsername = Boolean(user && uidUsername === `u_${user.uid}`);
 
   const fetchUserProfile = useCallback(async () => {
     if (!user) return;
@@ -137,6 +140,10 @@ export default function DashboardPage() {
 
     if (idSetupMode === "custom" && !customUsername.trim()) {
       setIdSetupError(t("usernameRequired"));
+      return;
+    }
+    if (idSetupMode === "uid" && !canUseUidUsername) {
+      setIdSetupError(t("usernameInvalid"));
       return;
     }
 
@@ -293,12 +300,16 @@ export default function DashboardPage() {
                   description: t("profileIdCustomDescription"),
                   badge: "",
                 },
-                {
-                  mode: "uid" as const,
-                  title: t("profileIdUidTitle"),
-                  description: `${t("profileIdUidDescription")} /p/${getUidFallbackUsername(user.uid).toLowerCase()}`,
-                  badge: "",
-                },
+                ...(canUseUidUsername
+                  ? [
+                      {
+                        mode: "uid" as const,
+                        title: t("profileIdUidTitle"),
+                        description: `${t("profileIdUidDescription")} /p/${uidUsername}`,
+                        badge: "",
+                      },
+                    ]
+                  : []),
               ].map((option) => (
                 <button
                   key={option.mode}
@@ -459,7 +470,7 @@ export default function DashboardPage() {
           {/* 公開プロファイルを見る */}
           {!profileLoading && userProfile?.username && (
             <Link
-              href={`/p/${userProfile.username}`}
+              href={publicProfilePath(userProfile.username)}
               target="_blank"
               className="block w-full p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
