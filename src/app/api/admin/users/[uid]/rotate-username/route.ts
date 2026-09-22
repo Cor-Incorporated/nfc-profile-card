@@ -1,5 +1,11 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
+import {
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { generateDefaultUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -40,6 +46,15 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     }
     const legacyUrlAction = normalizeLegacyUrlAction(body.legacyUrlAction);
     const userRef = adminDb.collection("users").doc(params.uid);
+    const beforeRotation = await userRef.get();
+    const observedPreviousUsername =
+      typeof beforeRotation.data()?.username === "string"
+        ? beforeRotation.data()?.username.trim()
+        : "";
+    const previousUsernameOwned = observedPreviousUsername
+      ? await ownsPublicUsername(params.uid, observedPreviousUsername)
+      : false;
+    const ownedAliases = await getOwnedRedirectAliases(params.uid);
 
     for (let attempt = 0; attempt < MAX_USERNAME_ATTEMPTS; attempt += 1) {
       const username = generateDefaultUsername();
@@ -161,6 +176,15 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             { status: 404 },
           );
         }
+        revalidatePublicProfiles(
+          previousUsernameOwned &&
+            result.previousUsername === observedPreviousUsername
+            ? result.previousUsername
+            : null,
+          result.username,
+          getOwnedUidFallbackUsername(params.uid),
+          ...ownedAliases,
+        );
         return NextResponse.json(result);
       } catch (error) {
         if (error instanceof UsernameCollisionError) continue;

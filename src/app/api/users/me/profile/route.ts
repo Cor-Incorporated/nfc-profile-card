@@ -1,5 +1,11 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import {
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
 import {
   generateDefaultUsername,
@@ -150,6 +156,9 @@ export async function PATCH(request: NextRequest) {
         : "";
     const currentUsername = normalizeUsername(currentUsernameRaw);
     const isUsernameChanging = requestedUsername !== currentUsername;
+    const currentUsernameOwned = currentUsernameRaw
+      ? await ownsPublicUsername(verification.uid, currentUsernameRaw)
+      : false;
 
     if (
       isUsernameChanging &&
@@ -188,6 +197,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // An alias may serve the profile body when its redirect target has no
+    // reservation, so basic edits must invalidate it even without a rename.
+    const ownedAliases = await getOwnedRedirectAliases(verification.uid);
     const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
@@ -298,6 +310,13 @@ export async function PATCH(request: NextRequest) {
       saveUserAndProfile();
     });
 
+    revalidatePublicProfiles(
+      currentUsernameOwned ? currentUsernameRaw : null,
+      currentUsernameOwned || isUsernameChanging ? requestedUsername : null,
+      getOwnedUidFallbackUsername(verification.uid),
+      ...ownedAliases,
+    );
+
     return NextResponse.json({
       profile: {
         ...Object.fromEntries(
@@ -317,6 +336,56 @@ export async function PATCH(request: NextRequest) {
     console.error("Profile update failed:", error);
     return NextResponse.json(
       { error: "profile_update_failed" },
+      { status: 500 },
+    );
+  }
+}
+
+// The design editor writes its document through the Firebase client SDK. It
+// calls this authenticated endpoint only after Firestore confirms that write.
+export async function POST(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : null;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const verification = await verifyIdToken(token);
+    if (!verification.success || !verification.uid) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userDoc = await adminDb
+      .collection("users")
+      .doc(verification.uid)
+      .get();
+    if (!userDoc.exists) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (
+      !(await ownsPublicUsername(verification.uid, userDoc.data()?.username))
+    ) {
+      return NextResponse.json(
+        { error: "public_username_not_owned" },
+        { status: 403 },
+      );
+    }
+
+    const ownedAliases = await getOwnedRedirectAliases(verification.uid);
+    revalidatePublicProfiles(
+      userDoc.data()?.username,
+      getOwnedUidFallbackUsername(verification.uid),
+      ...ownedAliases,
+    );
+    return NextResponse.json({ revalidated: true });
+  } catch (error) {
+    console.error("Public profile revalidation failed:", error);
+    return NextResponse.json(
+      { error: "profile_revalidation_failed" },
       { status: 500 },
     );
   }

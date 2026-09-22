@@ -162,6 +162,9 @@ describe("AuthContext", () => {
         photoURL: "https://example.test/public.png",
       },
     ])("keeps $label public contact fields on sign-in", async (existing) => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue({ ok: true } as Response);
       const authUser = {
         uid: "existing-uid",
         email: "login@example.test",
@@ -196,6 +199,38 @@ describe("AuthContext", () => {
       expect(
         (firestore.setDoc as jest.Mock).mock.calls[0][1],
       ).not.toHaveProperty("photoURL");
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    });
+
+    it("invalidates the public page after filling a missing UID username", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue({ ok: true } as Response);
+      const authUser = {
+        uid: "existing-uid",
+        email: "login@example.test",
+        getIdToken: jest.fn().mockResolvedValue("valid-token"),
+      } as unknown as firebaseAuth.User;
+      (firestore.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => ({ username: "", email: "public@example.test" }),
+      });
+      (firebaseAuth.signInWithPopup as jest.Mock).mockResolvedValue({
+        user: authUser,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+      await act(async () => result.current.signInWithGoogle());
+
+      expect((firestore.setDoc as jest.Mock).mock.calls[0][1]).toMatchObject({
+        username: "u_existing-uid",
+      });
+      expect(fetchSpy).toHaveBeenCalledWith("/api/users/me/profile", {
+        method: "POST",
+        headers: { Authorization: "Bearer valid-token" },
+      });
+      fetchSpy.mockRestore();
     });
 
     it("keeps the initial public profile defaults for a new user", async () => {

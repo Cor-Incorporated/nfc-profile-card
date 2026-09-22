@@ -376,7 +376,7 @@ test("a stale reservation cannot fall through to a client-edited username", asyn
   expect((await fetchPublicProfileByUsername("alice")).user).toBeNull();
 });
 
-test("a design read failure still returns the basic user profile", async () => {
+test("a design read failure rejects so ISR does not cache an incomplete profile", async () => {
   installFirestoreFixture({
     reservations: { alice: { uid: "uid-1" } },
     users: { "uid-1": { name: "Alice", username: "alice" } },
@@ -389,9 +389,9 @@ test("a design read failure still returns the basic user profile", async () => {
   const log = jest.spyOn(console, "error").mockImplementation(() => {});
 
   try {
-    const result = await fetchPublicProfileByUsername("alice");
-    expect(result.user?.name).toBe("Alice");
-    expect(result.profileData).toBeNull();
+    await expect(fetchPublicProfileByUsername("alice")).rejects.toThrow(
+      "profile unavailable",
+    );
     expect(mockGetAll).toHaveBeenCalledTimes(2);
   } finally {
     log.mockRestore();

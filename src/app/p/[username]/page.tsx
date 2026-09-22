@@ -11,6 +11,12 @@ import { cache } from "react";
 
 export const revalidate = 300;
 
+// No profile IDs are needed at build time. Generate each public page on its
+// first request so subsequent visits can use the Full Route Cache.
+export function generateStaticParams(): { username: string }[] {
+  return [];
+}
+
 interface ProfilePageProps {
   params: { username: string };
 }

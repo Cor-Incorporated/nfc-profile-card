@@ -1,4 +1,10 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import {
+  getOwnedUidFallbackUsername,
+  revalidatePublicProfiles,
+} from "@/lib/profile/revalidatePublicProfiles";
+import { getOwnedRedirectAliases } from "@/lib/profile/getOwnedRedirectAliases";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { generateDefaultUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -55,6 +61,15 @@ export async function POST(request: NextRequest) {
     const legacyUrlAction = normalizeLegacyUrlAction(body.legacyUrlAction);
 
     const userRef = adminDb.collection("users").doc(verification.uid);
+    const beforeRotation = await userRef.get();
+    const observedPreviousUsername =
+      typeof beforeRotation.data()?.username === "string"
+        ? beforeRotation.data()?.username
+        : "";
+    const previousUsernameOwned = observedPreviousUsername
+      ? await ownsPublicUsername(verification.uid, observedPreviousUsername)
+      : false;
+    const ownedAliases = await getOwnedRedirectAliases(verification.uid);
     const username = await generateUniqueUsername();
     const result = await adminDb.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userRef);
@@ -128,6 +143,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    revalidatePublicProfiles(
+      previousUsernameOwned &&
+        result.previousUsername === observedPreviousUsername
+        ? result.previousUsername
+        : null,
+      result.username,
+      getOwnedUidFallbackUsername(verification.uid),
+      ...ownedAliases,
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error("Self-service username rotation failed:", error);

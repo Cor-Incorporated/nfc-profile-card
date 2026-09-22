@@ -1,4 +1,5 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -168,6 +169,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    revalidatePublicProfiles(result.username);
     return NextResponse.json({ alias: result });
   } catch (error) {
     if (error instanceof Error && error.message === "ALIAS_TAKEN") {
