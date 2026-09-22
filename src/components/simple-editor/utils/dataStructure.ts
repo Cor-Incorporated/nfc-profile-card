@@ -83,6 +83,7 @@ export interface SortableItemProps {
 export interface SimplePageEditorProps {
   userId: string;
   initialData?: ProfileData;
+  initialRevision?: string | null;
   user?: {
     username?: string;
     email?: string;

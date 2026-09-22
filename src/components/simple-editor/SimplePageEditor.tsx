@@ -13,9 +13,9 @@ import {
   Settings,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { saveLatestVersion } from "@/lib/profile/saveLatestVersion";
 import {
   DndContext,
   closestCenter,
@@ -47,7 +47,6 @@ import {
 import { ComponentEditor } from "./ComponentEditor";
 import { BackgroundCustomizer } from "./BackgroundCustomizer";
 import { DevicePreview } from "./DevicePreview";
-import { cleanupProfileData } from "@/utils/cleanupProfileData";
 import { getUidFallbackUsername } from "@/lib/username";
 
 // ドラッグ可能なコンポーネントアイテム
@@ -177,10 +176,12 @@ function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
 export function SimplePageEditor({
   userId,
   initialData,
+  initialRevision,
   user,
 }: SimplePageEditorProps) {
   const router = useRouter();
   const { t } = useLanguage();
+  const { user: authUser } = useAuth();
   const [components, setComponents] = useState<ProfileComponent[]>(
     initialData?.components || [],
   );
@@ -196,8 +197,16 @@ export function SimplePageEditor({
     "saved",
   );
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [requestPending, setRequestPending] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false); // 保存中フラグ
+  const revisionRef = useRef(initialRevision ?? null);
+  const draftVersionRef = useRef(0);
+  const latestDraftRef = useRef({
+    components: initialData?.components || [],
+    background: initialData?.background || null,
+  });
 
   // センサー設定（モバイル対応）
   const sensors = useSensors(
@@ -222,7 +231,8 @@ export function SimplePageEditor({
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setComponents((items) => {
+      const nextItems = (() => {
+        const items = latestDraftRef.current.components;
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over?.id);
 
@@ -232,11 +242,8 @@ export function SimplePageEditor({
           ...item,
           order: index,
         }));
-      });
-
-      // 並び替え後に自動保存を実行
-      setSaveStatus("saving");
-      debouncedSave();
+      })();
+      queueDraft({ ...latestDraftRef.current, components: nextItems });
     }
   };
 
@@ -254,24 +261,24 @@ export function SimplePageEditor({
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
-      order: components.length,
+      order: latestDraftRef.current.components.length,
       content: sanitizeComponentContent(
         type,
         defaultContent,
       ) as ProfileComponent["content"],
     };
-    setComponents([...components, newComponent]);
+    queueDraft({
+      ...latestDraftRef.current,
+      components: [...latestDraftRef.current.components, newComponent],
+    });
     setShowAddMenu(false);
-    // 追加後に自動保存を実行
-    setSaveStatus("saving");
-    debouncedSave();
   };
 
   const deleteComponent = (id: string) => {
-    setComponents(components.filter((c) => c.id !== id));
-    // 削除後に自動保存を実行
-    setSaveStatus("saving");
-    debouncedSave();
+    queueDraft({
+      ...latestDraftRef.current,
+      components: latestDraftRef.current.components.filter((c) => c.id !== id),
+    });
   };
 
   const editComponent = (component: ProfileComponent) => {
@@ -307,13 +314,13 @@ export function SimplePageEditor({
       content: sanitizedContent as ProfileComponent["content"],
     };
 
-    setComponents(
-      components.map((c) => (c.id === safeComponent.id ? safeComponent : c)),
-    );
+    queueDraft({
+      ...latestDraftRef.current,
+      components: latestDraftRef.current.components.map((c) =>
+        c.id === safeComponent.id ? safeComponent : c,
+      ),
+    });
     setEditingComponent(null);
-    // 更新後に自動保存を実行
-    setSaveStatus("saving");
-    debouncedSave();
   };
 
   // デバッグ用：データリセット機能（開発環境のみ）
@@ -325,23 +332,7 @@ export function SimplePageEditor({
     );
     if (!confirmed) return;
 
-    setSaveStatus("saving");
-    try {
-      const result = await cleanupProfileData(
-        userId,
-        user?.username || "unknown",
-      );
-      if (result.success) {
-        // UIを初期状態にリセット
-        window.location.reload();
-      } else {
-        console.error("Reset failed:", result.error);
-        setSaveStatus("error");
-      }
-    } catch (error) {
-      console.error("Reset error:", error);
-      setSaveStatus("error");
-    }
+    queueDraft({ components: [], background: null });
   };
 
   // 保存関数（useCallbackで最適化）
@@ -353,52 +344,78 @@ export function SimplePageEditor({
     }
 
     isSavingRef.current = true;
+    setRequestPending(true);
     setSaveStatus("saving");
 
     try {
-      const docRef = doc(db, "users", userId, "profile", "data");
-
-      // updateDocを使用した差分更新
-      await updateDoc(docRef, {
-        components,
-        background,
-        updatedAt: new Date(),
-      });
-
+      if (!authUser || authUser.uid !== userId) {
+        throw new Error(
+          "ログイン状態を確認できません。再読み込みしてください。",
+        );
+      }
+      const token = await authUser.getIdToken();
+      await saveLatestVersion(
+        () => ({
+          version: draftVersionRef.current,
+          draft: latestDraftRef.current,
+        }),
+        async (draft) => {
+          const response = await fetch("/api/users/me/profile/design", {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ...draft, revision: revisionRef.current }),
+          });
+          const result = await response.json();
+          if (typeof result.revision === "string") {
+            revisionRef.current = result.revision;
+          }
+          if (typeof result.committedRevision === "string") {
+            revisionRef.current = result.committedRevision;
+          }
+          if (response.status === 409) {
+            throw new Error(
+              "別の画面でプロフィールが更新されました。再読み込みしてから編集してください。",
+            );
+          }
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(
+              "ログインを確認できません。再読み込みしてから保存してください。",
+            );
+          }
+          if (result.error === "invalidation_failed") {
+            throw new Error(
+              "保存されましたが公開ページの更新を確認できません。再保存してください。",
+            );
+          }
+          if (!response.ok) {
+            throw new Error(
+              "保存に失敗しました。内容を確認して再保存してください。",
+            );
+          }
+        },
+      );
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      setSaveError(null);
       setSaveStatus("saved");
       setLastSaved(new Date());
-      console.log("[SimplePageEditor] Profile saved successfully");
     } catch (error) {
-      // ドキュメントが存在しない場合はsetDocで作成
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        (error as any).code === "not-found"
-      ) {
-        try {
-          await setDoc(doc(db, "users", userId, "profile", "data"), {
-            components,
-            background,
-            updatedAt: serverTimestamp(),
-          });
-          setSaveStatus("saved");
-          setLastSaved(new Date());
-          console.log("[SimplePageEditor] Profile created successfully");
-        } catch (createError) {
-          console.error(
-            "[SimplePageEditor] Error creating profile:",
-            createError,
-          );
-          setSaveStatus("error");
-        }
-      } else {
-        console.error("[SimplePageEditor] Error saving profile:", error);
-        setSaveStatus("error");
-      }
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "保存に失敗しました。再保存してください。",
+      );
+      setSaveStatus("error");
     } finally {
       isSavingRef.current = false;
+      setRequestPending(false);
     }
-  }, [components, background, userId]);
+  }, [authUser, userId]);
 
   // デバウンス付き自動保存（3秒）
   const debouncedSave = React.useCallback(() => {
@@ -407,22 +424,31 @@ export function SimplePageEditor({
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveProfile();
+      saveTimeoutRef.current = null;
+      void saveProfile();
     }, 3000); // 3秒後に保存
   }, [saveProfile]);
+
+  const queueDraft = React.useCallback(
+    (draft: typeof latestDraftRef.current) => {
+      latestDraftRef.current = draft;
+      draftVersionRef.current += 1;
+      setComponents(draft.components);
+      setBackground(draft.background);
+      setSaveError(null);
+      setSaveStatus("saving");
+      debouncedSave();
+    },
+    [debouncedSave],
+  );
 
   // ページ離脱時の自動保存設定
   useEffect(() => {
     // ページ離脱時の保存処理
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // 保留中の変更がある場合は保存
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveProfile(); // 即座に保存を実行
-      }
-
-      // 保存状態が「保存中」の場合は警告を表示
-      if (isSavingRef.current) {
+      // A browser unload cannot await the server write. Warn while a draft
+      // or request is pending rather than claiming that it was saved.
+      if (saveTimeoutRef.current || isSavingRef.current) {
         e.preventDefault();
         e.returnValue =
           "保存中です。ページを離れると変更が失われる可能性があります。";
@@ -436,7 +462,8 @@ export function SimplePageEditor({
         // ページが非表示になった時、保留中の保存を即座に実行
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
-          saveProfile();
+          saveTimeoutRef.current = null;
+          void saveProfile();
         }
       }
     };
@@ -453,7 +480,7 @@ export function SimplePageEditor({
         // 最後の保存を実行（フラグをチェックして重複を防ぐ）
         if (!isSavingRef.current) {
           // 非同期処理をブロックしないように
-          saveProfile();
+          void saveProfile();
         }
       }
 
@@ -597,17 +624,34 @@ export function SimplePageEditor({
                 </div>
               )}
               {saveStatus === "error" && (
-                <div className="flex items-center text-red-600">
+                <div role="alert" className="flex items-center text-red-600">
                   <AlertCircle className="h-4 w-4 mr-2" />
-                  {t("saveFailed")}
+                  {saveError || t("saveFailed")}
                 </div>
               )}
             </div>
 
+            {saveStatus === "error" && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => window.location.reload()}
+              >
+                再読み込みして最新の内容を確認
+              </Button>
+            )}
+
             {/* 手動保存ボタン */}
             <Button
-              onClick={saveProfile}
-              disabled={saveStatus === "saving"}
+              onClick={() => {
+                if (saveTimeoutRef.current) {
+                  clearTimeout(saveTimeoutRef.current);
+                  saveTimeoutRef.current = null;
+                }
+                void saveProfile();
+              }}
+              disabled={requestPending}
               className="w-full"
               variant="outline"
             >
@@ -647,10 +691,10 @@ export function SimplePageEditor({
                     currentBackground={background}
                     userId={userId}
                     onBackgroundChange={(newBg) => {
-                      setBackground(newBg);
-                      // 背景変更後に自動保存
-                      setSaveStatus("saving");
-                      debouncedSave();
+                      queueDraft({
+                        ...latestDraftRef.current,
+                        background: newBg,
+                      });
                     }}
                   />
                   <Button

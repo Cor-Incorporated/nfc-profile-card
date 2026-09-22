@@ -59,8 +59,9 @@ service cloud.firestore {
       match /profile/{docId} {
         // 誰でも読める（公開プロフィール表示用）
         allow read: if true;
-        // 本人のみ作成・更新可能
-        allow write: if isOwner(userId);
+        // 公開デザインは認証済みserver APIのみが更新する。
+        // 旧タブの直接writeは拒否されるため、失敗時は再読込を案内する。
+        allow write: if isOwner(userId) && docId != 'data';
       }
       
       // スキャン済み名刺サブコレクション（プライベート）
