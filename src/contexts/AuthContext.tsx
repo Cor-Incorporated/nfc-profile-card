@@ -132,6 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         displayName: user.displayName,
         updatedAt: serverTimestamp(),
       };
+      const previous = userSnap.exists() ? userSnap.data() : null;
+      const publicFieldsChanged =
+        !previous ||
+        previous.email !== user.email ||
+        previous.photoURL !== user.photoURL;
 
       if (!userSnap.exists()) {
         // 新規ユーザーの場合
@@ -159,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // New user document created
       } else {
         // 既存ユーザーの場合は更新
-        const existingData = userSnap.data();
+        const existingData = previous!;
         const fallbackUsername = clientUidUsername(user.uid);
         await setDoc(
           userRef,
@@ -172,6 +177,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           { merge: true },
         );
         // User document updated
+      }
+
+      if (publicFieldsChanged) {
+        const token = await user.getIdToken();
+        const response = await fetch("/api/users/me/profile", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error(
+            `Public profile revalidation failed (${response.status})`,
+          );
+        }
       }
     } catch (error) {
       console.error("Error creating/updating user document:", error);

@@ -50,6 +50,7 @@ import { BackgroundCustomizer } from "./BackgroundCustomizer";
 import { DevicePreview } from "./DevicePreview";
 import { cleanupProfileData } from "@/utils/cleanupProfileData";
 import { getUidFallbackUsername } from "@/lib/username";
+import { saveLatestVersion } from "@/lib/profile/saveLatestVersion";
 
 // ドラッグ可能なコンポーネントアイテム
 function SortableItem({ component, onDelete, onEdit }: SortableItemProps) {
@@ -200,6 +201,13 @@ export function SimplePageEditor({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false); // 保存中フラグ
+  const latestDraftRef = useRef({ components, background });
+  const draftVersionRef = useRef(0);
+
+  useEffect(() => {
+    latestDraftRef.current = { components, background };
+    draftVersionRef.current += 1;
+  }, [components, background]);
 
   // センサー設定（モバイル対応）
   const sensors = useSensors(
@@ -358,43 +366,50 @@ export function SimplePageEditor({
     setSaveStatus("saving");
 
     try {
-      const docRef = doc(db, "users", userId, "profile", "data");
-
-      try {
-        await updateDoc(docRef, {
-          components,
-          background,
-          updatedAt: new Date(),
-        });
-      } catch (error) {
-        // The first design save creates the document instead.
-        if (
-          !(error instanceof Error) ||
-          !("code" in error) ||
-          (error as { code?: string }).code !== "not-found"
-        ) {
-          throw error;
-        }
-        await setDoc(docRef, {
-          components,
-          background,
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      // Firestore writes bypass Next.js, so invalidate the public HTML before
-      // telling the editor that the new design is visible.
       if (!authUser || authUser.uid !== userId) {
         throw new Error("Profile revalidation requires the current user");
       }
       const token = await authUser.getIdToken();
-      const response = await fetch("/api/users/me/profile", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Profile revalidation failed (${response.status})`);
-      }
+      const docRef = doc(db, "users", userId, "profile", "data");
+
+      await saveLatestVersion(
+        () => ({
+          version: draftVersionRef.current,
+          draft: latestDraftRef.current,
+        }),
+        async (draft) => {
+          try {
+            await updateDoc(docRef, {
+              components: draft.components,
+              background: draft.background,
+              updatedAt: new Date(),
+            });
+          } catch (error) {
+            // The first design save creates the document instead.
+            if (
+              !(error instanceof Error) ||
+              !("code" in error) ||
+              (error as { code?: string }).code !== "not-found"
+            ) {
+              throw error;
+            }
+            await setDoc(docRef, {
+              components: draft.components,
+              background: draft.background,
+              updatedAt: serverTimestamp(),
+            });
+          }
+
+          // Firestore writes bypass Next.js, so invalidate after each write.
+          const response = await fetch("/api/users/me/profile", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) {
+            throw new Error(`Profile revalidation failed (${response.status})`);
+          }
+        },
+      );
 
       setSaveStatus("saved");
       setLastSaved(new Date());
@@ -405,7 +420,7 @@ export function SimplePageEditor({
     } finally {
       isSavingRef.current = false;
     }
-  }, [authUser, components, background, userId]);
+  }, [authUser, userId]);
 
   // デバウンス付き自動保存（3秒）
   const debouncedSave = React.useCallback(() => {

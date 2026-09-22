@@ -1,6 +1,7 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { formatProfileAddress } from "@/lib/profile/address";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { getUidFallbackUsername } from "@/lib/username";
 import { PATCH, POST } from "./route";
 
@@ -11,7 +12,9 @@ jest.mock("@/lib/firebase-admin", () => ({
 jest.mock("@/lib/profile/revalidatePublicProfiles", () => ({
   revalidatePublicProfiles: jest.fn(),
 }));
-
+jest.mock("@/lib/profile/ownsPublicUsername", () => ({
+  ownsPublicUsername: jest.fn(),
+}));
 jest.mock("next/server", () => ({
   NextResponse: {
     json: (body: unknown, options?: { status?: number }) => ({
@@ -143,6 +146,7 @@ function request(token?: string) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (ownsPublicUsername as jest.Mock).mockResolvedValue(true);
 });
 
 test("anonymous callers cannot invalidate public pages", async () => {
@@ -174,4 +178,22 @@ test("only the authenticated owner's stored profile IDs are invalidated", async 
     getUidFallbackUsername("owner"),
   );
   expect(revalidatePublicProfiles).not.toHaveBeenCalledWith("another-user");
+});
+
+test("a forged stored username cannot purge another owner's page", async () => {
+  (verifyIdToken as jest.Mock).mockResolvedValue({
+    success: true,
+    uid: "owner",
+  });
+  (adminDb.collection as jest.Mock).mockReturnValue({
+    doc: () => ({
+      get: async () => ({ exists: true, data: () => ({ username: "victim" }) }),
+    }),
+  });
+  (ownsPublicUsername as jest.Mock).mockResolvedValue(false);
+
+  const response = await POST(request("valid-token"));
+  expect(response.status).toBe(403);
+  expect(ownsPublicUsername).toHaveBeenCalledWith("owner", "victim");
+  expect(revalidatePublicProfiles).not.toHaveBeenCalled();
 });

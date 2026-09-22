@@ -13,3 +13,8 @@ test("invalidates the original and normalized public URL for a mixed-case UID", 
     ["/p/u_abc123"],
   ]);
 });
+
+test("ignores values outside a single safe public profile segment", () => {
+  revalidatePublicProfiles("..", "another/path", "x".repeat(151), "alice");
+  expect((revalidatePath as jest.Mock).mock.calls).toEqual([["/p/alice"]]);
+});

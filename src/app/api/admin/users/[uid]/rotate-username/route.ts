@@ -1,7 +1,7 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
-import { generateDefaultUsername } from "@/lib/username";
+import { generateDefaultUsername, getUidFallbackUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -162,7 +162,11 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             { status: 404 },
           );
         }
-        revalidatePublicProfiles(result.previousUsername, result.username);
+        revalidatePublicProfiles(
+          result.previousUsername,
+          result.username,
+          getUidFallbackUsername(params.uid),
+        );
         return NextResponse.json(result);
       } catch (error) {
         if (error instanceof UsernameCollisionError) continue;

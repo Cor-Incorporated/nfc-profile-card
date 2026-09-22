@@ -102,16 +102,6 @@ async function fetchProfileData(userId: string): Promise<DocumentData | null> {
   return profileDoc.data() || null;
 }
 
-async function fetchProfileDataOrNull(userId: string) {
-  try {
-    return await fetchProfileData(userId);
-  } catch (error) {
-    // The basic profile can still render if its optional design document fails.
-    console.error("Failed to read profile subdocument:", error);
-    return null;
-  }
-}
-
 async function fetchUserAndProfileByUid(
   uid: string,
   loadProfile: boolean,
@@ -124,7 +114,7 @@ async function fetchUserAndProfileByUid(
   // Start both independent reads together once we have a trusted UID.
   const [userDoc, profileData] = await Promise.all([
     fetchUserByUid(uid),
-    fetchProfileDataOrNull(uid),
+    fetchProfileData(uid),
   ]);
   return userDoc ? { userDoc, profileData } : null;
 }
@@ -289,7 +279,7 @@ export async function fetchPublicProfileByUsername(username: string) {
       ? null
       : resolved.profileData !== undefined
         ? resolved.profileData
-        : await fetchProfileDataOrNull(userDoc.id);
+        : await fetchProfileData(userDoc.id);
 
     return { user, profileData, redirectUsername: redirectUsername || null };
   } catch (error) {

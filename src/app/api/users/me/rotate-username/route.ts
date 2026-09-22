@@ -1,6 +1,9 @@
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
-import { generateDefaultUsername } from "@/lib/username";
+import {
+  generateDefaultUsername,
+  getUidFallbackUsername,
+} from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -129,7 +132,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    revalidatePublicProfiles(result.previousUsername, result.username);
+    revalidatePublicProfiles(
+      result.previousUsername,
+      result.username,
+      getUidFallbackUsername(verification.uid),
+    );
     return NextResponse.json(result);
   } catch (error) {
     console.error("Self-service username rotation failed:", error);

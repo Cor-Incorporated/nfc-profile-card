@@ -1,6 +1,7 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { revalidatePublicProfiles } from "@/lib/profile/revalidatePublicProfiles";
+import { ownsPublicUsername } from "@/lib/profile/ownsPublicUsername";
 import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
 import {
   generateDefaultUsername,
@@ -352,6 +353,15 @@ export async function POST(request: NextRequest) {
       .get();
     if (!userDoc.exists) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (
+      !(await ownsPublicUsername(verification.uid, userDoc.data()?.username))
+    ) {
+      return NextResponse.json(
+        { error: "public_username_not_owned" },
+        { status: 403 },
+      );
     }
 
     revalidatePublicProfiles(
