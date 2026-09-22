@@ -20,6 +20,7 @@ const successfulGeminiResponse = {
 let generateContentMock: jest.Mock;
 let getGenerativeModelMock: jest.Mock;
 let googleGenerativeAiMock: jest.Mock;
+let processWithOllamaMock: jest.Mock;
 
 async function loadOcrService() {
   jest.resetModules();
@@ -32,9 +33,17 @@ async function loadOcrService() {
   googleGenerativeAiMock = jest.fn(() => ({
     getGenerativeModel: getGenerativeModelMock,
   }));
+  processWithOllamaMock = jest.fn().mockResolvedValue({
+    success: true,
+    contactInfo: { email: "local@example.com" },
+    processingTime: 1,
+  });
 
   jest.doMock("@google/generative-ai", () => ({
     GoogleGenerativeAI: googleGenerativeAiMock,
+  }));
+  jest.doMock("./ollamaOcrService", () => ({
+    processWithOllama: processWithOllamaMock,
   }));
 
   jest.doMock("@/lib/logger", () => ({
@@ -55,6 +64,7 @@ describe("processBusinessCardImage Gemini model selection", () => {
     delete process.env.NFC_GEMINI_API_KEY;
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
+    delete process.env.NFC_OCR_OLLAMA_EXPERIMENT;
   });
 
   afterEach(() => {
@@ -62,7 +72,9 @@ describe("processBusinessCardImage Gemini model selection", () => {
     delete process.env.NFC_GEMINI_API_KEY;
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
+    delete process.env.NFC_OCR_OLLAMA_EXPERIMENT;
     jest.dontMock("@google/generative-ai");
+    jest.dontMock("./ollamaOcrService");
     jest.dontMock("@/lib/logger");
   });
 
@@ -75,6 +87,40 @@ describe("processBusinessCardImage Gemini model selection", () => {
     expect(getGenerativeModelMock).toHaveBeenCalledWith({
       model: "gemini-3.5-flash-lite",
     });
+    expect(processWithOllamaMock).not.toHaveBeenCalled();
+  });
+
+  it("uses Ollama only after explicit experimental opt-in", async () => {
+    process.env.NFC_OCR_OLLAMA_EXPERIMENT = "true";
+    const { processBusinessCardImage } = await loadOcrService();
+
+    const result = await processBusinessCardImage("cG5n", "image/png", {
+      deadlineAtMs: 20_000,
+    });
+
+    expect(result.success).toBe(true);
+    expect(processWithOllamaMock).toHaveBeenCalledWith(
+      "cG5n",
+      "image/png",
+      expect.any(Number),
+      20_000,
+    );
+    expect(googleGenerativeAiMock).not.toHaveBeenCalled();
+  });
+
+  it("does not silently send the image to Gemini when Ollama fails", async () => {
+    process.env.NFC_OCR_OLLAMA_EXPERIMENT = "true";
+    const { processBusinessCardImage } = await loadOcrService();
+    processWithOllamaMock.mockResolvedValue({
+      success: false,
+      processingTime: 1,
+      error: "local inference unavailable",
+    });
+
+    const result = await processBusinessCardImage("cG5n", "image/png");
+
+    expect(result.success).toBe(false);
+    expect(googleGenerativeAiMock).not.toHaveBeenCalled();
   });
 
   it("uses the NFC key in preference to a configured legacy key", async () => {

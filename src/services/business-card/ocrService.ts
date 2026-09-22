@@ -1,6 +1,6 @@
 /**
  * OCR Service for Business Card Processing
- * Handles image processing and text extraction using Google Gemini API
+ * Handles image processing and text extraction using Gemini by default.
  */
 
 import { ERROR_MESSAGES } from "@/lib/constants/error-messages";
@@ -8,6 +8,7 @@ import { ocrLogger } from "@/lib/logger";
 import { ContactInfo } from "@/types/business-card";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { GenerateContentResult, Part } from "@google/generative-ai";
+import { processWithOllama } from "./ollamaOcrService";
 
 const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
@@ -158,6 +159,7 @@ async function generateOcrContent(
 export async function processBusinessCardImage(
   image: string,
   mimeType: string,
+  options: { deadlineAtMs?: number } = {},
 ): Promise<OcrResult> {
   const startTime = Date.now();
 
@@ -209,6 +211,15 @@ export async function processBusinessCardImage(
       processingTime: Date.now() - startTime,
       error: `サポートされていない画像形式です: ${mimeType}。JPEG、PNG、WebP、GIF、HEIC形式をご利用ください。`,
     };
+  }
+
+  if (process.env.NFC_OCR_OLLAMA_EXPERIMENT === "true") {
+    return processWithOllama(
+      image,
+      mimeType,
+      startTime,
+      options.deadlineAtMs ?? startTime + 28_000,
+    );
   }
 
   // Log HEIC format detection for monitoring

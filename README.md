@@ -68,12 +68,15 @@
 ### 📸 名刺スキャン機能
 
 - ✅ 名刺OCR機能（カメラで撮影するだけで連絡先を自動保存）
-- ✅ **Geminiモデルフォールバック** - primary: gemini-3.1-flash-lite-preview → fallback: gemini-2.5-flash
+- 🧪 **Ollama名刺OCR実験** - 既定はGemini。`NFC_OCR_OLLAMA_EXPERIMENT=true` のときだけ固定モデル `gemma4:e4b` に送る。保存前の確認画面で全項目を修正できる。詳細は下記。
+- ✅ **Geminiモデルフォールバック** - primary: gemini-3.5-flash-lite → fallback: gemini-2.5-flash
 - ✅ **ミドルネーム対応** - OCR抽出データにmiddleNameフィールドを追加
 - ✅ 月間スキャン上限管理（Free: 10回、Pro: 無制限）
 - ✅ プロモーションコードによるProプランアップグレード
 - ✅ スキャン履歴の保存と管理
 - ✅ VCardダウンロード機能
+
+Ollama実験は、ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番では専用Bearer認証を検証する公開HTTPS gatewayと `NFC_OCR_OLLAMA_GATEWAY_TOKEN` が必須です。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。gateway経路・認証拒否・実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
 
 ## 🔮 今後実装予定の機能
 
