@@ -127,9 +127,14 @@ export default function EditProfilePage() {
         phone: userData?.phone || "",
         website: userData?.website || "",
         address: userData?.address || "",
-        photoURL: userData?.photoURL || "",
+        photoURL: userData?.photoURL || user.photoURL || "",
       };
-      const src = hasComponentData ? fromComponent : fallback;
+      const componentOverrides = Object.fromEntries(
+        Object.entries(fromComponent).filter(([, value]) => value !== ""),
+      );
+      const src = hasComponentData
+        ? { ...fallback, ...componentOverrides }
+        : fallback;
 
       setProfile({
         name: src.name || user.displayName || "",

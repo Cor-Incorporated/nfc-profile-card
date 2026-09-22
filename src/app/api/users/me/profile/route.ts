@@ -143,9 +143,10 @@ export async function PATCH(request: NextRequest) {
 
     const userRef = adminDb.collection("users").doc(verification.uid);
     const userDoc = await userRef.get();
+    const existingUserData = userDoc.exists ? userDoc.data() || {} : {};
     const currentUsernameRaw =
-      typeof userDoc.data()?.username === "string"
-        ? userDoc.data()?.username
+      typeof existingUserData.username === "string"
+        ? existingUserData.username
         : "";
     const currentUsername = normalizeUsername(currentUsernameRaw);
     const isUsernameChanging = requestedUsername !== currentUsername;
@@ -181,10 +182,20 @@ export async function PATCH(request: NextRequest) {
     };
 
     for (const field of PROFILE_STRING_FIELDS) {
-      profileUpdates[field] = pickString(
+      const pickedValue = pickString(
         body[field],
         field === "bio" ? BIO_MAX_LENGTH : 200,
       );
+
+      if (field === "photoURL" && !pickedValue) {
+        profileUpdates[field] =
+          typeof existingUserData.photoURL === "string"
+            ? existingUserData.photoURL
+            : "";
+        continue;
+      }
+
+      profileUpdates[field] = pickedValue;
     }
 
     await adminDb.runTransaction(async (transaction) => {

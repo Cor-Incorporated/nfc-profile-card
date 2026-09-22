@@ -125,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email: user.email,
         emailVerified: user.emailVerified,
         displayName: user.displayName,
-        photoURL: user.photoURL,
         updatedAt: serverTimestamp(),
       };
 
@@ -133,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // 新規ユーザーの場合
         await setDoc(userRef, {
           ...userData,
+          photoURL: user.photoURL,
           username: generateDefaultUsername(),
           createdAt: serverTimestamp(),
           name: user.displayName || "",
@@ -157,6 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           userRef,
           {
             ...userData,
+            ...(!existingData.photoURL && user.photoURL
+              ? { photoURL: user.photoURL }
+              : {}),
             ...(!existingData.username
               ? { username: getUidFallbackUsername(user.uid) }
               : {}),
