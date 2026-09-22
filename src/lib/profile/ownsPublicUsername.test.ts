@@ -8,9 +8,11 @@ jest.mock("@/lib/firebase-admin", () => ({
 function setup({
   reservationUid,
   usernames = {},
+  aliases = {},
 }: {
   reservationUid?: string;
   usernames?: Record<string, string[]>;
+  aliases?: Record<string, string>;
 }) {
   (adminDb.collection as jest.Mock).mockImplementation((collection: string) => {
     if (collection === "usernames") {
@@ -19,6 +21,16 @@ function setup({
           get: async () => ({
             exists: Boolean(reservationUid),
             data: () => ({ uid: reservationUid }),
+          }),
+        }),
+      };
+    }
+    if (collection === "usernameAliases") {
+      return {
+        doc: (name: string) => ({
+          get: async () => ({
+            exists: Boolean(aliases[name]),
+            data: () => ({ uid: aliases[name], status: "redirect" }),
           }),
         }),
       };
@@ -67,4 +79,9 @@ test("rejects malformed path values", async () => {
 test("rejects another user's UID fallback even when its username field is forged", async () => {
   setup({ usernames: { u_victim: ["owner"] } });
   expect(await ownsPublicUsername("owner", "u_victim")).toBe(false);
+});
+
+test("rejects a legacy username that belongs to another user's redirect alias", async () => {
+  setup({ aliases: { oldname: "victim" }, usernames: { oldname: ["owner"] } });
+  expect(await ownsPublicUsername("owner", "oldname")).toBe(false);
 });

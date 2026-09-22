@@ -11,7 +11,17 @@ export async function saveLatestVersion<T>(
 ) {
   while (true) {
     const current = readDraft();
-    await persist(current.draft);
-    if (readDraft().version === current.version) return;
+    let failed = false;
+    let failure: unknown;
+    try {
+      await persist(current.draft);
+    } catch (error) {
+      failed = true;
+      failure = error;
+    }
+    // Even when invalidation fails, a newer draft still needs its own write.
+    if (readDraft().version !== current.version) continue;
+    if (failed) throw failure;
+    return;
   }
 }

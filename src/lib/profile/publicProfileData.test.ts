@@ -421,3 +421,35 @@ test("a UID fallback alias still redirects after username rotation", async () =>
   expect(result.redirectUsername).toBe("newname");
   expect(result.profileData).toBeNull();
 });
+
+test("a redirect alias takes precedence over a forged legacy username", async () => {
+  const { userQuery } = installFirestoreFixture({
+    aliases: { oldname: { uid: "owner", status: "redirect" } },
+    users: {
+      owner: { name: "Owner", username: "newname" },
+      attacker: { name: "Attacker", username: "oldname" },
+    },
+  });
+
+  const result = await fetchPublicProfileByUsername("oldname");
+  expect(result.redirectUsername).toBe("newname");
+  expect(result.user?.name).toBe("Owner");
+  expect(userQuery).not.toHaveBeenCalled();
+});
+
+test("duplicate unreserved legacy usernames fail closed", async () => {
+  installFirestoreFixture({
+    users: {
+      first: { username: "legacy" },
+      second: { username: "legacy" },
+    },
+  });
+  const log = jest.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await expect(fetchPublicProfileByUsername("legacy")).rejects.toThrow(
+      "Ambiguous legacy public username",
+    );
+  } finally {
+    log.mockRestore();
+  }
+});

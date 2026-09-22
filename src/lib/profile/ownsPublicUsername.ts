@@ -22,6 +22,14 @@ export async function ownsPublicUsername(uid: string, username: unknown) {
     return username === getUidFallbackUsername(uid);
   }
 
+  const alias = await adminDb
+    .collection("usernameAliases")
+    .doc(normalized)
+    .get();
+  if (alias.exists && alias.data()?.status === "redirect") {
+    return alias.data()?.uid === uid;
+  }
+
   const matchingNormalized = await adminDb
     .collection("users")
     .where("username", "==", normalized)
