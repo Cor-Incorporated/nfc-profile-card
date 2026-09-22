@@ -124,22 +124,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
-      const userData = {
+      // Firebase Auth owns login identity. These fields belong to the public
+      // profile and must not be restored from the sign-in account on re-entry.
+      const accountData = {
         uid: user.uid,
-        email: user.email,
         emailVerified: user.emailVerified,
         displayName: user.displayName,
-        photoURL: user.photoURL,
         updatedAt: serverTimestamp(),
       };
 
       if (!userSnap.exists()) {
         // 新規ユーザーの場合
         await setDoc(userRef, {
-          ...userData,
+          ...accountData,
           username: clientUidUsername(user.uid),
           createdAt: serverTimestamp(),
           name: user.displayName || "",
+          // Preserve the existing first-sign-in public profile defaults.
+          email: user.email,
+          photoURL: user.photoURL,
           bio: "",
           company: "",
           position: "",
@@ -161,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await setDoc(
           userRef,
           {
-            ...userData,
+            ...accountData,
             ...(!existingData.username && fallbackUsername
               ? { username: fallbackUsername }
               : {}),
