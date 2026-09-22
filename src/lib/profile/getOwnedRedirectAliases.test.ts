@@ -15,9 +15,7 @@ test("returns only redirect aliases from the owner's alias query", async () => {
   const where = jest.fn().mockReturnValue({ get });
   (adminDb.collection as jest.Mock).mockReturnValue({ where });
 
-  await expect(getOwnedRedirectAliases("owner")).resolves.toEqual([
-    "very-old",
-  ]);
+  await expect(getOwnedRedirectAliases("owner")).resolves.toEqual(["very-old"]);
   expect(adminDb.collection).toHaveBeenCalledWith("usernameAliases");
   expect(where).toHaveBeenCalledWith("uid", "==", "owner");
 });

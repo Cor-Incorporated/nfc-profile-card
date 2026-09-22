@@ -90,7 +90,10 @@ test("rotation invalidates the old, new, and UID fallback paths", async () => {
 test("rotation does not purge an unowned old username", async () => {
   (getOwnedRedirectAliases as jest.Mock).mockResolvedValue(["owned-alias"]);
   (ownsPublicUsername as jest.Mock).mockResolvedValue(false);
-  (verifyIdToken as jest.Mock).mockResolvedValue({ success: true, uid: "owner" });
+  (verifyIdToken as jest.Mock).mockResolvedValue({
+    success: true,
+    uid: "owner",
+  });
   (adminDb.collection as jest.Mock).mockImplementation((collection: string) =>
     collection === "users"
       ? {
@@ -98,7 +101,9 @@ test("rotation does not purge an unowned old username", async () => {
             kind: "user",
             get: async () => ({ data: () => ({ username: "victim" }) }),
           }),
-          where: () => ({ limit: () => ({ get: async () => ({ empty: true }) }) }),
+          where: () => ({
+            limit: () => ({ get: async () => ({ empty: true }) }),
+          }),
         }
       : { doc: () => ({ get: async () => ({ exists: false }) }) },
   );
