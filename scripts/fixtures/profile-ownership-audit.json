@@ -1,0 +1,42 @@
+{
+  "users": [
+    { "id": "uid-a", "username": "alice", "previousUsernames": ["old-alice"] },
+    { "id": "uid-b", "username": "Foo", "previousUsernames": ["stolen"] },
+    { "id": "uid-c", "username": "foo" },
+    { "id": "uid-d", "username": "Bar" },
+    { "id": "MixCase", "username": "u_MixCase" },
+    { "id": "mixcase", "username": "other" }
+  ],
+  "reservations": [
+    { "id": "alice", "uid": "uid-a" },
+    { "id": "bar", "uid": "missing-owner" },
+    { "id": "u_mixcase", "uid": "MixCase" }
+  ],
+  "aliases": [
+    {
+      "id": "old-alice",
+      "uid": "uid-a",
+      "status": "redirect",
+      "targetUsername": "alice"
+    },
+    {
+      "id": "bad-target",
+      "uid": "uid-c",
+      "status": "redirect",
+      "targetUsername": "missing"
+    },
+    {
+      "id": "u_ghost",
+      "uid": "uid-a",
+      "status": "redirect",
+      "targetUsername": "alice"
+    },
+    { "id": "quarantine", "uid": null, "status": "disabled" },
+    {
+      "id": "foo",
+      "uid": "uid-a",
+      "status": "redirect",
+      "targetUsername": "alice"
+    }
+  ]
+}
