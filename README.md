@@ -76,6 +76,8 @@
 - ✅ スキャン履歴の保存と管理
 - ✅ VCardダウンロード機能
 
+`NFC_OCR_OLLAMA_EXPERIMENT` は未設定または `false` ならGemini、`true` ならOllamaを選びます。それ以外の値は画像をどちらにも送らず設定エラーにします。
+
 Ollama実験はJPEG・PNG・WebP画像に対応します。`NFC_OCR_OLLAMA_MODEL` は許可リストの `gemma4:e2b`、`gemma4:e4b`、`gemma4:12b`、`gemma4:31b` から選び、実際の接続先に存在することを確認します。Mac Studioには現在e4bがありません。ローカル開発では `NFC_OCR_OLLAMA_GATEWAY_URL=http://127.0.0.1:11434/api/chat` を使えます。本番ではOCR専用の公開HTTPS gateway route `/v1/ocr/ollama/chat` と `NFC_OCR_OLLAMA_GATEWAY_TOKEN`（OCR限定Bearer）が必須です。本番の遠隔経路では、Cloudflare Accessの `NFC_OCR_OLLAMA_ACCESS_CLIENT_ID` と `NFC_OCR_OLLAMA_ACCESS_CLIENT_SECRET`（service token）も必須です。このAccess資格情報は確認済みホスト以外へ送信されません。任意のprivate IPやOllamaの生ポートをVercelへ指定できません。現在デプロイ済みのgatewayにはOllama routeがなく、`/api/chat` は404です。専用routeの受入、Access policy、認証成功・拒否、実名刺の精度と30秒内の遅延をPreviewで確認するまで、本番の切替は行わないでください。認識結果は誤字を含み得るため、保存前に必ず確認します。失敗時のGemini自動フォールバックはありません。
 
 TapForgeの `NFC_OCR_OLLAMA_GATEWAY_TOKEN` はgateway側の `NFC_OCR_GATEWAY_BEARER_TOKEN` と対応し、`NFC_OCR_OLLAMA_MODEL` は両側で一致させます。値はサーバー環境のみに置き、ブラウザへ渡しません。

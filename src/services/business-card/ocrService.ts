@@ -213,7 +213,22 @@ export async function processBusinessCardImage(
     };
   }
 
-  if (process.env.NFC_OCR_OLLAMA_EXPERIMENT === "true") {
+  const ollamaExperiment = process.env.NFC_OCR_OLLAMA_EXPERIMENT;
+  if (
+    ollamaExperiment !== undefined &&
+    ollamaExperiment !== "true" &&
+    ollamaExperiment !== "false"
+  ) {
+    ocrLogger.error("OCR provider selection is invalid");
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error:
+        "OCR service is not properly configured. Provider selection is invalid.",
+    };
+  }
+
+  if (ollamaExperiment === "true") {
     return processWithOllama(
       image,
       mimeType,

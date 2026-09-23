@@ -90,6 +90,35 @@ describe("processBusinessCardImage Gemini model selection", () => {
     expect(processWithOllamaMock).not.toHaveBeenCalled();
   });
 
+  it("keeps Gemini as the explicit disabled mode", async () => {
+    process.env.NFC_OCR_OLLAMA_EXPERIMENT = "false";
+    const { processBusinessCardImage } = await loadOcrService();
+
+    expect(
+      (await processBusinessCardImage("base64-image", "image/png")).success,
+    ).toBe(true);
+    expect(googleGenerativeAiMock).toHaveBeenCalledTimes(1);
+    expect(processWithOllamaMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["tru", "TRUE", "", "true "])(
+    "rejects an invalid OCR selection before dispatch: %j",
+    async (selection) => {
+      process.env.NFC_OCR_OLLAMA_EXPERIMENT = selection;
+      const { processBusinessCardImage } = await loadOcrService();
+
+      const result = await processBusinessCardImage(
+        "base64-image",
+        "image/png",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Provider selection is invalid");
+      expect(googleGenerativeAiMock).not.toHaveBeenCalled();
+      expect(processWithOllamaMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("uses Ollama only after explicit experimental opt-in", async () => {
     process.env.NFC_OCR_OLLAMA_EXPERIMENT = "true";
     const { processBusinessCardImage } = await loadOcrService();

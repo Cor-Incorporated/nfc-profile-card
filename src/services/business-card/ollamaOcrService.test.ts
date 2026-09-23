@@ -152,6 +152,22 @@ describe("experimental Ollama OCR gateway", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "/v1/chat/completions",
+    "/v1/ocr/extract",
+    "/v1/ocr/ollama/ready",
+    "/api/chat",
+    "/v1/ocr/ollama/chat/",
+  ])(
+    "does not send credentials or images to another gateway path: %s",
+    async (path) => {
+      process.env.NFC_OCR_OLLAMA_GATEWAY_URL = `https://nfc-ocr.tapforge.org${path}`;
+
+      expect((await scan()).success).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("rejects Access hostname and endpoint mismatch before sending credentials", async () => {
     process.env.NFC_OCR_OLLAMA_ACCESS_HOSTNAME = "preview-ocr.tapforge.org";
     process.env.NFC_OCR_OLLAMA_GATEWAY_URL =
