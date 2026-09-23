@@ -101,7 +101,32 @@ describe("profile ID setup", () => {
         (jest.mocked(fetch).mock.calls[0][1] as RequestInit).body as string,
       );
       expect(body.usernameMode).toBe("uid");
+      expect(body.expectedUsername).toBe("");
     });
+  });
+
+  it("prompts a reload when the profile ID changed in another tab", async () => {
+    jest.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ username: "oldname", usernameConfirmed: false }),
+    } as never);
+    jest.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: "username_stale" }),
+    } as Response);
+
+    render(<DashboardPage />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: /profileIdUidTitle/ }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "profileIdSetupAction" }),
+    );
+
+    expect(
+      await screen.findByText("usernameChangedReload"),
+    ).toBeInTheDocument();
   });
 
   it("does not offer UID mode when the UID must be sanitized", async () => {

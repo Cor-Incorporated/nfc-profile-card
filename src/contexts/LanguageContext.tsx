@@ -166,6 +166,8 @@ const translations = {
       "ユーザー名は3〜32文字の英小文字・数字・ハイフン・アンダースコアで入力してください",
     usernameUnavailable:
       "このユーザー名は既に使われています。別のユーザー名を選択してください",
+    usernameChangedReload:
+      "別の操作でプロフィールURLが変更されました。ページを再読み込みしてから保存してください。",
     usernameSuggestions: "代わりに使える候補",
     useRandomUsername: "ランダムIDに変更",
     randomUsernameHelp:
@@ -192,9 +194,10 @@ const translations = {
       "メール由来IDなどを隠したい場合はこちらを選んでください。旧URLを書いたカードやQRコードは更新が必要です。",
     legacyUrlManagementTitle: "過去のプロフィールURL",
     legacyUrlManagementDescription:
-      "以前使っていたIDを、現在のプロフィールURLへ転送するか無効化するかを後から変更できます。",
+      "所有を確認できる以前のIDは、現在のプロフィールURLへ転送するか無効化するかを後から変更できます。",
     legacyUrlRedirectingTo: "現在 /p/{username} へ転送中",
     legacyUrlCurrentlyDisabled: "現在は無効です",
+    legacyUrlRequiresReview: "所有確認が必要なため、このURLは変更できません。",
     enableRedirect: "転送する",
     disableRedirect: "無効化",
     legacyUrlRedirectEnabled: "旧URLの転送を有効にしました",
@@ -559,6 +562,8 @@ const translations = {
       "Use 3-32 lowercase letters, numbers, hyphens, or underscores",
     usernameUnavailable:
       "This username is already taken. Choose a different username",
+    usernameChangedReload:
+      "Your profile URL changed elsewhere. Reload this page before saving.",
     usernameSuggestions: "Available alternatives",
     useRandomUsername: "Use random ID",
     randomUsernameHelp:
@@ -585,9 +590,11 @@ const translations = {
       "Choose this if you want to hide an email-derived ID. Cards and QR codes using the old URL need to be updated.",
     legacyUrlManagementTitle: "Previous profile URLs",
     legacyUrlManagementDescription:
-      "You can later change whether previous IDs redirect to the current profile URL or stay disabled.",
+      "You can change verified previous IDs to redirect to the current profile URL or stay disabled.",
     legacyUrlRedirectingTo: "Redirecting to /p/{username}",
     legacyUrlCurrentlyDisabled: "Currently disabled",
+    legacyUrlRequiresReview:
+      "Ownership review is required before changing this URL.",
     enableRedirect: "Redirect",
     disableRedirect: "Disable",
     legacyUrlRedirectEnabled: "Old URL redirect enabled",

@@ -43,6 +43,7 @@ interface UsernameAlias {
   username: string;
   status: "redirect" | "disabled";
   targetUsername: string;
+  canManage: boolean;
 }
 
 // The design editor creates a profile placeholder with every public field
@@ -271,12 +272,21 @@ export default function EditProfilePage() {
         body: JSON.stringify({
           ...profile,
           usernameMode: uidUsernameSelected ? "uid" : "custom",
+          expectedUsername: originalUsername,
           replaceComponentAddress: true,
           legacyUrlAction,
         }),
       });
 
       const data = await response.json();
+      if (response.status === 409 && data.error === "username_stale") {
+        toast({
+          title: t("error"),
+          description: t("usernameChangedReload"),
+          variant: "destructive",
+        });
+        return;
+      }
       if (response.status === 409 && data.error === "username_taken") {
         setUsernameSuggestions(
           Array.isArray(data.suggestions) ? data.suggestions : [],
@@ -715,6 +725,11 @@ export default function EditProfilePage() {
                             )
                           : t("legacyUrlCurrentlyDisabled")}
                       </p>
+                      {!alias.canManage && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("legacyUrlRequiresReview")}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -723,7 +738,9 @@ export default function EditProfilePage() {
                           alias.status === "redirect" ? "default" : "outline"
                         }
                         size="sm"
-                        disabled={isUpdatingAlias === alias.username}
+                        disabled={
+                          !alias.canManage || isUpdatingAlias === alias.username
+                        }
                         onClick={() =>
                           handleAliasUpdate(alias.username, "redirect")
                         }
@@ -739,7 +756,9 @@ export default function EditProfilePage() {
                           alias.status === "disabled" ? "default" : "outline"
                         }
                         size="sm"
-                        disabled={isUpdatingAlias === alias.username}
+                        disabled={
+                          !alias.canManage || isUpdatingAlias === alias.username
+                        }
                         onClick={() =>
                           handleAliasUpdate(alias.username, "disable")
                         }

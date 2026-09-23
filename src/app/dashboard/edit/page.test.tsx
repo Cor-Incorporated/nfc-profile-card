@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDoc } from "firebase/firestore";
+import { toast } from "@/components/ui/use-toast";
 import EditProfilePage from "./page";
+
+jest.mock("@/components/ui/use-toast", () => ({ toast: jest.fn() }));
 
 jest.mock("@/contexts/AuthContext", () => {
   return { useAuth: jest.fn() };
@@ -51,6 +54,8 @@ const emptyProfileContent = Object.fromEntries(
 describe("basic profile edit source", () => {
   beforeEach(() => {
     jest.mocked(getDoc).mockReset();
+    jest.mocked(fetch).mockReset();
+    jest.mocked(toast).mockClear();
     (useAuth as jest.Mock).mockReturnValue({
       user: {
         uid: "test-uid",
@@ -81,6 +86,131 @@ describe("basic profile edit source", () => {
       expect(screen.getByLabelText("name *")).toHaveValue("Public Name"),
     );
     expect(screen.getByLabelText("email")).toHaveValue("");
+  });
+
+  it("does not offer redirect controls for a quarantined previous URL", async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { uid: "test-uid", displayName: "Login Name" },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue("synthetic-token"),
+    });
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(snapshot({ username: "newname" }) as never)
+      .mockResolvedValueOnce({ exists: () => false } as never);
+    jest.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        aliases: [
+          {
+            username: "oldname",
+            status: "disabled",
+            targetUsername: "newname",
+            canManage: false,
+          },
+        ],
+      }),
+    } as Response);
+
+    render(<EditProfilePage />);
+
+    await screen.findByText("legacyUrlRequiresReview");
+    expect(
+      screen.getByRole("button", { name: "enableRedirect" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "disableRedirect" }),
+    ).toBeDisabled();
+  });
+
+  it("keeps a verified old URL manageable after changing its redirect", async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { uid: "test-uid", displayName: "Login Name" },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue("synthetic-token"),
+    });
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(snapshot({ username: "newname" }) as never)
+      .mockResolvedValueOnce({ exists: () => false } as never);
+    jest.mocked(fetch).mockImplementation(
+      async (_url, options) =>
+        ({
+          ok: true,
+          json: async () =>
+            options?.method === "PATCH"
+              ? {
+                  alias: {
+                    username: "oldname",
+                    status: "redirect",
+                    targetUsername: "newname",
+                    canManage: true,
+                  },
+                }
+              : {
+                  aliases: [
+                    {
+                      username: "oldname",
+                      status: "disabled",
+                      targetUsername: "newname",
+                      canManage: true,
+                    },
+                  ],
+                },
+        }) as Response,
+    );
+
+    render(<EditProfilePage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "enableRedirect" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "disableRedirect" }),
+      ).toBeEnabled(),
+    );
+    expect(screen.queryByText("legacyUrlRequiresReview")).toBeNull();
+  });
+
+  it("tells a stale editor to reload before retrying a rename", async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { uid: "test-uid", displayName: "Login Name" },
+      loading: false,
+      getIdToken: jest.fn().mockResolvedValue("synthetic-token"),
+    });
+    jest
+      .mocked(getDoc)
+      .mockResolvedValueOnce(snapshot({ username: "oldname" }) as never)
+      .mockResolvedValueOnce({ exists: () => false } as never);
+    jest.mocked(fetch).mockImplementation(async (_url, options) =>
+      options?.method === "PATCH"
+        ? ({
+            ok: false,
+            status: 409,
+            json: async () => ({ error: "username_stale" }),
+          } as Response)
+        : ({
+            ok: true,
+            json: async () => ({ aliases: [] }),
+          } as Response),
+    );
+    const confirm = jest.spyOn(window, "confirm").mockReturnValue(true);
+
+    try {
+      render(<EditProfilePage />);
+      const input = await screen.findByLabelText("username *");
+      fireEvent.change(input, { target: { value: "anothername" } });
+      fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+      await waitFor(() =>
+        expect(toast).toHaveBeenCalledWith(
+          expect.objectContaining({ description: "usernameChangedReload" }),
+        ),
+      );
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it("respects an empty user document email without a component", async () => {
@@ -229,6 +359,7 @@ describe("basic profile edit source", () => {
         expect(JSON.parse(patch?.[1]?.body as string)).toMatchObject({
           username: "u_MixCase",
           usernameMode: "uid",
+          expectedUsername: "oldname",
         });
       });
     } finally {

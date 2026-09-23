@@ -68,16 +68,28 @@ export async function GET(request: NextRequest) {
     const aliasRefs = previousUsernames.map((username) =>
       adminDb.collection("usernameAliases").doc(username),
     );
-    const aliasDocs = await adminDb.getAll(...aliasRefs);
+    const reservationRefs = previousUsernames.map((username) =>
+      adminDb.collection("usernames").doc(username),
+    );
+    const allDocs = await adminDb.getAll(...aliasRefs, ...reservationRefs);
+    const aliasDocs = allDocs.slice(0, previousUsernames.length);
+    const reservationDocs = allDocs.slice(previousUsernames.length);
     const aliases = previousUsernames.map((username, index) => {
       const alias = aliasDocs[index];
       const aliasData = alias.exists ? alias.data() : null;
-      const isRedirecting =
-        aliasData?.uid === uid && aliasData?.status === "redirect";
+      const reservation = reservationDocs[index];
+      const fixedPathCanBeManaged =
+        !username.startsWith("u_") || username === `u_${uid}`;
+      const canManage =
+        fixedPathCanBeManaged &&
+        (aliasData?.uid === uid ||
+          (reservation.exists && reservation.data()?.uid === uid));
+      const isRedirecting = canManage && aliasData?.status === "redirect";
 
       return {
         username,
         status: isRedirecting ? "redirect" : "disabled",
+        canManage,
         targetUsername: isRedirecting
           ? aliasData?.targetUsername || currentUsername
           : currentUsername,
@@ -120,6 +132,8 @@ export async function PATCH(request: NextRequest) {
       }
 
       const userData = userDoc.data();
+      const currentUsernameRaw =
+        typeof userData?.username === "string" ? userData.username.trim() : "";
       const currentUsername = normalizeUsername(userData?.username);
       const previousUsernames = getPreviousUsernames(userData);
 
@@ -141,26 +155,71 @@ export async function PATCH(request: NextRequest) {
       if (aliasDoc.exists && aliasDoc.data()?.uid !== uid) {
         throw new Error("ALIAS_TAKEN");
       }
+      if (!usernameDoc.exists && !aliasDoc.exists) {
+        // Legacy history alone was client-writable before the ownership rules.
+        throw new Error("ALIAS_NOT_ALLOWED");
+      }
+
+      if (aliasUsername.startsWith("u_")) {
+        const fallbackUid = aliasUsername.slice(2);
+        if (fallbackUid !== uid) {
+          throw new Error("ALIAS_TAKEN");
+        }
+        const directUidDoc = await transaction.get(
+          adminDb.collection("users").doc(fallbackUid),
+        );
+        if (directUidDoc.exists && directUidDoc.id !== uid) {
+          throw new Error("ALIAS_TAKEN");
+        }
+      }
+
+      // Older clients could edit previousUsernames directly. Do not let a
+      // forged history claim another user's active legacy profile URL.
+      const legacyOwners = await transaction.get(
+        adminDb
+          .collection("users")
+          .where("username", "==", aliasUsername)
+          .limit(2),
+      );
+      if (legacyOwners.docs.some((owner) => owner.id !== uid)) {
+        throw new Error("ALIAS_TAKEN");
+      }
 
       if (action === "redirect") {
-        transaction.set(aliasRef, {
-          uid,
-          username: aliasUsername,
-          targetUsername: currentUsername,
-          status: "redirect",
-          updatedAt: FieldValue.serverTimestamp(),
-          createdAt: aliasDoc.exists
-            ? aliasDoc.data()?.createdAt || FieldValue.serverTimestamp()
-            : FieldValue.serverTimestamp(),
-        });
-      } else {
-        transaction.delete(aliasRef);
+        const currentReservation = await transaction.get(
+          adminDb.collection("usernames").doc(currentUsername),
+        );
+        if (
+          currentUsernameRaw === `u_${uid}`
+            ? currentReservation.exists &&
+              currentReservation.data()?.uid !== uid
+            : !currentReservation.exists ||
+              currentReservation.data()?.uid !== uid
+        ) {
+          throw new Error("ALIAS_NOT_ALLOWED");
+        }
       }
+
+      if (usernameDoc.exists) transaction.delete(usernameRef);
+
+      transaction.set(aliasRef, {
+        uid,
+        username: aliasUsername,
+        ...(action === "redirect"
+          ? { targetUsername: currentUsernameRaw }
+          : {}),
+        status: action === "redirect" ? "redirect" : "disabled",
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: aliasDoc.exists
+          ? aliasDoc.data()?.createdAt || FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+      });
 
       return {
         username: aliasUsername,
         status: action === "redirect" ? "redirect" : "disabled",
-        targetUsername: currentUsername,
+        targetUsername: currentUsernameRaw,
+        canManage: true,
       };
     });
 
