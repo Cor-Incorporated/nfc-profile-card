@@ -1,5 +1,6 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 import { generateDefaultUsername } from "@/lib/username";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
@@ -94,11 +95,33 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
           const previousAliasDoc = previousAliasRef
             ? await transaction.get(previousAliasRef)
             : null;
+          if (
+            previousDoc?.exists &&
+            previousDoc.data()?.uid === params.uid &&
+            previousAliasDoc?.exists &&
+            previousAliasDoc.data()?.uid !== params.uid
+          ) {
+            throw new LegacyAliasConflictError();
+          }
+          const hasPreviousOwnershipRecord =
+            (previousDoc?.exists && previousDoc.data()?.uid === params.uid) ||
+            (previousAliasDoc?.exists &&
+              previousAliasDoc.data()?.uid === params.uid) ||
+            previousUsername === `u_${params.uid}`;
+          const publicOwner = previousUsername
+            ? await resolvePublicProfileOwner(previousUsername)
+            : null;
+          const ownsPreviousUrl =
+            hasPreviousOwnershipRecord && publicOwner === params.uid;
+          const needsQuarantine =
+            !hasPreviousOwnershipRecord && publicOwner === params.uid;
+          const previousUrlWasOwned = ownsPreviousUrl || needsQuarantine;
 
           if (
             legacyUrlAction === "redirect" &&
             previousUsername &&
-            ((previousDoc?.exists && previousDoc.data()?.uid !== params.uid) ||
+            (!ownsPreviousUrl ||
+              (previousDoc?.exists && previousDoc.data()?.uid !== params.uid) ||
               (previousAliasDoc?.exists &&
                 previousAliasDoc.data()?.uid !== params.uid))
           ) {
@@ -134,10 +157,22 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                 updatedAt: FieldValue.serverTimestamp(),
               });
             } else if (
-              previousAliasDoc?.exists &&
-              previousAliasDoc.data()?.uid === params.uid
+              (ownsPreviousUrl || needsQuarantine) &&
+              (!previousDoc?.exists ||
+                previousDoc.data()?.uid === params.uid) &&
+              (!previousAliasDoc?.exists ||
+                previousAliasDoc.data()?.uid === params.uid)
             ) {
-              transaction.delete(previousAliasRef);
+              transaction.set(previousAliasRef, {
+                uid: ownsPreviousUrl ? params.uid : null,
+                username: previousUsername,
+                status: "disabled",
+                ...(needsQuarantine ? { quarantined: true } : {}),
+                createdAt:
+                  previousAliasDoc?.data()?.createdAt ||
+                  FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+              });
             }
           }
 
@@ -152,6 +187,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             uid: params.uid,
             previousUsername,
             username,
+            previousUrlWasOwned,
           };
         });
 
@@ -161,7 +197,11 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             { status: 404 },
           );
         }
-        return NextResponse.json(result);
+        return NextResponse.json({
+          uid: result.uid,
+          previousUsername: result.previousUsername,
+          username: result.username,
+        });
       } catch (error) {
         if (error instanceof UsernameCollisionError) continue;
         throw error;

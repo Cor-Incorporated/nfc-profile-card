@@ -1,6 +1,7 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
 import { syncBasicProfileContent } from "@/lib/profile/syncBasicProfile";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 import {
   generateDefaultUsername,
   getUidFallbackUsername,
@@ -75,11 +76,7 @@ async function isUsernameAvailable(username: string, uid: string) {
     .collection("usernameAliases")
     .doc(usernameKey)
     .get();
-  if (
-    alias.exists &&
-    alias.data()?.status === "redirect" &&
-    alias.data()?.uid !== uid
-  ) {
+  if (alias.exists && alias.data()?.uid !== uid) {
     return false;
   }
 
@@ -169,11 +166,15 @@ export async function PATCH(request: NextRequest) {
       typeof userDoc.data()?.username === "string"
         ? userDoc.data()?.username
         : "";
-    const currentUsername = normalizeUsername(currentUsernameRaw);
+    const expectedUsernameRaw =
+      typeof body.expectedUsername === "string"
+        ? body.expectedUsername
+        : currentUsernameRaw;
     const isUsernameChanging =
       usernameMode === "uid"
-        ? requestedUsername !== currentUsernameRaw
-        : normalizeUsername(requestedUsername) !== currentUsername;
+        ? requestedUsername !== expectedUsernameRaw
+        : normalizeUsername(requestedUsername) !==
+          normalizeUsername(expectedUsernameRaw);
 
     if (
       isUsernameChanging &&
@@ -196,26 +197,50 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const profileUpdates: Record<string, unknown> = {
+    const baseProfileUpdates: Record<string, unknown> = {
       uid: verification.uid,
-      username: isUsernameChanging
-        ? requestedUsername
-        : currentUsernameRaw || requestedUsername,
       usernameConfirmed: true,
       updatedAt: FieldValue.serverTimestamp(),
     };
 
     for (const field of PROFILE_STRING_FIELDS) {
-      profileUpdates[field] = pickString(
+      baseProfileUpdates[field] = pickString(
         body[field],
         field === "bio" ? BIO_MAX_LENGTH : 200,
       );
     }
 
     const profileDocRef = userRef.collection("profile").doc("data");
-    await adminDb.runTransaction(async (transaction) => {
+    const saved = await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
       const profileDoc = await transaction.get(profileDocRef);
+      const latestUsernameRaw =
+        typeof latestUserDoc.data()?.username === "string"
+          ? latestUserDoc.data()?.username
+          : "";
+      const latestUsername = normalizeUsername(latestUsernameRaw);
+      // A basic-field save from a stale editor must preserve a concurrent
+      // username rotation. An explicit rename must retry after the caller
+      // sees the new username instead of overwriting its reservation.
+      if (isUsernameChanging && latestUsernameRaw !== expectedUsernameRaw) {
+        throw new Error("USERNAME_STALE");
+      }
+      // A supplied expectedUsername only describes the editor's old state.
+      // It cannot bypass reservation checks when the stored name is empty.
+      const changingUsername =
+        isUsernameChanging || (!latestUsernameRaw && !!requestedUsername);
+      if (
+        changingUsername &&
+        !isValidUsername(requestedUsername, verification.uid)
+      ) {
+        throw new Error("USERNAME_INVALID");
+      }
+      const profileUpdates: Record<string, unknown> = {
+        ...baseProfileUpdates,
+        username: changingUsername
+          ? requestedUsername
+          : latestUsernameRaw || requestedUsername,
+      };
       const userExists = latestUserDoc.exists;
       const saveUserAndProfile = () => {
         transaction.set(
@@ -248,9 +273,13 @@ export async function PATCH(request: NextRequest) {
         }
       };
 
-      if (!isUsernameChanging) {
+      if (!changingUsername) {
         saveUserAndProfile();
-        return;
+        return {
+          profileUpdates,
+          previousUsername: "",
+          previousUrlWasOwned: false,
+        };
       }
 
       const usernameRef = adminDb
@@ -284,17 +313,63 @@ export async function PATCH(request: NextRequest) {
         throw new Error("USERNAME_TAKEN");
       }
 
-      const previousUsername = normalizeUsername(
-        latestUserDoc.data()?.username,
-      );
+      const requestedAliasRef = adminDb
+        .collection("usernameAliases")
+        .doc(requestedUsername.toLowerCase());
+      const requestedAliasDoc = await transaction.get(requestedAliasRef);
+      if (
+        requestedAliasDoc.exists &&
+        requestedAliasDoc.data()?.uid !== verification.uid
+      ) {
+        throw new Error("USERNAME_TAKEN");
+      }
+
+      const previousUsername = latestUsername;
+      const previousUsernameRaw = latestUsernameRaw;
+      let previousUrlWasOwned = false;
       if (
         previousUsername &&
+        !previousUsername.includes("/") &&
+        previousUsername.length <= 150 &&
         previousUsername !== normalizeUsername(requestedUsername)
       ) {
         const previousRef = adminDb
           .collection("usernames")
           .doc(previousUsername.toLowerCase());
         const previousDoc = await transaction.get(previousRef);
+        const previousAliasRef = adminDb
+          .collection("usernameAliases")
+          .doc(previousUsername.toLowerCase());
+        const previousAliasDoc = await transaction.get(previousAliasRef);
+        if (
+          previousDoc.exists &&
+          previousDoc.data()?.uid === verification.uid &&
+          previousAliasDoc.exists &&
+          previousAliasDoc.data()?.uid !== verification.uid
+        ) {
+          throw new Error("USERNAME_TAKEN");
+        }
+        const hasPreviousOwnershipRecord =
+          (previousDoc.exists &&
+            previousDoc.data()?.uid === verification.uid) ||
+          (previousAliasDoc.exists &&
+            previousAliasDoc.data()?.uid === verification.uid) ||
+          previousUsernameRaw === `u_${verification.uid}`;
+        const publicOwner =
+          await resolvePublicProfileOwner(previousUsernameRaw);
+        const ownsPreviousUrl =
+          hasPreviousOwnershipRecord && publicOwner === verification.uid;
+        const needsQuarantine =
+          !hasPreviousOwnershipRecord && publicOwner === verification.uid;
+        previousUrlWasOwned = ownsPreviousUrl || needsQuarantine;
+        if (
+          legacyUrlAction === "redirect" &&
+          (!ownsPreviousUrl ||
+            (previousAliasDoc.exists &&
+              previousAliasDoc.data()?.uid !== verification.uid))
+        ) {
+          throw new Error("USERNAME_TAKEN");
+        }
         if (
           previousDoc.exists &&
           previousDoc.data()?.uid === verification.uid
@@ -302,9 +377,6 @@ export async function PATCH(request: NextRequest) {
           transaction.delete(previousRef);
         }
 
-        const previousAliasRef = adminDb
-          .collection("usernameAliases")
-          .doc(previousUsername.toLowerCase());
         if (legacyUrlAction === "redirect") {
           transaction.set(previousAliasRef, {
             uid: verification.uid,
@@ -312,19 +384,33 @@ export async function PATCH(request: NextRequest) {
             targetUsername: requestedUsername,
             status: "redirect",
             updatedAt: FieldValue.serverTimestamp(),
-            createdAt: FieldValue.serverTimestamp(),
+            createdAt:
+              previousAliasDoc.data()?.createdAt ||
+              FieldValue.serverTimestamp(),
           });
-        } else {
-          transaction.delete(previousAliasRef);
+        } else if (
+          (ownsPreviousUrl || needsQuarantine) &&
+          (!previousDoc.exists ||
+            previousDoc.data()?.uid === verification.uid) &&
+          (!previousAliasDoc.exists ||
+            previousAliasDoc.data()?.uid === verification.uid)
+        ) {
+          transaction.set(previousAliasRef, {
+            uid: ownsPreviousUrl ? verification.uid : null,
+            username: previousUsername,
+            status: "disabled",
+            ...(needsQuarantine ? { quarantined: true } : {}),
+            updatedAt: FieldValue.serverTimestamp(),
+            createdAt:
+              previousAliasDoc.data()?.createdAt ||
+              FieldValue.serverTimestamp(),
+          });
         }
 
         profileUpdates.previousUsernames =
           FieldValue.arrayUnion(previousUsername);
       }
 
-      const requestedAliasRef = adminDb
-        .collection("usernameAliases")
-        .doc(requestedUsername.toLowerCase());
       transaction.delete(requestedAliasRef);
 
       transaction.set(usernameRef, {
@@ -333,17 +419,31 @@ export async function PATCH(request: NextRequest) {
         updatedAt: FieldValue.serverTimestamp(),
       });
       saveUserAndProfile();
+      return {
+        profileUpdates,
+        previousUsername: previousUsernameRaw,
+        previousUrlWasOwned,
+      };
     });
 
     return NextResponse.json({
       profile: {
         ...Object.fromEntries(
-          PROFILE_STRING_FIELDS.map((field) => [field, profileUpdates[field]]),
+          PROFILE_STRING_FIELDS.map((field) => [
+            field,
+            saved.profileUpdates[field],
+          ]),
         ),
-        username: profileUpdates.username,
+        username: saved.profileUpdates.username,
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "USERNAME_STALE") {
+      return NextResponse.json({ error: "username_stale" }, { status: 409 });
+    }
+    if (error instanceof Error && error.message === "USERNAME_INVALID") {
+      return NextResponse.json({ error: "username_invalid" }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "USERNAME_TAKEN") {
       return NextResponse.json(
         { error: "username_taken", suggestions: [] },

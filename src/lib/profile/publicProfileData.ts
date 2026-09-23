@@ -135,20 +135,34 @@ async function verifiedAliasTarget(
   aliasData: DocumentData,
   userDoc: UserProfileDoc,
 ) {
-  // users/{uid}.username is client writable in existing deployments. Only
-  // redirect to a server-owned reservation for the same UID.
+  // Existing user fields may be stale. Redirect only to a reservation owned
+  // by this UID or to the exact UID's fixed URL.
   for (const value of [userDoc.data()?.username, aliasData.targetUsername]) {
     if (typeof value !== "string") continue;
+    const rawTarget = value.trim();
     const target = normalizeUsername(value);
-    if (target === requestedUsername || !/^[a-z0-9_-]{3,150}$/.test(target)) {
+    if (
+      target === requestedUsername ||
+      !target ||
+      target.includes("/") ||
+      target.length > 150
+    ) {
       continue;
     }
     const reservation = await adminDb.collection("usernames").doc(target).get();
-    if (!reservation.exists || reservation.data()?.uid !== uid) continue;
-    if (target.startsWith("u_")) {
-      const directUidOwner = await fetchUserByUid(target.slice(2));
-      if (directUidOwner && directUidOwner.id !== uid) continue;
+    // An exact UID URL is also owned without a reservation. Preserve its
+    // original case and symbols so the redirect reaches that UID document.
+    if (rawTarget === `u_${uid}`) {
+      if (!reservation.exists || reservation.data()?.uid === uid) {
+        return rawTarget;
+      }
+      continue;
     }
+    if (!/^[a-z0-9_-]{3,150}$/.test(target)) continue;
+    if (!reservation.exists || reservation.data()?.uid !== uid) continue;
+    // The exact-case UID path above is the only safe u_ target. A normalized
+    // variant may have belonged to a different UID that was later deleted.
+    if (target.startsWith("u_")) continue;
     return target;
   }
   return undefined;
@@ -187,6 +201,9 @@ async function resolveUserDoc(
         return null;
       }
       const alias = fallbackAlias.exists ? fallbackAlias.data() : null;
+      if (typeof alias?.uid === "string" && alias.uid !== fallback.userDoc.id) {
+        return null;
+      }
       if (alias?.status === "redirect" && alias.uid === fallback.userDoc.id) {
         const redirectUsername = await verifiedAliasTarget(
           fallback.userDoc.id,
@@ -200,14 +217,10 @@ async function resolveUserDoc(
       }
       return fallback;
     }
-    // A deleted UID's fixed URL must not be inherited by an alias or an
-    // unreserved client-writable username. Only a case-normalized reservation
-    // for that same UID may resolve it.
-    if (
-      typeof reservationUid !== "string" ||
-      reservationUid.toLowerCase() !== username.slice(2).toLowerCase()
-    )
-      return null;
+    // A deleted UID's fixed URL must never be inherited by a different UID.
+    // Case-folded reservations and aliases cannot prove that the exact UID
+    // named by this path never existed, so only an exact UID match is safe.
+    if (reservationUid !== username.slice(2)) return null;
     return fetchUserAndProfileByUid(reservationUid, loadProfile);
   }
 
@@ -219,6 +232,17 @@ async function resolveUserDoc(
 
   if (usernameDoc.exists) {
     if (typeof reservedUid !== "string" || !reservedUid) return null;
+    if (username !== normalizedUsername) {
+      // A newer lowercase reservation must not silently replace an older
+      // exact mixed-case legacy URL owned by someone else.
+      const exactLegacyOwner = await fetchUserByUsername(username);
+      if (
+        exactLegacyOwner === null ||
+        (exactLegacyOwner && exactLegacyOwner.id !== reservedUid)
+      ) {
+        return null;
+      }
+    }
     return fetchUserAndProfileByUid(reservedUid, loadProfile);
   }
 
@@ -230,6 +254,15 @@ async function resolveUserDoc(
   if (aliasDoc.exists) {
     const aliasUid = aliasData?.status === "redirect" ? aliasData?.uid : null;
     if (typeof aliasUid !== "string" || !aliasUid) return null;
+    if (username !== normalizedUsername) {
+      const exactLegacyOwner = await fetchUserByUsername(username);
+      if (
+        exactLegacyOwner === null ||
+        (exactLegacyOwner && exactLegacyOwner.id !== aliasUid)
+      ) {
+        return null;
+      }
+    }
     const aliasUserDoc = await fetchUserByUid(aliasUid);
     if (aliasUserDoc) {
       const redirectUsername = await verifiedAliasTarget(
@@ -238,6 +271,7 @@ async function resolveUserDoc(
         aliasData || {},
         aliasUserDoc,
       );
+      if (!redirectUsername) return null;
       return {
         userDoc: aliasUserDoc,
         redirectUsername,
