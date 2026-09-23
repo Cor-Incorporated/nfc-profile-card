@@ -162,6 +162,40 @@ test("a reservation wins over a forged user username", async () => {
   expect(await resolvePublicProfileOwner("alice")).toBe("owner");
 });
 
+test("a lowercase reservation cannot show a different owner at an exact mixed-case legacy URL", async () => {
+  installFirestoreFixture({
+    reservations: { foo: { uid: "new-owner" } },
+    users: {
+      "new-owner": { name: "New", username: "foo" },
+      "legacy-owner": { name: "Legacy", username: "Foo" },
+    },
+  });
+
+  expect(await resolvePublicProfileOwner("foo")).toBe("new-owner");
+  expect(await resolvePublicProfileOwner("Foo")).toBeNull();
+  expect((await fetchPublicProfileByUsername("Foo")).user).toBeNull();
+});
+
+test("a lowercase alias cannot redirect a different owner's exact mixed-case legacy URL", async () => {
+  installFirestoreFixture({
+    reservations: { newname: { uid: "new-owner" } },
+    aliases: {
+      foo: {
+        uid: "new-owner",
+        status: "redirect",
+        targetUsername: "newname",
+      },
+    },
+    users: {
+      "new-owner": { name: "New", username: "newname" },
+      "legacy-owner": { name: "Legacy", username: "Foo" },
+    },
+  });
+
+  expect(await resolvePublicProfileOwner("Foo")).toBeNull();
+  expect((await fetchPublicProfileByUsername("Foo")).user).toBeNull();
+});
+
 test("an alias wins over a forged user username and redirects only to its owner's reservation", async () => {
   installFirestoreFixture({
     reservations: { newname: { uid: "owner" } },
@@ -193,8 +227,52 @@ test("a client-edited alias target cannot redirect to another user's profile", a
   });
 
   const result = await fetchPublicProfileByUsername("oldname");
-  expect(result.user?.name).toBe("Alice");
+  expect(result.user).toBeNull();
   expect(result.redirectUsername).toBeNull();
+  expect(await resolvePublicProfileOwner("oldname")).toBeNull();
+});
+
+test("an unproven redirect alias does not expose a profile at its old URL", async () => {
+  installFirestoreFixture({
+    aliases: { oldname: { uid: "owner", status: "redirect" } },
+    users: { owner: { name: "Alice", username: "unreserved" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("oldname")).user).toBeNull();
+  expect(await resolvePublicProfileOwner("oldname")).toBeNull();
+});
+
+test("an alias may redirect to its owner's exact UID URL without a reservation", async () => {
+  installFirestoreFixture({
+    aliases: {
+      oldname: {
+        uid: "MixCase",
+        status: "redirect",
+        targetUsername: "u_MixCase",
+      },
+    },
+    users: { MixCase: { name: "Alice", username: "u_MixCase" } },
+  });
+
+  const result = await fetchPublicProfileByUsername("oldname");
+  expect(result.user?.name).toBe("Alice");
+  expect(result.redirectUsername).toBe("u_MixCase");
+});
+
+test("an alias cannot redirect to a case-folded UID target even with an own reservation", async () => {
+  installFirestoreFixture({
+    reservations: { u_mixcase: { uid: "MixCase" } },
+    aliases: {
+      oldname: {
+        uid: "MixCase",
+        status: "redirect",
+        targetUsername: "u_mixcase",
+      },
+    },
+    users: { MixCase: { name: "Alice", username: "u_mixcase" } },
+  });
+
+  expect((await fetchPublicProfileByUsername("oldname")).user).toBeNull();
 });
 
 test("a disabled alias cannot fall through to a forged legacy username", async () => {
@@ -260,14 +338,62 @@ test("a missing UID document cannot be replaced by a legacy username", async () 
   expect((await fetchPublicProfileByUsername("u_owner")).user).toBeNull();
 });
 
-test("mixed-case UID fallback and normalized server reservation resolve the same owner", async () => {
+test("mixed-case UID resolves only its exact fixed path", async () => {
   installFirestoreFixture({
     reservations: { u_mixcase: { uid: "MixCase" } },
     users: { MixCase: { name: "Alice", username: "u_mixcase" } },
   });
 
   expect(await resolvePublicProfileOwner("u_MixCase")).toBe("MixCase");
-  expect(await resolvePublicProfileOwner("u_mixcase")).toBe("MixCase");
+  expect(await resolvePublicProfileOwner("u_mixcase")).toBeNull();
+});
+
+test("a rotated mixed-case UID cannot redirect a case-folded fixed path", async () => {
+  installFirestoreFixture({
+    reservations: { newname: { uid: "MixCase" } },
+    aliases: {
+      u_mixcase: {
+        uid: "MixCase",
+        status: "redirect",
+        targetUsername: "newname",
+      },
+    },
+    users: { MixCase: { name: "Alice", username: "newname" } },
+  });
+
+  const result = await fetchPublicProfileByUsername("u_mixcase");
+  expect(result.user).toBeNull();
+  expect(result.redirectUsername).toBeNull();
+  expect(await resolvePublicProfileOwner("u_mixcase")).toBeNull();
+});
+
+test("a deleted UID's fixed URL cannot be inherited by a differently cased reservation", async () => {
+  installFirestoreFixture({
+    reservations: { u_foo: { uid: "Foo" } },
+    users: { Foo: { name: "Other", username: "u_Foo" } },
+  });
+
+  expect(await resolvePublicProfileOwner("u_foo")).toBeNull();
+  expect(await resolvePublicProfileOwner("u_Foo")).toBe("Foo");
+});
+
+test("a later lowercase UID cannot inherit a different owner's redirect alias", async () => {
+  installFirestoreFixture({
+    reservations: { newname: { uid: "MixCase" } },
+    aliases: {
+      u_mixcase: {
+        uid: "MixCase",
+        status: "redirect",
+        targetUsername: "newname",
+      },
+    },
+    users: {
+      MixCase: { name: "Alice", username: "newname" },
+      mixcase: { name: "Other", username: "u_mixcase" },
+    },
+  });
+
+  expect(await resolvePublicProfileOwner("u_mixcase")).toBeNull();
 });
 
 test("case-sensitive UID collisions with a different normalized reservation fail closed", async () => {
@@ -314,7 +440,7 @@ test("an alias cannot redirect to a reserved UID path owned directly by another 
   });
 
   const result = await fetchPublicProfileByUsername("oldname");
-  expect(result.user?.name).toBe("Alice");
+  expect(result.user).toBeNull();
   expect(result.redirectUsername).toBeNull();
 });
 
