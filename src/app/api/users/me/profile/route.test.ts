@@ -69,8 +69,9 @@ function setupStore(failProfileWrite = false) {
           });
         },
       };
-      await callback(transaction);
+      const result = await callback(transaction);
       writes.forEach((write) => write());
+      return result;
     },
   );
   return state;

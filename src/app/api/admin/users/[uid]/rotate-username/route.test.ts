@@ -1,11 +1,15 @@
 import { verifyAdminRequest } from "@/lib/admin";
 import { adminDb } from "@/lib/firebase-admin";
+import { resolvePublicProfileOwner } from "@/lib/profile/publicProfileData";
 import { generateDefaultUsername } from "@/lib/username";
 import { POST } from "./route";
 
 jest.mock("@/lib/admin", () => ({ verifyAdminRequest: jest.fn() }));
 jest.mock("@/lib/firebase-admin", () => ({
   adminDb: { collection: jest.fn(), runTransaction: jest.fn() },
+}));
+jest.mock("@/lib/profile/publicProfileData", () => ({
+  resolvePublicProfileOwner: jest.fn(),
 }));
 jest.mock("@/lib/username", () => ({ generateDefaultUsername: jest.fn() }));
 jest.mock("firebase-admin/firestore", () => ({
@@ -30,6 +34,7 @@ type Write = { type: "set" | "update" | "delete"; path: string; value?: Data };
 
 const docs = new Map<string, Data>();
 const transactions: Array<{ events: string[]; writes: Write[] }> = [];
+let beforeTransaction: (() => void) | null = null;
 
 function installFirestoreFixture() {
   (adminDb.collection as jest.Mock).mockImplementation(
@@ -43,6 +48,8 @@ function installFirestoreFixture() {
 
   (adminDb.runTransaction as jest.Mock).mockImplementation(
     async (callback: (transaction: unknown) => Promise<unknown>) => {
+      beforeTransaction?.();
+      beforeTransaction = null;
       const run = { events: [] as string[], writes: [] as Write[] };
       transactions.push(run);
       const transaction = {
@@ -107,12 +114,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   docs.clear();
   transactions.length = 0;
+  beforeTransaction = null;
   installFirestoreFixture();
   (verifyAdminRequest as jest.Mock).mockResolvedValue({
     ok: true,
     decodedToken: { uid: "admin-1" },
   });
   (generateDefaultUsername as jest.Mock).mockReturnValue("731826405219");
+  (resolvePublicProfileOwner as jest.Mock).mockResolvedValue("uid-a");
   docs.set("users/uid-a", { username: "oldname1" });
   docs.set("usernames/oldname1", { uid: "uid-a" });
 });
@@ -132,7 +141,10 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
     username: "731826405219",
   });
   expect(docs.has("usernames/oldname1")).toBe(false);
-  expect(docs.has("usernameAliases/oldname1")).toBe(false);
+  expect(docs.get("usernameAliases/oldname1")).toMatchObject({
+    uid: "uid-a",
+    status: "disabled",
+  });
   expect(docs.get("usernames/731826405219")?.uid).toBe("uid-a");
   expect(docs.get("users/uid-a")).toMatchObject({
     username: "731826405219",
@@ -143,6 +155,31 @@ test("body-free admin rotation disables the old URL and reserves the new one ato
   });
   const { events } = transactions[0];
   expect(events.lastIndexOf("read")).toBeLessThan(events.indexOf("write"));
+});
+
+test("admin rotation uses the actual previous URL after a concurrent earlier rotation", async () => {
+  beforeTransaction = () => {
+    docs.set("users/uid-a", { username: "middle-name" });
+    docs.delete("usernames/oldname1");
+    docs.set("usernameAliases/oldname1", {
+      uid: "uid-a",
+      status: "disabled",
+    });
+    docs.set("usernames/middle-name", { uid: "uid-a" });
+  };
+
+  const response = await rotate();
+
+  expect(response.status).toBe(200);
+  expect(response.body).toMatchObject({
+    previousUsername: "middle-name",
+    username: "731826405219",
+  });
+  expect(docs.get("usernameAliases/middle-name")).toMatchObject({
+    uid: "uid-a",
+    status: "disabled",
+  });
+  expect(docs.has("usernames/middle-name")).toBe(false);
 });
 
 test("UID形式の旧URLは回転後も利用されるため予約と別名だけを解除する", async () => {
@@ -159,7 +196,10 @@ test("UID形式の旧URLは回転後も利用されるため予約と別名だ�
   expect(response.status).toBe(200);
   expect(response.body).toMatchObject({ previousUsername: "u_uid-a" });
   expect(docs.has("usernames/u_uid-a")).toBe(false);
-  expect(docs.has("usernameAliases/u_uid-a")).toBe(false);
+  expect(docs.get("usernameAliases/u_uid-a")).toMatchObject({
+    uid: "uid-a",
+    status: "disabled",
+  });
   expect(docs.get("users/uid-a")?.username).toBe("731826405219");
 });
 
@@ -217,6 +257,16 @@ test("does not delete a reservation or alias owned by another user", async () =>
   expect(docs.get("usernames/731826405219")?.uid).toBe("uid-a");
 });
 
+test("admin rotation refuses to expose another user's alias behind an own reservation", async () => {
+  docs.set("usernameAliases/oldname1", { uid: "uid-b", status: "redirect" });
+
+  const response = await rotate();
+
+  expect(response.status).toBe(409);
+  expect(transactions[0].writes).toHaveLength(0);
+  expect(docs.get("usernames/oldname1")?.uid).toBe("uid-a");
+});
+
 test.each(["usernames", "usernameAliases"])(
   "redirect refuses to overwrite another user's old %s document",
   async (collection) => {
@@ -231,3 +281,47 @@ test.each(["usernames", "usernameAliases"])(
     expect(docs.get(path)?.uid).toBe("uid-b");
   },
 );
+
+test("redirect refuses a forged previous username with another public owner", async () => {
+  (resolvePublicProfileOwner as jest.Mock).mockResolvedValueOnce("uid-b");
+
+  const response = await rotate({ legacyUrlAction: "redirect" });
+
+  expect(response.status).toBe(409);
+  expect(transactions[0].writes).toHaveLength(0);
+  expect(docs.get("usernameAliases/oldname1")).toBeUndefined();
+});
+
+test("unreserved legacy history cannot become a redirect", async () => {
+  docs.delete("usernames/oldname1");
+
+  const response = await rotate({ legacyUrlAction: "redirect" });
+
+  expect(response.status).toBe(409);
+  expect(transactions[0].writes).toHaveLength(0);
+});
+
+test("an unreserved legacy URL is quarantined without assigning ownership", async () => {
+  docs.delete("usernames/oldname1");
+
+  const response = await rotate();
+
+  expect(response.status).toBe(200);
+  expect(docs.get("usernameAliases/oldname1")).toMatchObject({
+    uid: null,
+    status: "disabled",
+    quarantined: true,
+  });
+});
+
+test("admin rotation never quarantines another user's direct UID URL", async () => {
+  docs.set("users/uid-a", { username: "u_uid-b" });
+  docs.set("users/uid-b", { username: "u_uid-b" });
+  docs.delete("usernames/oldname1");
+  (resolvePublicProfileOwner as jest.Mock).mockResolvedValueOnce("uid-b");
+
+  const response = await rotate();
+
+  expect(response.status).toBe(200);
+  expect(docs.has("usernameAliases/u_uid-b")).toBe(false);
+});
