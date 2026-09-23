@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const deadlineAtMs = Date.now() + 28_000;
   console.log("=== Business Card Scan API Called ===");
   console.log("Time:", new Date().toISOString());
   console.log("Method:", request.method);
@@ -122,7 +123,9 @@ export async function POST(request: NextRequest) {
 
     // Process the business card image using OCR service
     console.log("Starting OCR processing...");
-    const ocrResult = await processBusinessCardImage(image, mimeType);
+    const ocrResult = await processBusinessCardImage(image, mimeType, {
+      deadlineAtMs,
+    });
 
     if (!ocrResult.success) {
       console.error("❌ OCR processing failed");
