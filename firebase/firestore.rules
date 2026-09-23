@@ -16,6 +16,31 @@ service cloud.firestore {
              !('links' in request.resource.data.profile) || 
              request.resource.data.profile.links.size() <= 10;
     }
+
+    // A public URL and its redirect history are assigned by the server.
+    // A new client document may only use its own UID fallback URL.
+    function isValidNewPublicIdentity(userId) {
+      return !request.resource.data.keys().hasAny([
+               'previousUsernames', 'usernameConfirmed',
+               'usernameRotatedAt', 'usernameRotatedBy',
+               'usernameRotatedBySelf', 'analytics'
+             ]) &&
+             (request.resource.data.get('username', '') == '' ||
+              request.resource.data.get('username', '') == 'u_' + userId);
+    }
+
+    function keepsServerControlledPublicIdentity(userId) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+               'previousUsernames', 'usernameConfirmed',
+               'usernameRotatedAt', 'usernameRotatedBy',
+               'usernameRotatedBySelf', 'analytics'
+             ]) &&
+             (request.resource.data.get('username', '') ==
+                resource.data.get('username', '') ||
+              ((resource.data.get('username', '') == '' ||
+                resource.data.get('username', '') == null) &&
+               request.resource.data.get('username', '') == 'u_' + userId));
+    }
     
     // ユーザードキュメント
     match /users/{userId} {
@@ -23,9 +48,12 @@ service cloud.firestore {
       allow read: if true;
       
       // 本人のみ作成・更新可能（Firebase Auth使用）
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && isValidProfile();
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidNewPublicIdentity(userId);
+      allow update: if isOwner(userId) && isValidProfile() &&
+                      keepsServerControlledPublicIdentity(userId);
+      // Deletion would let a client erase server-owned URL history and view
+      // counters, then recreate the same UID. Account removal must use Admin SDK.
+      allow delete: if false;
       
       // プロフィールサブコレクション（公開プロフィール用）
       match /profile/{docId} {
