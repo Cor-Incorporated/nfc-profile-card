@@ -2,6 +2,11 @@ import vCardsJS from "vcards-js";
 import { GET, POST } from "./route";
 import { getDocs } from "firebase/firestore";
 
+const PNG_PHOTO = [
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1Jr",
+  "AAAADElEQVR4nGNgZGIGAAAOAAfXb+R4AAAAAElFTkSuQmCC",
+].join("");
+
 // NextResponseのモック
 jest.mock("next/server", () => {
   class MockResponse {
@@ -271,6 +276,54 @@ describe("VCard API Routes", () => {
       return req;
     }
 
+    it("HTTPS 写真を取得せず vCard の URI として記録する", async () => {
+      const photo = "https://cdn.example.com/profile.png";
+      const response = await POST(createPostRequest({ photo }) as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain(`PHOTO;VALUE=uri:${photo}\r\nEND:VCARD`);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "http://169.254.169.254/latest/meta-data/",
+      "https://169.254.169.254/latest/meta-data/",
+      "https://localhost/photo.jpg",
+      "https://user:password@cdn.example.com/photo.jpg",
+      "https://cdn.example.com/photo.jpg\r\nFN:injected",
+    ])("POST の不正な写真を省略する: %s", async (photo) => {
+      const response = await POST(createPostRequest({ photo }) as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toContain("PHOTO;");
+      expect(body).not.toContain("FN:injected");
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("1 MiB を超える画像データを省略する", async () => {
+      const photo = `data:image/png;base64,${"A".repeat(1_400_000)}`;
+      const response = await POST(createPostRequest({ photo }) as any);
+
+      expect(await response.text()).not.toContain("PHOTO;");
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("正しい PNG data URI を写真として埋め込む", async () => {
+      const response = await POST(
+        createPostRequest({
+          photo: `data:image/png;base64,${PNG_PHOTO}`,
+        }) as any,
+      );
+      const body = await response.text();
+
+      expect(body.replace(/\r\n /g, "")).toContain(
+        `PHOTO;ENCODING=b;TYPE=PNG:${PNG_PHOTO}`,
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
     it("基本的なVCardを生成できる", async () => {
       const requestData = {
         firstName: "John",
@@ -392,6 +445,47 @@ describe("VCard API Routes", () => {
   });
 
   describe("GET /api/vcard", () => {
+    it("公開プロフィールの HTTPS 写真を取得せず URI で記録する", async () => {
+      const photoURL = "https://cdn.example.com/profile.png";
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [{ data: () => ({ name: "Test User", photoURL }) }],
+      });
+      const request = new MockNextRequest(
+        "http://localhost:3000/api/vcard?username=test-user",
+      );
+
+      const response = await GET(request as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain(`PHOTO;VALUE=uri:${photoURL}\r\nEND:VCARD`);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "http://169.254.169.254/latest/meta-data/",
+      "https://169.254.169.254/latest/meta-data/",
+      "https://metadata.google.internal/photo.jpg",
+      "https://cdn.example.com/photo.jpg\nFN:injected",
+    ])("公開プロフィールの不正な写真を省略する: %s", async (photoURL) => {
+      (getDocs as jest.Mock).mockResolvedValueOnce({
+        empty: false,
+        docs: [{ data: () => ({ name: "Test User", photoURL }) }],
+      });
+      const request = new MockNextRequest(
+        "http://localhost:3000/api/vcard?username=test-user",
+      );
+
+      const response = await GET(request as any);
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toContain("PHOTO;");
+      expect(body).not.toContain("FN:injected");
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
     it("usernameパラメータでプロファイルを取得してVCardを生成", async () => {
       const mockProfile = {
         name: "John Doe",
