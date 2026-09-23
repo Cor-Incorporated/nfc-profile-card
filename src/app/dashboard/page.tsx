@@ -160,6 +160,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           usernameMode: idSetupMode,
           username: customUsername,
+          expectedUsername: userProfile?.username,
           name: userProfile?.name || user.displayName || "",
           bio: userProfile?.bio || "",
           company: userProfile?.company || "",
@@ -177,6 +178,10 @@ export default function DashboardPage() {
       });
 
       const data = await response.json();
+      if (response.status === 409 && data.error === "username_stale") {
+        setIdSetupError(t("usernameChangedReload"));
+        return;
+      }
       if (response.status === 409 && data.error === "username_taken") {
         setIdSetupError(t("usernameUnavailable"));
         return;
