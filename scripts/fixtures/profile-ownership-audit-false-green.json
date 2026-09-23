@@ -1,0 +1,33 @@
+{
+  "users": [
+    { "id": "A", "username": "newname" },
+    { "id": "B", "username": "u_B" },
+    { "id": "C", "username": "cname" }
+  ],
+  "reservations": [
+    { "id": "newname", "uid": "A" },
+    { "id": "oldname", "uid": "A" },
+    { "id": "cname", "uid": "C" }
+  ],
+  "aliases": [
+    {
+      "id": "oldname",
+      "uid": "A",
+      "status": "redirect",
+      "targetUsername": "newname"
+    },
+    {
+      "id": "old-b",
+      "uid": "B",
+      "status": "redirect",
+      "targetUsername": "u_B"
+    },
+    { "id": "u_b", "uid": "C", "status": "disabled" },
+    {
+      "id": "Old-C",
+      "uid": "C",
+      "status": "redirect",
+      "targetUsername": "cname"
+    }
+  ]
+}
