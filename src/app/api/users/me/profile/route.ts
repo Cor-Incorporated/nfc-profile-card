@@ -1,5 +1,6 @@
 import { BIO_MAX_LENGTH } from "@/lib/constants/profile";
 import { adminDb, verifyIdToken } from "@/lib/firebase-admin";
+import { splitEditedProfileAddress } from "@/lib/profile/address";
 import {
   generateDefaultUsername,
   getUidFallbackUsername,
@@ -18,6 +19,17 @@ const PROFILE_STRING_FIELDS = [
   "phone",
   "website",
   "address",
+  "photoURL",
+] as const;
+
+const PROFILE_COMPONENT_FIELDS = [
+  "name",
+  "bio",
+  "company",
+  "position",
+  "email",
+  "phone",
+  "website",
   "photoURL",
 ] as const;
 
@@ -187,11 +199,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const replaceComponentAddress = body.replaceComponentAddress === true;
+    const profileDocRef = userRef.collection("profile").doc("data");
     await adminDb.runTransaction(async (transaction) => {
       const latestUserDoc = await transaction.get(userRef);
+      const profileDoc = await transaction.get(profileDocRef);
       const userExists = latestUserDoc.exists;
 
-      if (!isUsernameChanging) {
+      const saveUserAndProfile = () => {
         transaction.set(
           userRef,
           {
@@ -200,6 +215,50 @@ export async function PATCH(request: NextRequest) {
           },
           { merge: true },
         );
+
+        const components = profileDoc.data()?.components;
+        if (!Array.isArray(components)) return;
+        transaction.update(profileDocRef, {
+          components: components.map((comp: any) => {
+            if (comp.type !== "profile") return comp;
+            const existing = { ...(comp.content || {}) };
+            const updated: Record<string, unknown> = { ...existing };
+            for (const field of PROFILE_COMPONENT_FIELDS) {
+              const value = profileUpdates[field];
+              if (typeof value === "string" && value !== "") {
+                updated[field] = value;
+              }
+            }
+
+            if (replaceComponentAddress) {
+              const parts = splitEditedProfileAddress(
+                String(profileUpdates.address || ""),
+                existing,
+              );
+              updated.address = parts.address;
+              if (parts.postalCode) updated.postalCode = parts.postalCode;
+              else delete updated.postalCode;
+              if (parts.city) updated.city = parts.city;
+              else delete updated.city;
+            }
+
+            if (profileUpdates.name) {
+              const nameParts = String(profileUpdates.name).split(" ");
+              updated.firstName =
+                nameParts.length > 1
+                  ? nameParts.slice(1).join(" ")
+                  : nameParts[0] || "";
+              updated.lastName = nameParts.length > 1 ? nameParts[0] : "";
+            }
+
+            return { ...comp, content: updated };
+          }),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      };
+
+      if (!isUsernameChanging) {
+        saveUserAndProfile();
         return;
       }
 
@@ -269,77 +328,8 @@ export async function PATCH(request: NextRequest) {
         username: requestedUsername,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      transaction.set(
-        userRef,
-        {
-          ...profileUpdates,
-          ...(!userExists ? { createdAt: FieldValue.serverTimestamp() } : {}),
-        },
-        { merge: true },
-      );
+      saveUserAndProfile();
     });
-
-    const syncFields = [
-      "name",
-      "bio",
-      "company",
-      "position",
-      "email",
-      "phone",
-      "website",
-      "address",
-      "photoURL",
-    ] as const;
-
-    try {
-      const profileDocRef = adminDb
-        .collection("users")
-        .doc(verification.uid)
-        .collection("profile")
-        .doc("data");
-      const profileDoc = await profileDocRef.get();
-
-      if (profileDoc.exists) {
-        const profileData = profileDoc.data();
-        const components: any[] = profileData?.components || [];
-
-        const updatedComponents = components.map((comp: any) => {
-          if (comp.type !== "profile") return comp;
-
-          const existing = { ...(comp.content || {}) };
-          const nameParts = String(profileUpdates.name || "").split(" ");
-          const firstName =
-            nameParts.length > 1
-              ? nameParts.slice(1).join(" ")
-              : nameParts[0] || "";
-          const lastName = nameParts.length > 1 ? nameParts[0] : "";
-
-          const updated: Record<string, unknown> = { ...existing };
-
-          for (const field of syncFields) {
-            const value = profileUpdates[field];
-            if (typeof value === "string" && value !== "") {
-              updated[field] = value;
-            }
-          }
-
-          if (profileUpdates.name) {
-            updated.firstName = firstName;
-            updated.lastName = lastName;
-            updated.name = profileUpdates.name;
-          }
-
-          return { ...comp, content: updated };
-        });
-
-        await profileDocRef.update({
-          components: updatedComponents,
-          updatedAt: new Date(),
-        });
-      }
-    } catch (syncError) {
-      console.error("Profile component sync failed:", syncError);
-    }
 
     return NextResponse.json({
       profile: {
